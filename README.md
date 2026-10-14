@@ -8,12 +8,17 @@ Grupo G054.
 
 - Lucas Chas
 
-## Documentación
+## Descripción
 
-- [Consigna](docs/consigna.md)
-- [Modelo de dominio](docs/modelo_de_dominio.md)
-- [Ciclo de vida del remito](docs/ciclo_de_vida_remito.md)
-- [Reportes](docs/reportes.md)
+Sistema de consola para una red de bibliotecas públicas. Administra las sedes, los socios y el catálogo, y gestiona:
+- préstamos locales e interbibliotecarios;
+- reservas;
+- el envío de ejemplares entre sedes, con remitos trazables;
+- devoluciones y multas.
+
+Incluye cinco reportes.
+
+Está hecho en Python con SQLAlchemy sobre SQLite y separado en capas: modelos, DAO, servicios e interfaz.
 
 ## Requisitos
 
@@ -33,26 +38,11 @@ pip install -r requirements.txt
 python main.py
 ```
 
-El sistema crea `biblioteca.db` en la carpeta desde donde se ejecuta. Desde el menú principal, la opción **Cargar datos de ejemplo** agrega 3 sedes, 4 socios (uno inhabilitado), 6 libros, 10 ejemplares y un historial de préstamos, envíos, devoluciones y reservas para que los reportes tengan datos.
+El sistema crea `biblioteca.db` en la carpeta desde donde se ejecuta. Para probarlo rápido, elegí **Cargar datos de ejemplo** en el menú principal. Se cargan:
+- 3 sedes, 4 socios (uno inhabilitado), 6 libros y 10 ejemplares;
+- un historial con fechas relativas a hoy: un préstamo vencido, un envío que llegó dañado y volvió a su sede, una multa impaga, un envío en viaje y una reserva pendiente.
 
-Menús disponibles:
-
-- **Sedes:** listar, registrar, modificar, dar de baja y reactivar.
-- **Socios:** listar, buscar por DNI, registrar, modificar, inhabilitar y habilitar.
-- **Catálogo:** listar y buscar libros, registrar y modificar libros, listar ejemplares por sede, registrar ejemplares, finalizar reparaciones y dar de baja ejemplares.
-- **Consultar disponibilidad:** cuántos ejemplares de un libro hay en cada sede y en qué estado.
-- **Préstamos:** préstamo local, solicitud de préstamo interbibliotecario (genera el remito de ida), entrega al socio de un préstamo interbibliotecario recibido, cancelación de solicitudes no despachadas y listados (en curso, por socio, vencidos).
-- **Reservas:** reservar un libro en una sede, cancelar, procesar reservas no retiradas y listados.
-- **Devoluciones y multas:** registrar devoluciones con el estado físico del material, listar y cobrar multas impagas, y cambiar la política de multas vigente.
-- **Reportes:** préstamos activos y material en tránsito; préstamos vencidos y multas acumuladas; libros más solicitados para préstamos inter-sedes; movimiento de ejemplares entre sedes; tasa de envíos exitosos e incidencias. Ver [Reportes](docs/reportes.md).
-- **Remitos:** empaquetar, despachar, registrar puntos de control, recibir (con estado físico), registrar daño, reportar extravío, anular y ver la trazabilidad completa de cada remito.
-
-## Patrones de diseño aplicados
-
-- **DAO:** una clase de acceso a datos por entidad (`biblioteca/dao/`).
-- **State:** ciclo de vida del remito; una clase por estado y transiciones inválidas rechazadas con `TransicionRemitoInvalida` (`biblioteca/patrones/estados_remito.py`). Ver [Ciclo de vida del remito](docs/ciclo_de_vida_remito.md).
-- **Strategy:** cálculo de la multa por devolución tardía; la política (por tipo de material, por días de atraso o sin multa) se elige desde afuera y se puede cambiar en ejecución (`biblioteca/patrones/estrategias_multa.py`).
-- **Iterator:** `CatalogoEjemplares` e `IteradorEjemplares` recorren el catálogo filtrando por sede, libro o disponibilidad sin exponer la colección interna (`biblioteca/patrones/iterador_catalogo.py`).
+Con eso todos los reportes muestran información.
 
 ## Tests
 
@@ -60,7 +50,42 @@ Menús disponibles:
 pytest -q
 ```
 
-Cada test usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`.
+Hay 181 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 96 % del paquete `biblioteca`, sin contar la interfaz de consola. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
+
+## Funcionalidades
+
+| Proceso de la consigna | Dónde está en el menú |
+|---|---|
+| 1. Administrar sedes | **Sedes:** alta, modificación, baja lógica y reactivación |
+| 2. Administrar socios | **Socios:** alta, modificación, búsqueda por DNI, inhabilitación con motivo y rehabilitación |
+| 3. Catálogo de libros y ejemplares por sede | **Catálogo:** libros (alta, modificación, búsqueda) y ejemplares (alta en una sede, fin de reparación, baja) |
+| 4. Préstamos locales e interbibliotecarios | **Préstamos:** préstamo local, solicitud interbibliotecaria (sede origen y destino), entrega, cancelación y listados |
+| 5. Empaquetar, despachar y recibir con remito trazable | **Remitos:** empaquetar, despachar, puntos de control, recibir con estado físico, daño, extravío, anulación y trayecto completo |
+| 6. Consultar disponibilidad | **Consultar disponibilidad:** ejemplares de un libro por sede y por estado |
+| 7. Gestionar reservas | **Reservas:** reservar, cancelar, procesar reservas no retiradas y listados |
+| 8. Devoluciones y estado físico | **Devoluciones y multas:** devolución con estado físico, multas, pagos y política de multas |
+| Reportes | **Reportes:** los cinco reportes descriptos más abajo |
+
+Los errores de negocio (por ejemplo, prestar a un socio inhabilitado) se informan en pantalla sin cortar el programa.
+
+## Patrones de diseño aplicados
+
+Ver el detalle en [docs/patrones_aplicados.md](docs/patrones_aplicados.md).
+
+- **State:** el ciclo de vida del remito, con una clase por estado. Las transiciones inválidas se rechazan con `TransicionRemitoInvalida` sin cambiar el estado. Ver [Ciclo de vida del remito](docs/ciclo_de_vida_remito.md).
+- **Strategy:** el cálculo de la multa por devolución tardía. Hay tres políticas: por tipo de material, por días de atraso y sin multa. Se eligen desde afuera y se pueden cambiar mientras el programa corre.
+- **Iterator:** `CatalogoEjemplares` e `IteradorEjemplares` recorren los ejemplares filtrando por sede, libro o disponibilidad sin exponer la colección interna.
+- **DAO:** una clase de acceso a datos por entidad. Reciben la sesión del servicio, de modo que cada caso de uso se confirma o se deshace completo.
+
+## Reportes
+
+Ver el detalle en [docs/reportes.md](docs/reportes.md).
+
+1. Préstamos activos y material en tránsito.
+2. Préstamos vencidos y multas acumuladas.
+3. Libros más solicitados para préstamos inter-sedes.
+4. Movimiento de ejemplares entre sedes y tiempo promedio de tránsito.
+5. Tasa de envíos logísticos exitosos e incidencias.
 
 ## Estructura
 
@@ -71,15 +96,28 @@ biblioteca/
 ├── modelos/         # clases del dominio mapeadas con SQLAlchemy
 ├── dao/             # acceso a datos: un DAO por entidad, reciben la sesión del servicio
 ├── servicios/       # casos de uso y validaciones de negocio
-├── patrones/        # implementaciones de patrones de diseño
+├── patrones/        # State, Strategy e Iterator
 ├── reportes/        # un módulo por reporte
 ├── excepciones/     # excepciones de dominio
 └── interfaz/        # menús de consola (única capa que usa input/print)
 tests/               # tests con pytest
-docs/                # consigna, modelo de dominio, ciclo de vida del remito y reportes
+docs/                # documentación del trabajo
 ```
 
+La interfaz nunca accede a la base directamente: llama a los servicios y a los reportes. Los modelos no conocen la consola.
+
+## Documentación
+
+- [Consigna](docs/consigna.md)
+- [Modelo de dominio](docs/modelo_de_dominio.md): entidades, atributos, relaciones y reglas de negocio
+- [Ciclo de vida del remito](docs/ciclo_de_vida_remito.md): diagrama de estados y consecuencias de cada transición
+- [Patrones aplicados](docs/patrones_aplicados.md)
+- [Reportes](docs/reportes.md)
+- [Validaciones y tests](docs/validaciones.md)
+
 ## Estado del proyecto
+
+Todos los procesos obligatorios, las validaciones y los reportes están implementados y probados.
 
 | Etapa | Estado |
 |---|---|
@@ -90,4 +128,14 @@ docs/                # consigna, modelo de dominio, ciclo de vida del remito y r
 | 5. Remitos | Hecha |
 | 6. Devoluciones y multas | Hecha |
 | 7. Reportes | Hecha |
-| 8. Documentación final y tests | Pendiente |
+| 8. Documentación final y tests | Hecha |
+
+### Procesos opcionales de la consigna
+
+| Proceso opcional | Estado |
+|---|---|
+| Revisión de estado de recepción de ejemplares (extravío, daño, destrucción) | Implementado como parte del ciclo de vida del remito |
+| Inventario con códigos | Parcial: cada ejemplar tiene un código de inventario único |
+| Envío de notificaciones | No implementado |
+| Historial de lecturas | No implementado (los préstamos de cada socio se pueden listar) |
+| Recomendaciones | No implementado |
