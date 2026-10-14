@@ -128,7 +128,9 @@ La copia física de un libro. La consigna exige indicar la sede a la que pertene
 Una solicitud de préstamo de un ejemplar a un socio.
 
 - **Local:** sede de origen igual a sede de destino. No genera remito y pasa directamente a `ACTIVO`.
-- **Interbibliotecario:** el socio retira en la sede de destino un ejemplar que pertenece a la sede de origen. Genera un remito de `IDA` y el préstamo recorre los estados `SOLICITADO → EN_ENVIO → LISTO_PARA_RETIRO → ACTIVO`.
+- **Interbibliotecario:** el socio retira en la sede de destino un ejemplar que pertenece a la sede de origen. Genera un remito de `IDA` y el préstamo recorre los estados `SOLICITADO → EN_ENVIO → LISTO_PARA_RETIRO → ACTIVO`. Desde la solicitud el ejemplar queda `PRESTADO` (comprometido), para que nadie más lo pida mientras se prepara el envío.
+- Una solicitud interbibliotecaria se puede **cancelar** solo mientras está `SOLICITADO`, es decir, antes del despacho. El ejemplar vuelve a quedar disponible.
+- No se presta a un socio que tiene **préstamos vencidos sin devolver**. Es la forma de "controlar fechas de vencimiento" en el momento del préstamo, y no solo al devolver.
 - El plazo es de **14 días contados desde la entrega al socio** (`fecha_entrega`), no desde la solicitud. Así, el tiempo de traslado entre sedes no le descuenta días al socio. Los 14 días son el valor que usa la cátedra en el ejemplo de biblioteca de la semana 8.
 - Un préstamo `ACTIVO` con `fecha_vencimiento` anterior a hoy está **vencido**. Esto es una propiedad calculada, no un estado persistido.
 
@@ -153,10 +155,14 @@ El pedido de un socio para retirar un libro que hoy no tiene ejemplares disponib
 
 - La reserva es **sobre el libro (título), no sobre un ejemplar puntual**. Así funcionan las reservas en los catálogos de bibliotecas: al socio le sirve cualquier copia de la obra.
 - La reserva indica la **sede de retiro**, porque la consigna prohíbe reservas hacia o desde sedes dadas de baja.
+- Solo se puede reservar si la sede tiene ejemplares del libro y **ninguno está disponible**. Si hay uno disponible, se presta directamente. Si la sede no tiene ninguno, corresponde un préstamo interbibliotecario.
+- Un socio no puede tener dos reservas activas del mismo libro.
 - Cuando se devuelve un ejemplar de ese libro en esa sede, se asigna a la **reserva pendiente más antigua** (orden de llegada):
   - El ejemplar pasa a `RESERVADO`.
   - La reserva pasa a `DISPONIBLE`, con un plazo de retiro.
+  - El plazo de retiro es de **3 días**.
   - Si el socio no retira el ejemplar dentro del plazo, la reserva pasa a `VENCIDA` y el ejemplar queda libre para la siguiente reserva.
+  - Solo el titular de la reserva puede llevarse el ejemplar apartado. Cuando lo retira, la reserva pasa a `CUMPLIDA`.
 
 ### Devolucion
 El cierre de un préstamo. Registra:
@@ -173,8 +179,8 @@ La multa es un **monto en pesos** calculado con el patrón **Strategy**. Se elig
 | Validación de la consigna | Entidad y regla |
 |---|---|
 | No prestar ejemplares no disponibles | `Ejemplar.estado` debe ser `DISPONIBLE` (o `RESERVADO` para el socio titular de la reserva) |
-| No prestar a socios inhabilitados | `Socio.estado` debe ser `HABILITADO` |
-| Controlar fechas de vencimiento | `Prestamo.fecha_vencimiento` y la propiedad calculada de vencido; la multa se calcula en la devolución |
+| No prestar a socios inhabilitados | `Socio.estado` debe ser `HABILITADO` (también para reservar) |
+| Controlar fechas de vencimiento | `Prestamo.fecha_vencimiento` y la propiedad calculada de vencido; no se presta a socios con préstamos vencidos; la multa se calcula en la devolución |
 | Mantener trazabilidad del remito | Cada transición del remito registra un `MovimientoRemito` |
 | Evitar duplicados | DNI único en `Socio`, ISBN único en `Libro`, código de inventario único en `Ejemplar` |
 | No prestar ejemplares de otra sede | La sede propietaria del `Ejemplar` debe ser igual a la `sede_origen` del `Prestamo` |
