@@ -3,6 +3,7 @@ from biblioteca.configuracion.datos_de_ejemplo import cargar_datos_de_ejemplo
 from biblioteca.excepciones import ErrorDeNegocio
 from biblioteca.interfaz.consola import consola, mostrar_aviso, mostrar_error, mostrar_exito, mostrar_titulo
 from biblioteca.interfaz.menu_catalogo import menu_catalogo
+from biblioteca.interfaz.menu_devoluciones import menu_devoluciones
 from biblioteca.interfaz.menu_disponibilidad import consultar_disponibilidad
 from biblioteca.interfaz.menu_prestamos import menu_prestamos
 from biblioteca.interfaz.menu_remitos import menu_remitos
@@ -26,6 +27,7 @@ OPCIONES = [
     ("Préstamos", menu_prestamos),
     ("Reservas", menu_reservas),
     ("Remitos", menu_remitos),
+    ("Devoluciones y multas", menu_devoluciones),
     ("Cargar datos de ejemplo", cargar_datos),
 ]
 
