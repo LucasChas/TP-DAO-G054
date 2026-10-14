@@ -18,8 +18,9 @@ class Ejemplar(Base):
     estado = Column(Enum(EstadoEjemplar, native_enum=False, length=20), nullable=False, default=EstadoEjemplar.DISPONIBLE)
     estado_fisico = Column(Enum(EstadoFisico, native_enum=False, length=20), nullable=False, default=EstadoFisico.BUENO)
 
-    libro = relationship("Libro", back_populates="ejemplares")
-    sede = relationship("Sede", back_populates="ejemplares")
+    # Se cargan junto con el ejemplar para poder mostrarlo después de cerrar la sesión.
+    libro = relationship("Libro", back_populates="ejemplares", lazy="joined")
+    sede = relationship("Sede", back_populates="ejemplares", lazy="joined")
     prestamos = relationship("Prestamo", back_populates="ejemplar")
 
     @property
