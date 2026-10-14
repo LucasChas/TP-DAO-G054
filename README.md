@@ -38,14 +38,16 @@ Menús disponibles:
 
 - **Sedes:** listar, registrar, modificar, dar de baja y reactivar.
 - **Socios:** listar, buscar por DNI, registrar, modificar, inhabilitar y habilitar.
-- **Catálogo:** listar y buscar libros, registrar y modificar libros, listar ejemplares por sede, registrar ejemplares y darlos de baja.
+- **Catálogo:** listar y buscar libros, registrar y modificar libros, listar ejemplares por sede, registrar ejemplares, finalizar reparaciones y dar de baja ejemplares.
 - **Consultar disponibilidad:** cuántos ejemplares de un libro hay en cada sede y en qué estado.
-- **Préstamos:** préstamo local, solicitud de préstamo interbibliotecario, cancelación de solicitudes no despachadas y listados (en curso, por socio, vencidos).
+- **Préstamos:** préstamo local, solicitud de préstamo interbibliotecario (genera el remito de ida), entrega al socio de un préstamo interbibliotecario recibido, cancelación de solicitudes no despachadas y listados (en curso, por socio, vencidos).
 - **Reservas:** reservar un libro en una sede, cancelar, procesar reservas no retiradas y listados.
+- **Remitos:** empaquetar, despachar, registrar puntos de control, recibir (con estado físico), registrar daño, reportar extravío, anular y ver la trazabilidad completa de cada remito.
 
 ## Patrones de diseño aplicados
 
 - **DAO:** una clase de acceso a datos por entidad (`biblioteca/dao/`).
+- **State:** ciclo de vida del remito; una clase por estado y transiciones inválidas rechazadas con `TransicionRemitoInvalida` (`biblioteca/patrones/estados_remito.py`). Ver [Ciclo de vida del remito](docs/ciclo_de_vida_remito.md).
 - **Iterator:** `CatalogoEjemplares` e `IteradorEjemplares` recorren el catálogo filtrando por sede, libro o disponibilidad sin exponer la colección interna (`biblioteca/patrones/iterador_catalogo.py`).
 
 ## Tests
@@ -80,7 +82,7 @@ docs/                # consigna, modelo de dominio y ciclo de vida del remito
 | 2. Persistencia | Hecha |
 | 3. Sedes, socios y catálogo | Hecha |
 | 4. Préstamos, reservas y disponibilidad | Hecha |
-| 5. Remitos | Pendiente |
+| 5. Remitos | Hecha |
 | 6. Devoluciones y multas | Pendiente |
 | 7. Reportes | Pendiente |
 | 8. Documentación final y tests | Pendiente |
