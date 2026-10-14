@@ -175,13 +175,23 @@ El cierre de un préstamo. Registra:
 
 La multa es un **monto en pesos** calculado con el patrón **Strategy**. Se eligió un monto, y no días de suspensión, porque la consigna pide un reporte de "multas acumuladas", y lo que se acumula es un importe sumable por socio.
 
+- Hay tres políticas de multa, y se puede cambiar la vigente desde el menú:
+  - **Por tipo de material** (la que se usa por defecto): $500 por día para libros, $300 para revistas y $1000 para material de consulta. El de consulta es el más caro porque es el más demandado y el que tiene menos copias.
+  - **Por días de atraso:** $500 por día para cualquier material.
+  - **Sin multa:** para condonaciones.
+- Una devolución sin atraso no genera multa y se registra como pagada.
+- Un socio con **multas impagas no puede recibir nuevos préstamos** hasta que se registre el pago. Es el mismo criterio que con los préstamos vencidos.
+- Devolver el material dañado **no tiene recargo**: la consigna pide registrar el estado físico, no cobrar por daños. El ejemplar pasa a reparación.
+- **Préstamo local:** el ejemplar vuelve a estar disponible, o se aparta para la reserva pendiente más antigua. Si está dañado, queda `EN_REPARACION`.
+- **Préstamo interbibliotecario:** el socio devuelve el ejemplar en la sede donde lo retiró. El ejemplar queda `EN_TRANSITO` y se genera el remito de **retorno** hacia su sede propietaria. Al recibirse ese remito, el ejemplar vuelve a circular, o queda en reparación si llegó dañado.
+
 ## Reglas de negocio y dónde se validan
 
 | Validación de la consigna | Entidad y regla |
 |---|---|
 | No prestar ejemplares no disponibles | `Ejemplar.estado` debe ser `DISPONIBLE` (o `RESERVADO` para el socio titular de la reserva) |
 | No prestar a socios inhabilitados | `Socio.estado` debe ser `HABILITADO` (también para reservar) |
-| Controlar fechas de vencimiento | `Prestamo.fecha_vencimiento` y la propiedad calculada de vencido; no se presta a socios con préstamos vencidos; la multa se calcula en la devolución |
+| Controlar fechas de vencimiento | `Prestamo.fecha_vencimiento` y la propiedad calculada de vencido; no se presta a socios con préstamos vencidos ni con multas impagas; la multa se calcula en la devolución |
 | Mantener trazabilidad del remito | Cada transición del remito registra un `MovimientoRemito` |
 | Evitar duplicados | DNI único en `Socio`, ISBN único en `Libro`, código de inventario único en `Ejemplar` |
 | No prestar ejemplares de otra sede | La sede propietaria del `Ejemplar` debe ser igual a la `sede_origen` del `Prestamo` |
