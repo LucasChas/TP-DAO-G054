@@ -12,8 +12,9 @@ COLUMNAS = ["Id", "Socio", "Libro", "Sede de retiro", "Fecha", "Ejemplar apartad
 def _filas(reservas):
     return [
         (
-            r.id, r.socio.nombre_completo, r.libro.titulo, r.sede.nombre, r.fecha_reserva,
-            r.ejemplar.codigo_inventario if r.ejemplar else None, r.fecha_limite_retiro, r.estado.value,
+            r.id, r.socio.nombre_completo, r.libro.titulo, r.sede.nombre, f"{r.fecha_reserva:%d/%m/%Y}",
+            r.ejemplar.codigo_inventario if r.ejemplar else None,
+            r.fecha_limite_retiro and f"{r.fecha_limite_retiro:%d/%m/%Y}", r.estado.value,
         )
         for r in reservas
     ]

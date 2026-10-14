@@ -21,7 +21,8 @@ def filas_prestamos(prestamos):
     return [
         (
             p.id, p.tipo.value, p.socio.nombre_completo, p.ejemplar.codigo_inventario, p.ejemplar.libro.titulo,
-            p.sede_origen.nombre, p.sede_destino.nombre, p.fecha_solicitud, p.fecha_vencimiento, p.estado.value,
+            p.sede_origen.nombre, p.sede_destino.nombre, f"{p.fecha_solicitud:%d/%m/%Y}",
+            p.fecha_vencimiento and f"{p.fecha_vencimiento:%d/%m/%Y}", p.estado.value,
         )
         for p in prestamos
     ]
