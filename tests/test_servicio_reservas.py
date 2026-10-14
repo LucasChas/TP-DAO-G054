@@ -129,3 +129,12 @@ class TestCancelacionYVencimiento:
         prestamos.cancelar_prestamo(ejemplar_centro_ocupado.id, fecha=HOY)
         assert servicio.procesar_reservas_vencidas(fecha=HOY + timedelta(days=3)) == []
         assert servicio.obtener_reserva(reserva.id).estado == EstadoReserva.DISPONIBLE
+
+
+def test_las_reservas_activas_excluyen_las_canceladas(red, ejemplar_centro_ocupado):
+    servicio = ServicioReservas()
+    primera = servicio.reservar(red.ana.id, red.rayuela.id, red.centro.id, fecha=HOY)
+    servicio.reservar(red.juan.id, red.rayuela.id, red.centro.id, fecha=HOY)
+    servicio.cancelar_reserva(primera.id)
+    assert [r.socio.dni for r in servicio.listar_reservas(solo_activas=True)] == [red.juan.dni]
+    assert len(servicio.listar_reservas()) == 2

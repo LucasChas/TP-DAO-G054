@@ -146,10 +146,7 @@ class Recibido(EstadoRemito):
     nombre = "Recibido"
 
     def registrar_danio(self, remito, fecha_hora, observacion):
-        # Se valida antes de modificar nada: una transición rechazada no deja cambios.
-        recien_llegado = (EstadoPrestamo.EN_ENVIO, EstadoPrestamo.LISTO_PARA_RETIRO)
-        if remito.sentido == SentidoRemito.IDA and remito.prestamo.estado not in recien_llegado:
-            raise TransicionRemitoInvalida("El ejemplar ya fue entregado al socio.")
+        # Solo se llega acá antes de la entrega al socio: al entregar, el remito de ida se cierra.
         remito.ejemplar.estado_fisico = EstadoFisico.DANIADO
         if remito.sentido == SentidoRemito.IDA:
             # No se entrega al socio: el ejemplar vuelve a su sede con un remito de retorno.

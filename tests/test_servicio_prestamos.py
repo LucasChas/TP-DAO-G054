@@ -60,6 +60,13 @@ class TestPrestamoLocal:
         with pytest.raises(SedeDadaDeBaja):
             servicio.registrar_prestamo_local(red.ana.id, red.ejemplar_centro.id, red.centro.id, fecha=HOY)
 
+    def test_se_presta_en_una_sede_reactivada(self, servicio, red):
+        sedes = ServicioSedes()
+        sedes.dar_de_baja_sede(red.centro.id)
+        sedes.reactivar_sede(red.centro.id)
+        prestamo = servicio.registrar_prestamo_local(red.ana.id, red.ejemplar_centro.id, red.centro.id, fecha=HOY)
+        assert prestamo.estado == EstadoPrestamo.ACTIVO
+
     def test_no_se_presta_a_socio_con_prestamos_vencidos(self, servicio, red):
         hace_un_mes = HOY - timedelta(days=30)
         servicio.registrar_prestamo_local(red.ana.id, red.ejemplar_centro.id, red.centro.id, fecha=hace_un_mes)
@@ -137,6 +144,12 @@ class TestCancelacionYConsultas:
         vencidos = servicio.listar_vencidos(fecha=HOY)
         assert [p.socio.dni for p in vencidos] == [red.ana.dni]
         assert vencidos[0].dias_de_atraso_al(HOY) == 6
+
+    def test_se_listan_los_prestamos_por_estado(self, servicio, red):
+        servicio.registrar_prestamo_local(red.ana.id, red.ejemplar_centro.id, red.centro.id, fecha=HOY)
+        servicio.solicitar_prestamo_interbibliotecario(red.juan.id, red.ejemplar_norte.id, red.norte.id, red.centro.id, fecha=HOY)
+        assert len(servicio.listar_prestamos()) == 2
+        assert [p.socio.dni for p in servicio.listar_prestamos([EstadoPrestamo.ACTIVO])] == [red.ana.dni]
 
     def test_se_listan_los_prestamos_de_un_socio(self, servicio, red):
         servicio.registrar_prestamo_local(red.ana.id, red.ejemplar_centro.id, red.centro.id, fecha=HOY)

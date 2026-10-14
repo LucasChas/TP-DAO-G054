@@ -243,6 +243,20 @@ class TestIncidencias:
         movimiento = next(m for m in remitos.obtener_remito(remito_ida.id).movimientos if m.estado_nuevo == "Daniado")
         assert movimiento.observacion == "Tapa rota"
 
+    def test_un_ejemplar_sano_que_se_dania_en_el_retorno_es_un_incidente(self, remitos, prestamos, solicitud, remito_ida, red):
+        from biblioteca.servicios import ServicioDevoluciones
+
+        despachado(remitos, remito_ida)
+        remitos.recibir(remito_ida.id, EstadoFisico.BUENO)
+        prestamos.entregar_prestamo(solicitud.id, fecha=HOY)
+        ServicioDevoluciones().registrar_devolucion(solicitud.id, EstadoFisico.BUENO, fecha=HOY + timedelta(days=7))
+        retorno = remitos.listar_remitos_de_prestamo(solicitud.id)[1]
+        despachado(remitos, retorno)
+        remitos.recibir(retorno.id, EstadoFisico.DANIADO, "Se mojó en el viaje")
+
+        assert historial(remitos, retorno)[-3:] == ["Recibido", "Daniado", "Cerrado"]
+        assert estado_del_ejemplar(red.ejemplar_norte).estado == EstadoEjemplar.EN_REPARACION
+
     def test_un_remito_de_retorno_no_se_anula(self, remitos, solicitud, remito_ida):
         despachado(remitos, remito_ida)
         remitos.recibir(remito_ida.id, EstadoFisico.DANIADO)
@@ -260,6 +274,16 @@ class TestIncidencias:
 
         assert estado_del_ejemplar(red.ejemplar_norte).estado == EstadoEjemplar.RESERVADO
         assert ServicioReservas().obtener_reserva(reserva.id).estado == EstadoReserva.DISPONIBLE
+
+
+class TestListados:
+    def test_los_remitos_en_curso_excluyen_los_cerrados_y_anulados(self, remitos, prestamos, solicitud, remito_ida, red):
+        otra = prestamos.solicitar_prestamo_interbibliotecario(
+            red.juan.id, red.ejemplar_centro.id, red.centro.id, red.norte.id, fecha=HOY
+        )
+        prestamos.cancelar_prestamo(otra.id)
+        assert [r.numero for r in remitos.listar_remitos(solo_en_curso=True)] == [remito_ida.numero]
+        assert len(remitos.listar_remitos()) == 2
 
 
 class TestEntrega:
