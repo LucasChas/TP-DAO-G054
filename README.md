@@ -39,6 +39,14 @@ Menús disponibles:
 - **Sedes:** listar, registrar, modificar, dar de baja y reactivar.
 - **Socios:** listar, buscar por DNI, registrar, modificar, inhabilitar y habilitar.
 - **Catálogo:** listar y buscar libros, registrar y modificar libros, listar ejemplares por sede, registrar ejemplares y darlos de baja.
+- **Consultar disponibilidad:** cuántos ejemplares de un libro hay en cada sede y en qué estado.
+- **Préstamos:** préstamo local, solicitud de préstamo interbibliotecario, cancelación de solicitudes no despachadas y listados (en curso, por socio, vencidos).
+- **Reservas:** reservar un libro en una sede, cancelar, procesar reservas no retiradas y listados.
+
+## Patrones de diseño aplicados
+
+- **DAO:** una clase de acceso a datos por entidad (`biblioteca/dao/`).
+- **Iterator:** `CatalogoEjemplares` e `IteradorEjemplares` recorren el catálogo filtrando por sede, libro o disponibilidad sin exponer la colección interna (`biblioteca/patrones/iterador_catalogo.py`).
 
 ## Tests
 
@@ -57,6 +65,7 @@ biblioteca/
 ├── modelos/         # clases del dominio mapeadas con SQLAlchemy
 ├── dao/             # acceso a datos: un DAO por entidad, reciben la sesión del servicio
 ├── servicios/       # casos de uso y validaciones de negocio
+├── patrones/        # implementaciones de patrones de diseño
 ├── excepciones/     # excepciones de dominio
 └── interfaz/        # menús de consola (única capa que usa input/print)
 tests/               # tests con pytest
@@ -70,7 +79,7 @@ docs/                # consigna, modelo de dominio y ciclo de vida del remito
 | 1. Modelo de dominio | Hecha |
 | 2. Persistencia | Hecha |
 | 3. Sedes, socios y catálogo | Hecha |
-| 4. Préstamos, reservas y disponibilidad | Pendiente |
+| 4. Préstamos, reservas y disponibilidad | Hecha |
 | 5. Remitos | Pendiente |
 | 6. Devoluciones y multas | Pendiente |
 | 7. Reportes | Pendiente |
