@@ -5,34 +5,13 @@ from biblioteca.configuracion.base_de_datos import obtener_sesion
 from biblioteca.dao import EjemplarDAO, LibroDAO, ReservaDAO, SedeDAO, SocioDAO
 from biblioteca.excepciones import EntidadDuplicada, EntidadNoEncontrada, OperacionNoPermitida
 from biblioteca.modelos import Reserva
-from biblioteca.modelos.enumeraciones import EstadoEjemplar, EstadoReserva
+from biblioteca.modelos.enumeraciones import EstadoReserva
 from biblioteca.patrones.iterador_catalogo import CatalogoEjemplares
+from biblioteca.servicios.asignacion_reservas import liberar_ejemplar
 from biblioteca.servicios.reglas import validar_sede_activa, validar_socio_habilitado
 from biblioteca.servicios.servicio_catalogo import obtener_libro_o_error
 from biblioteca.servicios.servicio_sedes import obtener_sede_o_error
 from biblioteca.servicios.servicio_socios import obtener_socio_o_error
-
-
-def asignar_a_reserva_pendiente(sesion, ejemplar, fecha):
-    """Si hay reservas pendientes del libro en la sede del ejemplar, aparta el
-    ejemplar para la más antigua. Se llama cada vez que un ejemplar vuelve a
-    estar disponible en su sede, dentro de la misma sesión del caso de uso.
-
-    Devuelve la reserva asignada, o None si no había ninguna pendiente.
-    """
-    reserva = ReservaDAO(sesion).primera_pendiente(ejemplar.libro_id, ejemplar.sede_id)
-    if reserva is None:
-        return None
-    reserva.asignar_ejemplar(ejemplar, fecha)
-    ejemplar.estado = EstadoEjemplar.RESERVADO
-    sesion.flush()
-    return reserva
-
-
-def liberar_ejemplar(sesion, ejemplar, fecha):
-    """Deja el ejemplar disponible y, si corresponde, lo pasa a la siguiente reserva."""
-    ejemplar.estado = EstadoEjemplar.DISPONIBLE
-    return asignar_a_reserva_pendiente(sesion, ejemplar, fecha)
 
 
 def obtener_reserva_o_error(dao, id_reserva):

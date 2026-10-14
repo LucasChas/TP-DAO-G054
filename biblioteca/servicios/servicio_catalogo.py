@@ -12,7 +12,8 @@ from biblioteca.excepciones import (
     SedeDadaDeBaja,
 )
 from biblioteca.modelos import Ejemplar, Libro
-from biblioteca.modelos.enumeraciones import EstadoEjemplar, TipoMaterial
+from biblioteca.modelos.enumeraciones import EstadoEjemplar, EstadoFisico, TipoMaterial
+from biblioteca.servicios.asignacion_reservas import liberar_ejemplar
 from biblioteca.servicios.servicio_sedes import obtener_sede_o_error
 from biblioteca.servicios.validaciones import texto_obligatorio, texto_opcional
 
@@ -103,17 +104,28 @@ class ServicioCatalogo:
         return ejemplar
 
     def dar_de_baja_ejemplar(self, id_ejemplar):
-        """Retira un ejemplar de circulación. Solo se permite si está en la sede y sin uso."""
+        """Retira un ejemplar de circulación. Solo se permite si está en su sede y sin uso
+        (disponible o en reparación, por ejemplo cuando el daño no tiene arreglo)."""
         with obtener_sesion() as sesion:
             dao = EjemplarDAO(sesion)
             ejemplar = obtener_ejemplar_o_error(dao, id_ejemplar)
-            if ejemplar.estado != EstadoEjemplar.DISPONIBLE:
+            if ejemplar.estado not in (EstadoEjemplar.DISPONIBLE, EstadoEjemplar.EN_REPARACION):
                 raise OperacionNoPermitida(
                     f"El ejemplar {ejemplar.codigo_inventario} está {ejemplar.estado.value.lower()} "
                     "y no se puede dar de baja."
                 )
             ejemplar.estado = EstadoEjemplar.BAJA
             dao.actualizar(ejemplar)
+        return ejemplar
+
+    def finalizar_reparacion(self, id_ejemplar, fecha=None):
+        """El ejemplar reparado vuelve a prestarse; si había reservas, pasa a la más antigua."""
+        with obtener_sesion() as sesion:
+            ejemplar = obtener_ejemplar_o_error(EjemplarDAO(sesion), id_ejemplar)
+            if ejemplar.estado != EstadoEjemplar.EN_REPARACION:
+                raise OperacionNoPermitida(f"El ejemplar {ejemplar.codigo_inventario} no está en reparación.")
+            ejemplar.estado_fisico = EstadoFisico.REGULAR
+            liberar_ejemplar(sesion, ejemplar, fecha or date.today())
         return ejemplar
 
     def obtener_libro(self, id_libro):

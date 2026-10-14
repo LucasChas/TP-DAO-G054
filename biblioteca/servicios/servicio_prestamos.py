@@ -1,5 +1,5 @@
 """Casos de uso de préstamos locales e interbibliotecarios."""
-from datetime import date
+from datetime import date, datetime
 
 from biblioteca.configuracion.base_de_datos import obtener_sesion
 from biblioteca.dao import EjemplarDAO, PrestamoDAO, ReservaDAO, SedeDAO, SocioDAO
@@ -12,10 +12,10 @@ from biblioteca.excepciones import (
     SocioConPrestamosVencidos,
 )
 from biblioteca.modelos import Prestamo
-from biblioteca.modelos.enumeraciones import EstadoEjemplar, EstadoPrestamo, EstadoReserva, TipoPrestamo
+from biblioteca.modelos.enumeraciones import EstadoEjemplar, EstadoPrestamo, EstadoReserva, SentidoRemito, TipoPrestamo
 from biblioteca.servicios.reglas import validar_sede_activa, validar_socio_habilitado
 from biblioteca.servicios.servicio_catalogo import obtener_ejemplar_o_error
-from biblioteca.servicios.servicio_reservas import liberar_ejemplar
+from biblioteca.servicios.servicio_remitos import anular_remito, generar_remito, remito_de_ida
 from biblioteca.servicios.servicio_sedes import obtener_sede_o_error
 from biblioteca.servicios.servicio_socios import obtener_socio_o_error
 
@@ -88,9 +88,9 @@ class ServicioPrestamos:
     def solicitar_prestamo_interbibliotecario(self, id_socio, id_ejemplar, id_sede_origen, id_sede_destino, fecha=None):
         """El socio pide en la sede de destino un ejemplar que pertenece a la sede de origen.
 
-        El préstamo queda SOLICITADO y el ejemplar comprometido hasta que se
-        envíe con un remito. El plazo empieza a correr recién cuando el socio
-        lo retira en la sede de destino.
+        El préstamo queda SOLICITADO, el ejemplar comprometido y se genera el
+        remito de ida. El plazo empieza a correr recién cuando el socio lo
+        retira en la sede de destino.
         """
         fecha = fecha or date.today()
         if id_sede_origen == id_sede_destino:
@@ -115,22 +115,40 @@ class ServicioPrestamos:
             if reserva is not None:
                 reserva.estado = EstadoReserva.CUMPLIDA
             PrestamoDAO(sesion).crear(prestamo)
+            generar_remito(sesion, prestamo, SentidoRemito.IDA, datetime.combine(fecha, datetime.now().time()))
         return prestamo
 
-    def cancelar_prestamo(self, id_prestamo, fecha=None):
-        """Cancela una solicitud interbibliotecaria que todavía no salió de la sede de origen.
+    def entregar_prestamo(self, id_prestamo, fecha=None):
+        """El socio retira en la sede de destino el ejemplar que llegó con el remito de ida.
 
-        El ejemplar vuelve a estar disponible (o pasa a la siguiente reserva).
+        Desde este momento corre el plazo de 14 días y el remito de ida se cierra.
         """
         fecha = fecha or date.today()
+        with obtener_sesion() as sesion:
+            prestamo = obtener_prestamo_o_error(PrestamoDAO(sesion), id_prestamo)
+            if prestamo.estado != EstadoPrestamo.LISTO_PARA_RETIRO:
+                raise OperacionNoPermitida(
+                    f"El préstamo está {prestamo.estado.value.lower()}: solo se entregan préstamos listos para retiro."
+                )
+            validar_socio_habilitado(prestamo.socio)
+            prestamo.registrar_entrega(fecha)
+            remito_de_ida(prestamo).cerrar(datetime.combine(fecha, datetime.now().time()), "Entregado al socio")
+        return prestamo
+
+    def cancelar_prestamo(self, id_prestamo, motivo="Cancelado por el socio", fecha=None):
+        """Cancela una solicitud interbibliotecaria que todavía no salió de la sede de origen.
+
+        Anula el remito de ida (el patrón State rechaza la anulación si ya se
+        despachó) y el ejemplar vuelve a estar disponible o pasa a la siguiente reserva.
+        """
+        fecha_hora = datetime.combine(fecha or date.today(), datetime.now().time())
         with obtener_sesion() as sesion:
             prestamo = obtener_prestamo_o_error(PrestamoDAO(sesion), id_prestamo)
             if prestamo.estado != EstadoPrestamo.SOLICITADO:
                 raise OperacionNoPermitida(
                     f"El préstamo está {prestamo.estado.value.lower()}: solo se cancelan solicitudes no despachadas."
                 )
-            prestamo.estado = EstadoPrestamo.CANCELADO
-            liberar_ejemplar(sesion, prestamo.ejemplar, fecha)
+            anular_remito(sesion, remito_de_ida(prestamo), motivo, fecha_hora)
         return prestamo
 
     def obtener_prestamo(self, id_prestamo):
