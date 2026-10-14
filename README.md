@@ -14,16 +14,46 @@ Grupo G054.
 - [Modelo de dominio](docs/modelo_de_dominio.md)
 - [Ciclo de vida del remito](docs/ciclo_de_vida_remito.md)
 
-## Instalación y ejecución
+## Requisitos
 
-Todavía no hay código para ejecutar: se completa en la etapa de persistencia.
+- Python 3.12 o superior
+
+## Instalación
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # En Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+```
+
+## Ejecución
+
+El menú de consola (`main.py`) se agrega en la etapa 3.
+
+## Tests
+
+```bash
+pytest -q
+```
+
+Cada test usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`.
+
+## Estructura
+
+```
+biblioteca/
+├── configuracion/   # motor, sesión (obtener_sesion) y creación de tablas
+└── modelos/         # clases del dominio mapeadas con SQLAlchemy
+tests/               # tests con pytest
+docs/                # consigna, modelo de dominio y ciclo de vida del remito
+```
 
 ## Estado del proyecto
 
 | Etapa | Estado |
 |---|---|
 | 1. Modelo de dominio | Hecha |
-| 2. Persistencia | Pendiente |
+| 2. Persistencia | Hecha |
 | 3. Sedes, socios y catálogo | Pendiente |
 | 4. Préstamos, reservas y disponibilidad | Pendiente |
 | 5. Remitos | Pendiente |
