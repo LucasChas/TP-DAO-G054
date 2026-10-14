@@ -83,6 +83,11 @@ def dar_de_baja_ejemplar():
     mostrar_exito(f"El ejemplar {ejemplar.codigo_inventario} fue dado de baja.")
 
 
+def finalizar_reparacion():
+    ejemplar = servicio.finalizar_reparacion(pedir_entero("Id del ejemplar reparado"))
+    mostrar_exito(f"El ejemplar {ejemplar.codigo_inventario} vuelve a estar en circulación.")
+
+
 def menu_catalogo():
     ejecutar_menu("Administración del catálogo", [
         ("Listar libros", listar_libros),
@@ -91,5 +96,6 @@ def menu_catalogo():
         ("Modificar libro", modificar_libro),
         ("Listar ejemplares", listar_ejemplares),
         ("Registrar ejemplar", registrar_ejemplar),
+        ("Finalizar reparación de ejemplar", finalizar_reparacion),
         ("Dar de baja ejemplar", dar_de_baja_ejemplar),
     ])

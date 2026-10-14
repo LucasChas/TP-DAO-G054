@@ -55,6 +55,12 @@ def solicitar_prestamo_interbibliotecario():
     mostrar_exito(f"Solicitud {prestamo.id} registrada. El ejemplar queda comprometido hasta su envío.")
 
 
+def entregar_prestamo():
+    listar_en_curso()
+    prestamo = servicio.entregar_prestamo(pedir_entero("Id del préstamo listo para retiro"))
+    mostrar_exito(f"Préstamo {prestamo.id} entregado. Vence el {prestamo.fecha_vencimiento:%d/%m/%Y}.")
+
+
 def cancelar_prestamo():
     listar_en_curso()
     id_prestamo = pedir_entero("Id de la solicitud a cancelar")
@@ -87,6 +93,7 @@ def menu_prestamos():
     ejecutar_menu("Préstamos", [
         ("Registrar préstamo local", registrar_prestamo_local),
         ("Solicitar préstamo interbibliotecario", solicitar_prestamo_interbibliotecario),
+        ("Entregar préstamo interbibliotecario recibido", entregar_prestamo),
         ("Cancelar solicitud no despachada", cancelar_prestamo),
         ("Listar préstamos en curso", listar_en_curso),
         ("Listar préstamos de un socio", listar_de_socio),

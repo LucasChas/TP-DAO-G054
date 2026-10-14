@@ -5,6 +5,7 @@ from biblioteca.interfaz.consola import consola, mostrar_aviso, mostrar_error, m
 from biblioteca.interfaz.menu_catalogo import menu_catalogo
 from biblioteca.interfaz.menu_disponibilidad import consultar_disponibilidad
 from biblioteca.interfaz.menu_prestamos import menu_prestamos
+from biblioteca.interfaz.menu_remitos import menu_remitos
 from biblioteca.interfaz.menu_reservas import menu_reservas
 from biblioteca.interfaz.menu_sedes import menu_sedes
 from biblioteca.interfaz.menu_socios import menu_socios
@@ -24,6 +25,7 @@ OPCIONES = [
     ("Consultar disponibilidad", consultar_disponibilidad),
     ("Préstamos", menu_prestamos),
     ("Reservas", menu_reservas),
+    ("Remitos", menu_remitos),
     ("Cargar datos de ejemplo", cargar_datos),
 ]
 
