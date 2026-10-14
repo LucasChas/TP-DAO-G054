@@ -39,7 +39,7 @@ classDiagram
     class Ejemplar {
         id
         codigo_inventario (único)
-        estado: DISPONIBLE | RESERVADO | PRESTADO | EN_TRANSITO | EXTRAVIADO | BAJA
+        estado: DISPONIBLE | RESERVADO | PRESTADO | EN_TRANSITO | EN_REPARACION | EXTRAVIADO | BAJA
         estado_fisico: BUENO | REGULAR | DANIADO
     }
     class Prestamo {
@@ -123,6 +123,7 @@ La copia física de un libro. La consigna exige indicar la sede a la que pertene
 - `sede` es la **sede propietaria**, la que figura en el inventario, y no cambia aunque el ejemplar viaje. Solo se puede prestar un ejemplar cuya sede propietaria sea la sede de origen del préstamo.
 - `estado` indica si se puede prestar. Solo un ejemplar `DISPONIBLE` puede asignarse a un préstamo.
 - `estado_fisico` se actualiza en cada devolución y en cada recepción de remito.
+- Un ejemplar que llega dañado a su sede queda `EN_REPARACION`. La sede decide si lo repara (vuelve a circular con estado físico `REGULAR`) o lo da de baja.
 
 ### Prestamo
 Una solicitud de préstamo de un ejemplar a un socio.
