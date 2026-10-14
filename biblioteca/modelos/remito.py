@@ -79,6 +79,24 @@ class Remito(Base):
     def esta_finalizado(self):
         return self._estado.es_final
 
+    def fecha_de(self, nombre_estado):
+        """Fecha y hora en que el remito pasó por primera vez al estado indicado, o None."""
+        for movimiento in self.movimientos:
+            if movimiento.estado_nuevo == nombre_estado:
+                return movimiento.fecha_hora
+        return None
+
+    def paso_por(self, nombre_estado):
+        return self.fecha_de(nombre_estado) is not None
+
+    @property
+    def ultima_ubicacion(self):
+        """Observación del último punto de control registrado, si hubo alguno."""
+        for movimiento in reversed(self.movimientos):
+            if movimiento.estado_nuevo == "EnTransito":
+                return movimiento.observacion
+        return None
+
     def cambiar_estado(self, nuevo_estado, fecha_hora, observacion=None):
         """Lo usan los estados para pasar al siguiente. Registra el movimiento para la trazabilidad."""
         self.movimientos.append(
