@@ -1,0 +1,10 @@
+# Entorno virtual
+.venv/
+
+# Archivos generados por Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Base de datos local
+biblioteca.db
