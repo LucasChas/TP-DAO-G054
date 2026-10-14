@@ -1,5 +1,5 @@
 """Modelo de reserva de un libro."""
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import Column, Date, Enum, ForeignKey, Integer
 from sqlalchemy.orm import relationship
@@ -17,6 +17,8 @@ class Reserva(Base):
 
     __tablename__ = "reservas"
 
+    PLAZO_RETIRO_DIAS = 3
+
     id = Column(Integer, primary_key=True)
     socio_id = Column(Integer, ForeignKey("socios.id"), nullable=False)
     libro_id = Column(Integer, ForeignKey("libros.id"), nullable=False)
@@ -26,10 +28,21 @@ class Reserva(Base):
     fecha_limite_retiro = Column(Date)
     estado = Column(Enum(EstadoReserva, native_enum=False, length=20), nullable=False, default=EstadoReserva.PENDIENTE)
 
-    socio = relationship("Socio", back_populates="reservas")
-    libro = relationship("Libro", back_populates="reservas")
-    sede = relationship("Sede")
-    ejemplar = relationship("Ejemplar")
+    # Se cargan junto con la reserva para poder mostrarla después de cerrar la sesión.
+    socio = relationship("Socio", back_populates="reservas", lazy="joined")
+    libro = relationship("Libro", back_populates="reservas", lazy="joined")
+    sede = relationship("Sede", lazy="joined")
+    ejemplar = relationship("Ejemplar", lazy="joined")
+
+    @property
+    def esta_activa(self):
+        return self.estado in (EstadoReserva.PENDIENTE, EstadoReserva.DISPONIBLE)
+
+    def asignar_ejemplar(self, ejemplar, fecha):
+        """Aparta el ejemplar para el socio, que tiene PLAZO_RETIRO_DIAS días para retirarlo."""
+        self.ejemplar = ejemplar
+        self.estado = EstadoReserva.DISPONIBLE
+        self.fecha_limite_retiro = fecha + timedelta(days=self.PLAZO_RETIRO_DIAS)
 
     def __repr__(self):
         return f"<Reserva {self.id}: libro {self.libro_id} ({self.estado.name})>"

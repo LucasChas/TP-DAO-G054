@@ -27,3 +27,19 @@ class SedeDadaDeBaja(ErrorDeNegocio):
 
 class OperacionNoPermitida(ErrorDeNegocio):
     """La operación no se puede realizar en el estado actual de la entidad."""
+
+
+class SocioInhabilitado(ErrorDeNegocio):
+    """El socio está inhabilitado y no puede recibir préstamos ni hacer reservas."""
+
+
+class SocioConPrestamosVencidos(ErrorDeNegocio):
+    """El socio tiene préstamos vencidos sin devolver."""
+
+
+class EjemplarNoDisponible(ErrorDeNegocio):
+    """El ejemplar no está disponible para prestarse."""
+
+
+class EjemplarDeOtraSede(ErrorDeNegocio):
+    """El ejemplar no pertenece a la sede de origen del préstamo."""

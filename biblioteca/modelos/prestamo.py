@@ -1,5 +1,5 @@
 """Modelo de préstamo local o interbibliotecario."""
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy import Column, Date, Enum, ForeignKey, Integer
 from sqlalchemy.orm import relationship
@@ -31,16 +31,23 @@ class Prestamo(Base):
     fecha_vencimiento = Column(Date)
     estado = Column(Enum(EstadoPrestamo, native_enum=False, length=20), nullable=False, default=EstadoPrestamo.SOLICITADO)
 
-    socio = relationship("Socio", back_populates="prestamos")
-    ejemplar = relationship("Ejemplar", back_populates="prestamos")
-    sede_origen = relationship("Sede", foreign_keys=[sede_origen_id])
-    sede_destino = relationship("Sede", foreign_keys=[sede_destino_id])
+    # Se cargan junto con el préstamo para poder mostrarlo después de cerrar la sesión.
+    socio = relationship("Socio", back_populates="prestamos", lazy="joined")
+    ejemplar = relationship("Ejemplar", back_populates="prestamos", lazy="joined")
+    sede_origen = relationship("Sede", foreign_keys=[sede_origen_id], lazy="joined")
+    sede_destino = relationship("Sede", foreign_keys=[sede_destino_id], lazy="joined")
     remitos = relationship("Remito", back_populates="prestamo", order_by="Remito.id")
     devolucion = relationship("Devolucion", back_populates="prestamo", uselist=False)
 
     @property
     def es_interbibliotecario(self):
         return self.tipo == TipoPrestamo.INTERBIBLIOTECARIO
+
+    def registrar_entrega(self, fecha):
+        """Entrega el ejemplar al socio: el préstamo queda activo y empieza a correr el plazo."""
+        self.fecha_entrega = fecha
+        self.fecha_vencimiento = fecha + timedelta(days=self.PLAZO_DIAS)
+        self.estado = EstadoPrestamo.ACTIVO
 
     def esta_vencido_al(self, fecha):
         """Indica si el préstamo sigue activo después de su fecha de vencimiento."""
