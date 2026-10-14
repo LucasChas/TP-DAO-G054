@@ -18,7 +18,7 @@ Sistema de consola para una red de bibliotecas públicas. Administra las sedes, 
 
 Incluye cinco reportes, que se pueden ver en pantalla y exportar a PDF (con gráficos) o a CSV.
 
-Está hecho en Python con SQLAlchemy sobre SQLite y separado en capas: modelos, DAO, servicios e interfaz.
+Está hecho en Python con SQLAlchemy sobre SQLite y separado en capas: modelos, DAO, servicios e interfaz. Tiene dos interfaces que usan los mismos servicios: una de **consola** y una **gráfica** con Tkinter.
 
 ## Requisitos
 
@@ -35,10 +35,13 @@ pip install -r requirements.txt
 ## Ejecución
 
 ```bash
-python main.py
+python main.py             # interfaz de consola
+python main.py --grafica   # interfaz gráfica (Tkinter)
 ```
 
-El sistema crea `biblioteca.db` en la carpeta desde donde se ejecuta. Para probarlo rápido, elegí **Cargar datos de ejemplo** en el menú principal. Se cargan:
+Tkinter viene incluido en el instalador de Python para Windows y macOS. En Linux puede hacer falta instalarlo aparte (por ejemplo, `sudo apt install python3-tk`). La consola funciona aunque Tkinter no esté instalado.
+
+El sistema crea `biblioteca.db` en la carpeta desde donde se ejecuta. Para probarlo rápido, elegí **Cargar datos de ejemplo** en el menú principal de la consola o en el menú **Archivo** de la interfaz gráfica. Se cargan:
 - 3 sedes, 4 socios (uno inhabilitado), 6 libros y 10 ejemplares;
 - un historial con fechas relativas a hoy: un préstamo vencido, un envío que llegó dañado y volvió a su sede, una multa impaga, un envío en viaje y una reserva pendiente.
 
@@ -50,7 +53,7 @@ Con eso todos los reportes muestran información.
 pytest -q
 ```
 
-Hay 203 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 96 % del paquete `biblioteca`, sin contar la interfaz de consola. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
+Hay 216 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 96 % del paquete `biblioteca`, sin contar las interfaces. Los 13 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
 
 ## Funcionalidades
 
@@ -67,6 +70,20 @@ Hay 203 tests y cada uno usa una base SQLite en memoria nueva, así que no toca 
 | Reportes | **Reportes:** los cinco reportes descriptos más abajo, en pantalla o exportados a PDF y CSV |
 
 Los errores de negocio (por ejemplo, prestar a un socio inhabilitado) se informan en pantalla sin cortar el programa.
+
+## Interfaz gráfica
+
+Es una ventana con una pestaña por área: Sedes, Socios, Catálogo, Préstamos, Reservas, Remitos, Devoluciones y multas, y Reportes. En cada pestaña:
+- una tabla muestra los datos;
+- los botones abren formularios con listas desplegables, así no hace falta escribir ids;
+- las operaciones que actúan sobre un registro se aplican a la fila seleccionada.
+
+Detalles por pestaña:
+- **Catálogo:** al elegir un libro se ven sus ejemplares, y "Ver disponibilidad" muestra cuántos hay en cada sede.
+- **Remitos:** al elegir un remito se ve su trayecto completo, con cada cambio de estado.
+- **Devoluciones y multas:** permite cambiar la política de multas vigente (patrón Strategy).
+
+Los errores de negocio se muestran en un cuadro de diálogo con el motivo, sin cerrar la aplicación.
 
 ## Patrones de diseño aplicados
 
@@ -101,12 +118,13 @@ biblioteca/
 ├── patrones/        # State, Strategy e Iterator
 ├── reportes/        # un módulo por reporte y la exportación a PDF/CSV
 ├── excepciones/     # excepciones de dominio
-└── interfaz/        # menús de consola (única capa que usa input/print)
+├── interfaz/        # menús de consola
+└── interfaz_grafica/  # ventana Tkinter: una pestaña por área, formularios y tablas
 tests/               # tests con pytest
 docs/                # documentación del trabajo
 ```
 
-La interfaz nunca accede a la base directamente: llama a los servicios y a los reportes. Los modelos no conocen la consola.
+Ninguna de las dos interfaces accede a la base directamente: las dos llaman a los mismos servicios y reportes. Los modelos no conocen ninguna interfaz.
 
 ## Documentación
 
