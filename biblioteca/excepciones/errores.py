@@ -43,3 +43,7 @@ class EjemplarNoDisponible(ErrorDeNegocio):
 
 class EjemplarDeOtraSede(ErrorDeNegocio):
     """El ejemplar no pertenece a la sede de origen del préstamo."""
+
+
+class TransicionRemitoInvalida(ErrorDeNegocio):
+    """La acción pedida no está permitida en el estado actual del remito; el estado no cambia."""

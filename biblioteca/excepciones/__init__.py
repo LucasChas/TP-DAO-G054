@@ -10,6 +10,7 @@ from biblioteca.excepciones.errores import (
     SedeDadaDeBaja,
     SocioConPrestamosVencidos,
     SocioInhabilitado,
+    TransicionRemitoInvalida,
 )
 
 __all__ = [
@@ -23,4 +24,5 @@ __all__ = [
     "SedeDadaDeBaja",
     "SocioConPrestamosVencidos",
     "SocioInhabilitado",
+    "TransicionRemitoInvalida",
 ]

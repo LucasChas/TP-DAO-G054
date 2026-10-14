@@ -27,6 +27,7 @@ class EstadoEjemplar(Enum):
     RESERVADO = "Reservado"
     PRESTADO = "Prestado"
     EN_TRANSITO = "En tránsito"
+    EN_REPARACION = "En reparación"
     EXTRAVIADO = "Extraviado"
     BAJA = "Dado de baja"
 
