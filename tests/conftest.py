@@ -57,3 +57,27 @@ def ejemplar(libro, sede_central):
         nuevo = Ejemplar(codigo_inventario="CEN-0001", libro_id=libro.id, sede_id=sede_central.id)
         sesion.add(nuevo)
     return nuevo
+
+
+@pytest.fixture
+def red():
+    """Red de prueba armada con los servicios: dos sedes, dos socios habilitados,
+    un libro con un ejemplar en cada sede."""
+    from types import SimpleNamespace
+
+    from biblioteca.servicios import ServicioCatalogo, ServicioSedes, ServicioSocios
+
+    sedes = ServicioSedes()
+    socios = ServicioSocios()
+    catalogo = ServicioCatalogo()
+    centro = sedes.registrar_sede("Sede Centro", "Av. Colón 100")
+    norte = sedes.registrar_sede("Sede Norte", "Av. Cabrera 3000")
+    ana = socios.registrar_socio("30111222", "Ana", "Pérez")
+    juan = socios.registrar_socio("28999888", "Juan", "Gómez")
+    rayuela = catalogo.registrar_libro("9789500700011", "Rayuela", "Julio Cortázar")
+    ejemplar_centro = catalogo.registrar_ejemplar(rayuela.id, centro.id, "CEN-0001")
+    ejemplar_norte = catalogo.registrar_ejemplar(rayuela.id, norte.id, "NOR-0001")
+    return SimpleNamespace(
+        centro=centro, norte=norte, ana=ana, juan=juan, rayuela=rayuela,
+        ejemplar_centro=ejemplar_centro, ejemplar_norte=ejemplar_norte,
+    )
