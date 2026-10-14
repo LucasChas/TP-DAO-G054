@@ -157,3 +157,15 @@ class TestDevolucionInterbibliotecaria:
         remitos.recibir(retorno.id, EstadoFisico.BUENO, fecha_hora=datetime(2026, 10, 30, 10, 0))
         ejemplar = ejemplar_actual(red.ejemplar_norte)
         assert (ejemplar.estado, ejemplar.sede.nombre) == (EstadoEjemplar.DISPONIBLE, "Sede Norte")
+
+    def test_lo_devuelto_danado_por_el_socio_vuelve_a_reparacion_sin_incidente_logistico(self, servicio, prestamo_entregado, red):
+        from biblioteca.reportes import tasa_de_envios
+
+        remitos = ServicioRemitos()
+        servicio.registrar_devolucion(prestamo_entregado.id, EstadoFisico.DANIADO, "Hojas mojadas", fecha=VENCE)
+        retorno = remitos.listar_remitos_de_prestamo(prestamo_entregado.id)[-1]
+        remitos.empaquetar(retorno.id)
+        remitos.despachar(retorno.id)
+        remitos.recibir(retorno.id, EstadoFisico.DANIADO)
+        assert ejemplar_actual(red.ejemplar_norte).estado == EstadoEjemplar.EN_REPARACION
+        assert tasa_de_envios.generar().general.con_danio == 0

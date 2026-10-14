@@ -102,16 +102,22 @@ class EnViaje(EstadoRemito):
 
     def recibir(self, remito, fecha_hora, estado_fisico, observacion):
         ejemplar = remito.ejemplar
+        # Un daño que ya estaba registrado antes del envío (por ejemplo, el socio lo
+        # devolvió dañado) no es un incidente del traslado.
+        danio_nuevo = estado_fisico == EstadoFisico.DANIADO and ejemplar.estado_fisico != EstadoFisico.DANIADO
         ejemplar.estado_fisico = estado_fisico
         remito.cambiar_estado(Recibido(), fecha_hora, observacion)
-        if estado_fisico == EstadoFisico.DANIADO:
-            remito.registrar_danio(fecha_hora, "Daño constatado en la recepción")
+        if danio_nuevo:
+            remito.registrar_danio(fecha_hora, observacion or "Daño constatado en la recepción")
         elif remito.sentido == SentidoRemito.IDA:
             ejemplar.estado = EstadoEjemplar.PRESTADO
             remito.prestamo.estado = EstadoPrestamo.LISTO_PARA_RETIRO
         else:
-            # Volvió a su sede: queda disponible y el remito termina su recorrido.
-            ejemplar.estado = EstadoEjemplar.DISPONIBLE
+            # Volvió a su sede y el remito termina su recorrido. Si ya venía dañado, queda en reparación.
+            if estado_fisico == EstadoFisico.DANIADO:
+                ejemplar.estado = EstadoEjemplar.EN_REPARACION
+            else:
+                ejemplar.estado = EstadoEjemplar.DISPONIBLE
             remito.cerrar(fecha_hora, "Ejemplar reintegrado a su sede")
 
     def reportar_extravio(self, remito, fecha_hora, observacion):

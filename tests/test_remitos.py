@@ -229,6 +229,20 @@ class TestIncidencias:
         reparado = ServicioCatalogo().finalizar_reparacion(red.ejemplar_norte.id)
         assert (reparado.estado, reparado.estado_fisico) == (EstadoEjemplar.DISPONIBLE, EstadoFisico.REGULAR)
 
+    def test_el_retorno_de_un_ejemplar_ya_danado_no_es_un_nuevo_incidente(self, remitos, solicitud, remito_ida):
+        despachado(remitos, remito_ida)
+        remitos.recibir(remito_ida.id, EstadoFisico.DANIADO, "Tapa rota")
+        retorno = remitos.listar_remitos_de_prestamo(solicitud.id)[1]
+        despachado(remitos, retorno)
+        remitos.recibir(retorno.id, EstadoFisico.DANIADO)
+        assert "Daniado" not in historial(remitos, retorno)
+
+    def test_la_incidencia_conserva_la_observacion_de_la_recepcion(self, remitos, remito_ida):
+        despachado(remitos, remito_ida)
+        remitos.recibir(remito_ida.id, EstadoFisico.DANIADO, "Tapa rota")
+        movimiento = next(m for m in remitos.obtener_remito(remito_ida.id).movimientos if m.estado_nuevo == "Daniado")
+        assert movimiento.observacion == "Tapa rota"
+
     def test_un_remito_de_retorno_no_se_anula(self, remitos, solicitud, remito_ida):
         despachado(remitos, remito_ida)
         remitos.recibir(remito_ida.id, EstadoFisico.DANIADO)
