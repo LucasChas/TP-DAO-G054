@@ -13,6 +13,7 @@ Grupo G054.
 - [Consigna](docs/consigna.md)
 - [Modelo de dominio](docs/modelo_de_dominio.md)
 - [Ciclo de vida del remito](docs/ciclo_de_vida_remito.md)
+- [Reportes](docs/reportes.md)
 
 ## Requisitos
 
@@ -32,7 +33,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-El sistema crea `biblioteca.db` en la carpeta desde donde se ejecuta. Desde el menú principal, la opción **Cargar datos de ejemplo** agrega 3 sedes, 4 socios (uno inhabilitado), 6 libros y 10 ejemplares para probar.
+El sistema crea `biblioteca.db` en la carpeta desde donde se ejecuta. Desde el menú principal, la opción **Cargar datos de ejemplo** agrega 3 sedes, 4 socios (uno inhabilitado), 6 libros, 10 ejemplares y un historial de préstamos, envíos, devoluciones y reservas para que los reportes tengan datos.
 
 Menús disponibles:
 
@@ -43,6 +44,7 @@ Menús disponibles:
 - **Préstamos:** préstamo local, solicitud de préstamo interbibliotecario (genera el remito de ida), entrega al socio de un préstamo interbibliotecario recibido, cancelación de solicitudes no despachadas y listados (en curso, por socio, vencidos).
 - **Reservas:** reservar un libro en una sede, cancelar, procesar reservas no retiradas y listados.
 - **Devoluciones y multas:** registrar devoluciones con el estado físico del material, listar y cobrar multas impagas, y cambiar la política de multas vigente.
+- **Reportes:** préstamos activos y material en tránsito; préstamos vencidos y multas acumuladas; libros más solicitados para préstamos inter-sedes; movimiento de ejemplares entre sedes; tasa de envíos exitosos e incidencias. Ver [Reportes](docs/reportes.md).
 - **Remitos:** empaquetar, despachar, registrar puntos de control, recibir (con estado físico), registrar daño, reportar extravío, anular y ver la trazabilidad completa de cada remito.
 
 ## Patrones de diseño aplicados
@@ -70,10 +72,11 @@ biblioteca/
 ├── dao/             # acceso a datos: un DAO por entidad, reciben la sesión del servicio
 ├── servicios/       # casos de uso y validaciones de negocio
 ├── patrones/        # implementaciones de patrones de diseño
+├── reportes/        # un módulo por reporte
 ├── excepciones/     # excepciones de dominio
 └── interfaz/        # menús de consola (única capa que usa input/print)
 tests/               # tests con pytest
-docs/                # consigna, modelo de dominio y ciclo de vida del remito
+docs/                # consigna, modelo de dominio, ciclo de vida del remito y reportes
 ```
 
 ## Estado del proyecto
@@ -86,5 +89,5 @@ docs/                # consigna, modelo de dominio y ciclo de vida del remito
 | 4. Préstamos, reservas y disponibilidad | Hecha |
 | 5. Remitos | Hecha |
 | 6. Devoluciones y multas | Hecha |
-| 7. Reportes | Pendiente |
+| 7. Reportes | Hecha |
 | 8. Documentación final y tests | Pendiente |
