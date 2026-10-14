@@ -2,13 +2,14 @@
 from datetime import date, datetime
 
 from biblioteca.configuracion.base_de_datos import obtener_sesion
-from biblioteca.dao import EjemplarDAO, PrestamoDAO, ReservaDAO, SedeDAO, SocioDAO
+from biblioteca.dao import DevolucionDAO, EjemplarDAO, PrestamoDAO, ReservaDAO, SedeDAO, SocioDAO
 from biblioteca.excepciones import (
     DatoInvalido,
     EjemplarDeOtraSede,
     EjemplarNoDisponible,
     EntidadNoEncontrada,
     OperacionNoPermitida,
+    SocioConMultasImpagas,
     SocioConPrestamosVencidos,
 )
 from biblioteca.modelos import Prestamo
@@ -38,6 +39,8 @@ class ServicioPrestamos:
             raise SocioConPrestamosVencidos(
                 f"El socio {socio.nombre_completo} tiene préstamos vencidos sin devolver."
             )
+        if DevolucionDAO(sesion).socio_tiene_multas_impagas(socio.id):
+            raise SocioConMultasImpagas(f"El socio {socio.nombre_completo} tiene multas sin pagar.")
         validar_sede_activa(sede_origen, "origen")
         validar_sede_activa(sede_destino, "destino")
         if ejemplar.sede_id != sede_origen.id:

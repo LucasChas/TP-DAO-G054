@@ -22,7 +22,12 @@ class Devolucion(Base):
     multa_pagada = Column(Boolean, nullable=False, default=False)
     observaciones = Column(Text)
 
-    prestamo = relationship("Prestamo", back_populates="devolucion")
+    # Se carga junto con la devolución para poder mostrarla después de cerrar la sesión.
+    prestamo = relationship("Prestamo", back_populates="devolucion", lazy="joined")
+
+    @property
+    def tiene_multa_impaga(self):
+        return self.monto_multa > 0 and not self.multa_pagada
 
     def __repr__(self):
         return f"<Devolucion {self.id}: préstamo {self.prestamo_id}, multa {self.monto_multa}>"
