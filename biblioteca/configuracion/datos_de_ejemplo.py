@@ -90,23 +90,25 @@ def _cargar_historial(centro, norte, sur, ana, juan, maria, rayuela, ejemplares)
         if punto_de_control:
             remitos.registrar_punto_de_control(remito.id, punto_de_control, fecha_hora=_momento(dias_atras, 13))
 
-    # Ana retiró en la Central un Rayuela de la Sede Norte y está vencida hace 10 días.
+    # Los envíos salen al día siguiente de la solicitud, así el historial de cada remito queda en orden.
+
+    # Ana retiró en la Central un Rayuela de la Sede Norte y está vencida hace 9 días.
     p_ana = prestamos.solicitar_prestamo_interbibliotecario(
         ana.id, ejemplares["NOR-0001"].id, norte.id, centro.id, fecha=hoy - timedelta(days=25)
     )
-    enviar(remitos_de(p_ana)[0], 25, "Centro de distribución Alta Córdoba")
-    remitos.recibir(remitos_de(p_ana)[0].id, EstadoFisico.BUENO, fecha_hora=_momento(24, 10))
-    prestamos.entregar_prestamo(p_ana.id, fecha=hoy - timedelta(days=24))
+    enviar(remitos_de(p_ana)[0], 24, "Centro de distribución Alta Córdoba")
+    remitos.recibir(remitos_de(p_ana)[0].id, EstadoFisico.BUENO, fecha_hora=_momento(23, 10))
+    prestamos.entregar_prestamo(p_ana.id, fecha=hoy - timedelta(days=23))
 
     # Juan pidió El Aleph a la Sede Sur, llegó dañado y volvió a su sede, que lo tiene en reparación.
     p_aleph = prestamos.solicitar_prestamo_interbibliotecario(
         juan.id, ejemplares["SUR-0003"].id, sur.id, centro.id, fecha=hoy - timedelta(days=15)
     )
-    enviar(remitos_de(p_aleph)[0], 15)
-    remitos.recibir(remitos_de(p_aleph)[0].id, EstadoFisico.DANIADO, "Lomo despegado", fecha_hora=_momento(14, 11))
+    enviar(remitos_de(p_aleph)[0], 14)
+    remitos.recibir(remitos_de(p_aleph)[0].id, EstadoFisico.DANIADO, "Lomo despegado", fecha_hora=_momento(13, 11))
     retorno = remitos_de(p_aleph)[1]
-    enviar(retorno, 13)
-    remitos.recibir(retorno.id, EstadoFisico.DANIADO, fecha_hora=_momento(12, 16))
+    enviar(retorno, 12)
+    remitos.recibir(retorno.id, EstadoFisico.DANIADO, fecha_hora=_momento(11, 16))
 
     # Juan devolvió con 2 días de atraso un préstamo local de Ficciones y no pagó la multa.
     p_ficciones = prestamos.registrar_prestamo_local(

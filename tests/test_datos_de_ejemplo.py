@@ -24,3 +24,12 @@ def test_los_datos_de_ejemplo_dejan_informacion_para_los_reportes():
     assert len(prestamos_vencidos_y_multas.generar().vencidos) == 1
     assert movimiento_entre_sedes.generar().horas_promedio_general is not None
     assert tasa_de_envios.generar().general.con_danio == 1
+
+
+def test_el_historial_de_cada_remito_de_ejemplo_esta_en_orden_cronologico():
+    from biblioteca.servicios import ServicioRemitos
+
+    cargar_datos_de_ejemplo()
+    for remito in ServicioRemitos().listar_remitos():
+        fechas = [m.fecha_hora for m in remito.movimientos]
+        assert fechas == sorted(fechas), remito.numero
