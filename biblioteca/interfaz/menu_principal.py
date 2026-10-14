@@ -7,6 +7,7 @@ from biblioteca.interfaz.menu_devoluciones import menu_devoluciones
 from biblioteca.interfaz.menu_disponibilidad import consultar_disponibilidad
 from biblioteca.interfaz.menu_prestamos import menu_prestamos
 from biblioteca.interfaz.menu_remitos import menu_remitos
+from biblioteca.interfaz.menu_reportes import menu_reportes
 from biblioteca.interfaz.menu_reservas import menu_reservas
 from biblioteca.interfaz.menu_sedes import menu_sedes
 from biblioteca.interfaz.menu_socios import menu_socios
@@ -28,6 +29,7 @@ OPCIONES = [
     ("Reservas", menu_reservas),
     ("Remitos", menu_remitos),
     ("Devoluciones y multas", menu_devoluciones),
+    ("Reportes", menu_reportes),
     ("Cargar datos de ejemplo", cargar_datos),
 ]
 

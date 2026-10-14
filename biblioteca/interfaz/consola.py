@@ -1,4 +1,6 @@
 """Funciones de entrada y salida por consola compartidas por todos los menús."""
+from datetime import datetime
+
 from rich.console import Console
 from rich.table import Table
 
@@ -58,6 +60,18 @@ def pedir_entero(mensaje, obligatorio=True):
             return int(texto)
         except ValueError:
             mostrar_error(f"'{texto}' no es un número entero.")
+
+
+def pedir_fecha(mensaje, obligatorio=False):
+    """Pide una fecha con formato dd/mm/aaaa; si no es obligatoria y se deja vacía, devuelve None."""
+    while True:
+        texto = pedir_texto(f"{mensaje} (dd/mm/aaaa)", obligatorio)
+        if texto is None:
+            return None
+        try:
+            return datetime.strptime(texto, "%d/%m/%Y").date()
+        except ValueError:
+            mostrar_error(f"'{texto}' no es una fecha válida.")
 
 
 def pedir_opcion_enum(mensaje, tipo_enum, obligatorio=True):
