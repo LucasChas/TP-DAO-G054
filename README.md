@@ -28,7 +28,17 @@ pip install -r requirements.txt
 
 ## Ejecución
 
-El menú de consola (`main.py`) se agrega en la etapa 3.
+```bash
+python main.py
+```
+
+El sistema crea `biblioteca.db` en la carpeta desde donde se ejecuta. Desde el menú principal, la opción **Cargar datos de ejemplo** agrega 3 sedes, 4 socios (uno inhabilitado), 6 libros y 10 ejemplares para probar.
+
+Menús disponibles:
+
+- **Sedes:** listar, registrar, modificar, dar de baja y reactivar.
+- **Socios:** listar, buscar por DNI, registrar, modificar, inhabilitar y habilitar.
+- **Catálogo:** listar y buscar libros, registrar y modificar libros, listar ejemplares por sede, registrar ejemplares y darlos de baja.
 
 ## Tests
 
@@ -41,9 +51,14 @@ Cada test usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`
 ## Estructura
 
 ```
+main.py              # punto de entrada
 biblioteca/
-├── configuracion/   # motor, sesión (obtener_sesion) y creación de tablas
-└── modelos/         # clases del dominio mapeadas con SQLAlchemy
+├── configuracion/   # motor, sesión (obtener_sesion), creación de tablas y datos de ejemplo
+├── modelos/         # clases del dominio mapeadas con SQLAlchemy
+├── dao/             # acceso a datos: un DAO por entidad, reciben la sesión del servicio
+├── servicios/       # casos de uso y validaciones de negocio
+├── excepciones/     # excepciones de dominio
+└── interfaz/        # menús de consola (única capa que usa input/print)
 tests/               # tests con pytest
 docs/                # consigna, modelo de dominio y ciclo de vida del remito
 ```
@@ -54,7 +69,7 @@ docs/                # consigna, modelo de dominio y ciclo de vida del remito
 |---|---|
 | 1. Modelo de dominio | Hecha |
 | 2. Persistencia | Hecha |
-| 3. Sedes, socios y catálogo | Pendiente |
+| 3. Sedes, socios y catálogo | Hecha |
 | 4. Préstamos, reservas y disponibilidad | Pendiente |
 | 5. Remitos | Pendiente |
 | 6. Devoluciones y multas | Pendiente |
