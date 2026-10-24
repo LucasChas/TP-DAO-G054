@@ -1,13 +1,23 @@
 """Menú de reportes."""
 from biblioteca.interfaz import menu_devoluciones
-from biblioteca.interfaz.consola import consola, ejecutar_menu, mostrar_tabla, pedir_fecha
+from biblioteca.interfaz.consola import (
+    consola,
+    ejecutar_menu,
+    mostrar_error,
+    mostrar_exito,
+    mostrar_tabla,
+    pedir_entero,
+    pedir_fecha,
+)
 from biblioteca.reportes import (
+    exportacion,
     libros_mas_solicitados,
     movimiento_entre_sedes,
     prestamos_activos_y_transito,
     prestamos_vencidos_y_multas,
     tasa_de_envios,
 )
+from biblioteca.reportes.armado import REPORTES
 
 
 def _pesos(monto):
@@ -131,6 +141,29 @@ def reporte_tasa_de_envios():
     )
 
 
+def _exportar(formato):
+    for numero, (_, titulo, _) in enumerate(REPORTES, start=1):
+        consola.print(f"  {numero}. {titulo}")
+    numero = pedir_entero("Reporte a exportar")
+    if not 1 <= numero <= len(REPORTES):
+        mostrar_error("Opción fuera de rango.")
+        return
+    clave, _, acepta_rango = REPORTES[numero - 1]
+    desde, hasta = _pedir_rango() if acepta_rango else (None, None)
+    ruta = exportacion.exportar(
+        clave, formato, desde=desde, hasta=hasta, calculadora=menu_devoluciones.servicio.calculadora
+    )
+    mostrar_exito(f"Reporte generado: {ruta.resolve()}")
+
+
+def exportar_pdf():
+    _exportar("pdf")
+
+
+def exportar_csv():
+    _exportar("csv")
+
+
 def menu_reportes():
     ejecutar_menu("Reportes", [
         ("Préstamos activos y material en tránsito", reporte_prestamos_activos),
@@ -138,4 +171,6 @@ def menu_reportes():
         ("Libros más solicitados para préstamos inter-sedes", reporte_libros_mas_solicitados),
         ("Movimiento de ejemplares entre sedes", reporte_movimiento_entre_sedes),
         ("Tasa de envíos exitosos e incidencias", reporte_tasa_de_envios),
+        ("Exportar un reporte a PDF (tablas y gráficos)", exportar_pdf),
+        ("Exportar un reporte a CSV", exportar_csv),
     ])
