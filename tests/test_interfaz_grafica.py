@@ -173,3 +173,27 @@ def test_se_exporta_el_reporte_mostrado_a_pdf_y_csv(aplicacion, mensajes, tmp_pa
 def test_exportar_sin_elegir_reporte_avisa(aplicacion, mensajes):
     aplicacion.pestanias["Reportes"].exportar("pdf")
     assert mensajes["avisos"] == ["Primero elija un reporte para mostrar."]
+
+
+def test_el_selector_de_ejemplares_muestra_solo_los_de_la_sede_elegida(aplicacion, mensajes):
+    from biblioteca.interfaz_grafica.componentes import Campo, Formulario
+    from biblioteca.interfaz_grafica.opciones import opciones_ejemplares, opciones_sedes
+
+    cargar_datos_de_ejemplo()
+    sedes = ServicioSedes().listar_sedes()
+    formulario = Formulario(aplicacion, "Préstamo local", [
+        Campo("id_sede", "Sede", tipo="opcion", opciones=opciones_sedes()),
+        Campo("id_ejemplar", "Ejemplar de la sede", tipo="opcion", depende_de="id_sede", opciones_segun=opciones_ejemplares),
+    ])
+    try:
+        selector_sede, selector_ejemplar = formulario._controles["id_sede"], formulario._controles["id_ejemplar"]
+        assert selector_ejemplar.cget("values") == ""
+        for sede in sedes:
+            selector_sede.set(sede.nombre)
+            selector_sede.event_generate("<<ComboboxSelected>>")
+            ejemplares = [texto for texto in selector_ejemplar.cget("values")]
+            assert ejemplares
+            assert all(f"({sede.nombre}," in texto for texto in ejemplares)
+            assert selector_ejemplar.get() == ""
+    finally:
+        formulario.destroy()

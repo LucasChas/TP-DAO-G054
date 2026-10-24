@@ -23,11 +23,12 @@ def opciones_libros():
     return [(f"{l.titulo} - {l.autor} (ISBN {l.isbn})", l.id) for l in ServicioCatalogo().listar_libros()]
 
 
-def opciones_ejemplares():
+def opciones_ejemplares(id_sede=None):
+    """Ejemplares que no están dados de baja; con id_sede, solo los que pertenecen a esa sede."""
     return [
         (f"{e.codigo_inventario} - {e.libro.titulo} ({e.sede.nombre}, {e.estado.value.lower()})", e.id)
         for e in ServicioCatalogo().listar_ejemplares()
-        if e.estado != EstadoEjemplar.BAJA
+        if e.estado != EstadoEjemplar.BAJA and (id_sede is None or e.sede_id == id_sede)
     ]
 
 

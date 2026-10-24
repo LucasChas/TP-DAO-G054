@@ -48,7 +48,8 @@ class PestaniaPrestamos(ttk.Frame):
         datos = c.pedir_datos(self, "Préstamo local", [
             c.Campo("id_socio", "Socio", tipo="opcion", obligatorio=True, opciones=opciones_socios()),
             c.Campo("id_sede", "Sede", tipo="opcion", obligatorio=True, opciones=opciones_sedes()),
-            c.Campo("id_ejemplar", "Ejemplar", tipo="opcion", obligatorio=True, opciones=opciones_ejemplares()),
+            c.Campo("id_ejemplar", "Ejemplar de la sede", tipo="opcion", obligatorio=True,
+                    depende_de="id_sede", opciones_segun=opciones_ejemplares),
         ])
         if datos and c.ejecutar(
             lambda: self.servicio.registrar_prestamo_local(**datos), self,
@@ -61,7 +62,8 @@ class PestaniaPrestamos(ttk.Frame):
             c.Campo("id_socio", "Socio", tipo="opcion", obligatorio=True, opciones=opciones_socios()),
             c.Campo("id_sede_origen", "Sede de origen (dueña del ejemplar)", tipo="opcion", obligatorio=True, opciones=opciones_sedes()),
             c.Campo("id_sede_destino", "Sede de destino (retiro)", tipo="opcion", obligatorio=True, opciones=opciones_sedes()),
-            c.Campo("id_ejemplar", "Ejemplar", tipo="opcion", obligatorio=True, opciones=opciones_ejemplares()),
+            c.Campo("id_ejemplar", "Ejemplar de la sede de origen", tipo="opcion", obligatorio=True,
+                    depende_de="id_sede_origen", opciones_segun=opciones_ejemplares),
         ])
         if datos and c.ejecutar(
             lambda: self.servicio.solicitar_prestamo_interbibliotecario(**datos), self,

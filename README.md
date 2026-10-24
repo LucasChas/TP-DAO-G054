@@ -53,7 +53,7 @@ Con eso todos los reportes muestran información.
 pytest -q
 ```
 
-Hay 216 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 96 % del paquete `biblioteca`, sin contar las interfaces. Los 13 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
+Hay 217 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 96 % del paquete `biblioteca`, sin contar las interfaces. Los 14 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
 
 ## Funcionalidades
 
@@ -79,6 +79,7 @@ Es una ventana con una pestaña por área: Sedes, Socios, Catálogo, Préstamos,
 - las operaciones que actúan sobre un registro se aplican a la fila seleccionada.
 
 Detalles por pestaña:
+- **Préstamos:** al elegir la sede (o la sede de origen, en el interbibliotecario), la lista de ejemplares muestra solo los que pertenecen a esa sede.
 - **Catálogo:** al elegir un libro se ven sus ejemplares, y "Ver disponibilidad" muestra cuántos hay en cada sede.
 - **Remitos:** al elegir un remito se ve su trayecto completo, con cada cambio de estado.
 - **Devoluciones y multas:** permite cambiar la política de multas vigente (patrón Strategy).

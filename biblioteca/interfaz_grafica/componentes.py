@@ -146,6 +146,9 @@ class Campo:
 
     tipo puede ser "texto", "entero", "fecha" (dd/mm/aaaa) u "opcion"; las opciones
     son pares (texto que se muestra, valor que se devuelve).
+
+    Una opción puede depender de otro campo del formulario: depende_de es la clave de
+    ese campo y opciones_segun recibe su valor elegido y devuelve las opciones a mostrar.
     """
 
     clave: str
@@ -154,6 +157,8 @@ class Campo:
     obligatorio: bool = False
     valor: object = None
     opciones: list = field(default_factory=list)
+    depende_de: str = None
+    opciones_segun: object = None
 
 
 class Formulario(tk.Toplevel):
@@ -178,6 +183,11 @@ class Formulario(tk.Toplevel):
             control = self._crear_control(marco, campo)
             control.grid(row=fila, column=1, sticky="we", pady=4)
             self._controles[campo.clave] = control
+        for campo in campos:
+            if campo.depende_de:
+                self._controles[campo.depende_de].bind(
+                    "<<ComboboxSelected>>", lambda evento, campo=campo: self._actualizar_opciones(campo), add="+"
+                )
 
         botones = ttk.Frame(marco)
         botones.grid(row=len(campos), column=0, columnspan=2, sticky="e", pady=(12, 0))
@@ -201,6 +211,16 @@ class Formulario(tk.Toplevel):
         if campo.valor is not None:
             control.insert(0, formatear_fecha(campo.valor) if campo.tipo == "fecha" else str(campo.valor))
         return control
+
+    def _actualizar_opciones(self, campo):
+        """Vuelve a armar las opciones de un campo cuando cambia el campo del que depende."""
+        texto_elegido = self._controles[campo.depende_de].get()
+        del_que_depende = next(c for c in self._campos if c.clave == campo.depende_de)
+        valor = dict(del_que_depende.opciones).get(texto_elegido)
+        campo.opciones = campo.opciones_segun(valor) if valor is not None else []
+        control = self._controles[campo.clave]
+        control.configure(values=[texto for texto, _ in campo.opciones])
+        control.set("")
 
     def _convertir(self, campo, texto):
         if campo.tipo == "entero":
