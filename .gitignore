@@ -8,3 +8,6 @@ __pycache__/
 
 # Base de datos local
 biblioteca.db
+
+# Reportes exportados
+reportes_generados/
