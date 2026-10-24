@@ -1,6 +1,8 @@
 # Reportes
 
-La consigna pide al menos cuatro reportes no triviales. Se implementaron cinco. Cada uno está en su propio módulo de `biblioteca/reportes/`, hace consultas de solo lectura y devuelve dataclasses con los datos ya calculados. El menú **Reportes** los muestra en tablas.
+La consigna pide al menos cuatro reportes no triviales. Se implementaron cinco. Cada uno está en su propio módulo de `biblioteca/reportes/`, hace consultas de solo lectura y devuelve dataclasses con los datos ya calculados.
+
+Los reportes se pueden ver en pantalla y también **exportar a PDF** (con tablas y gráficos) **o a CSV**, como muestra el apunte de la cátedra "Reportes en Python" (ver [Exportación](#exportación) al final).
 
 ## 1. Préstamos activos y material en tránsito
 `prestamos_activos_y_transito.py`
@@ -55,3 +57,34 @@ La opción **Cargar datos de ejemplo** agrega un historial de operaciones con fe
 - una multa impaga;
 - un envío en viaje;
 - una reserva pendiente.
+
+## Exportación
+
+Siguiendo el apunte de la cátedra "Reportes en Python", cada reporte se puede exportar desde el menú **Reportes** (opciones 6 y 7) a:
+
+- **PDF con ReportLab:**
+  - título, fecha de generación y una descripción de qué muestra el reporte y con qué criterio;
+  - tablas con encabezado de color y filas alternadas (`Table` y `TableStyle`);
+  - totales y número de página;
+  - gráficos hechos con **matplotlib** e insertados como imagen.
+- **CSV con la biblioteca estándar `csv`:**
+  - cada tabla del reporte, una debajo de la otra;
+  - separador punto y coma y codificación UTF-8 con BOM, para que Excel en español lo abra con las columnas y los acentos correctos.
+
+Los archivos se guardan en la carpeta `reportes_generados/`, que no se versiona.
+
+| Reporte | Gráfico |
+|---|---|
+| 1. Préstamos activos y material en tránsito | Barras: préstamos activos por sede de retiro |
+| 2. Préstamos vencidos y multas acumuladas | Barras horizontales: multas pendientes por socio |
+| 3. Libros más solicitados | Barras horizontales: solicitudes por libro |
+| 4. Movimiento entre sedes | Barras: envíos por ruta |
+| 5. Tasa de envíos | Torta: exitosos, con daño y extraviados |
+
+### Diseño
+- `reportes/armado.py` convierte el resultado de cada reporte en un `DocumentoReporte` genérico (`reportes/documento.py`) con secciones (tablas), gráficos y totales ya formateados.
+- `reportes/exportar_pdf.py` y `reportes/exportar_csv.py` recorren esa estructura sin saber de qué reporte se trata.
+- `reportes/graficos.py` dibuja con la clase `Figure` de matplotlib, sin `pyplot`, así no necesita ventana ni pantalla.
+- `reportes/exportacion.py` es el único punto de entrada; lo usa la interfaz.
+
+Así, para agregar un formato nuevo alcanza con un exportador más, y para agregar un reporte, con una función de armado más.

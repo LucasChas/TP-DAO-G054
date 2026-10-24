@@ -16,7 +16,7 @@ Sistema de consola para una red de bibliotecas públicas. Administra las sedes, 
 - el envío de ejemplares entre sedes, con remitos trazables;
 - devoluciones y multas.
 
-Incluye cinco reportes.
+Incluye cinco reportes, que se pueden ver en pantalla y exportar a PDF (con gráficos) o a CSV.
 
 Está hecho en Python con SQLAlchemy sobre SQLite y separado en capas: modelos, DAO, servicios e interfaz.
 
@@ -50,7 +50,7 @@ Con eso todos los reportes muestran información.
 pytest -q
 ```
 
-Hay 181 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 96 % del paquete `biblioteca`, sin contar la interfaz de consola. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
+Hay 203 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 96 % del paquete `biblioteca`, sin contar la interfaz de consola. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
 
 ## Funcionalidades
 
@@ -64,7 +64,7 @@ Hay 181 tests y cada uno usa una base SQLite en memoria nueva, así que no toca 
 | 6. Consultar disponibilidad | **Consultar disponibilidad:** ejemplares de un libro por sede y por estado |
 | 7. Gestionar reservas | **Reservas:** reservar, cancelar, procesar reservas no retiradas y listados |
 | 8. Devoluciones y estado físico | **Devoluciones y multas:** devolución con estado físico, multas, pagos y política de multas |
-| Reportes | **Reportes:** los cinco reportes descriptos más abajo |
+| Reportes | **Reportes:** los cinco reportes descriptos más abajo, en pantalla o exportados a PDF y CSV |
 
 Los errores de negocio (por ejemplo, prestar a un socio inhabilitado) se informan en pantalla sin cortar el programa.
 
@@ -87,6 +87,8 @@ Ver el detalle en [docs/reportes.md](docs/reportes.md).
 4. Movimiento de ejemplares entre sedes y tiempo promedio de tránsito.
 5. Tasa de envíos logísticos exitosos e incidencias.
 
+Todos se pueden exportar a **PDF** (tablas con estilo, totales y un gráfico de matplotlib) o a **CSV** (con el separador y la codificación que espera Excel en español).
+
 ## Estructura
 
 ```
@@ -97,7 +99,7 @@ biblioteca/
 ├── dao/             # acceso a datos: un DAO por entidad, reciben la sesión del servicio
 ├── servicios/       # casos de uso y validaciones de negocio
 ├── patrones/        # State, Strategy e Iterator
-├── reportes/        # un módulo por reporte
+├── reportes/        # un módulo por reporte y la exportación a PDF/CSV
 ├── excepciones/     # excepciones de dominio
 └── interfaz/        # menús de consola (única capa que usa input/print)
 tests/               # tests con pytest
