@@ -76,6 +76,7 @@ classDiagram
         estado_fisico
         dias_atraso
         monto_multa
+        cargo_por_danio
         multa_pagada
         observaciones
     }
@@ -171,7 +172,7 @@ El cierre de un préstamo. Registra:
 - la fecha de devolución;
 - el **estado físico** del material devuelto, como pide la consigna;
 - los días de atraso;
-- la multa.
+- la multa: lo que corresponde por atraso más el cargo por daño, si lo hay.
 
 La multa es un **monto en pesos** calculado con el patrón **Strategy**. Se eligió un monto, y no días de suspensión, porque la consigna pide un reporte de "multas acumuladas", y lo que se acumula es un importe sumable por socio.
 
@@ -181,7 +182,11 @@ La multa es un **monto en pesos** calculado con el patrón **Strategy**. Se elig
   - **Sin multa:** para condonaciones.
 - Una devolución sin atraso no genera multa y se registra como pagada.
 - Un socio con **multas impagas no puede recibir nuevos préstamos** hasta que se registre el pago. Es el mismo criterio que con los préstamos vencidos.
-- Devolver el material dañado **no tiene recargo**: la consigna pide registrar el estado físico, no cobrar por daños. El ejemplar pasa a reparación.
+- Devolver **dañado** un material que se prestó sano tiene un **cargo fijo de $1000**, que se suma a la multa por atraso. La biblioteca entregó el material en condiciones y la reparación es un gasto para ella. El ejemplar pasa a reparación.
+  - Se cobra solo el daño nuevo: si el material ya figuraba dañado al prestarse, el socio no lo causó.
+  - El estado "Regular" (gastado por el uso normal) no tiene cargo.
+  - El cargo no depende de la política de multas: la condonación anula la multa por atraso, pero no el costo de la reparación.
+  - La devolución guarda el cargo por separado (`cargo_por_danio`) y `monto_multa` es el total a pagar. Mientras esté impago, el socio no puede recibir préstamos nuevos, igual que con la multa por atraso.
 - **Préstamo local:** el ejemplar vuelve a estar disponible, o se aparta para la reserva pendiente más antigua. Si está dañado, queda `EN_REPARACION`.
 - **Préstamo interbibliotecario:** el socio devuelve el ejemplar en la sede donde lo retiró. El ejemplar queda `EN_TRANSITO` y se genera el remito de **retorno** hacia su sede propietaria. Al recibirse ese remito, el ejemplar vuelve a circular, o queda en reparación si llegó dañado.
 

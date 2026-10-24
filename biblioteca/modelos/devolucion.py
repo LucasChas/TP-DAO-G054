@@ -9,7 +9,10 @@ from biblioteca.modelos.enumeraciones import EstadoFisico
 
 
 class Devolucion(Base):
-    """Cierre de un préstamo: estado físico del material devuelto, atraso y multa."""
+    """Cierre de un préstamo: estado físico del material devuelto, atraso y multa.
+
+    monto_multa es el total a pagar: la multa por atraso más el cargo por daño.
+    """
 
     __tablename__ = "devoluciones"
 
@@ -19,11 +22,16 @@ class Devolucion(Base):
     estado_fisico = Column(Enum(EstadoFisico, native_enum=False, length=20), nullable=False)
     dias_atraso = Column(Integer, nullable=False, default=0)
     monto_multa = Column(Float, nullable=False, default=0.0)
+    cargo_por_danio = Column(Float, nullable=False, default=0.0)
     multa_pagada = Column(Boolean, nullable=False, default=False)
     observaciones = Column(Text)
 
     # Se carga junto con la devolución para poder mostrarla después de cerrar la sesión.
     prestamo = relationship("Prestamo", back_populates="devolucion", lazy="joined")
+
+    @property
+    def multa_por_atraso(self):
+        return self.monto_multa - self.cargo_por_danio
 
     @property
     def tiene_multa_impaga(self):

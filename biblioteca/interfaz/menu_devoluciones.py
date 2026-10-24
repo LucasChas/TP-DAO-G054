@@ -17,14 +17,15 @@ from biblioteca.servicios import ServicioDevoluciones, ServicioPrestamos
 
 servicio = ServicioDevoluciones()
 
-COLUMNAS = ["Id", "Préstamo", "Socio", "Libro", "Fecha", "Estado físico", "Días de atraso", "Multa", "Pagada"]
+COLUMNAS = ["Id", "Préstamo", "Socio", "Libro", "Fecha", "Estado físico", "Días de atraso", "Por atraso", "Por daño", "Total", "Pagada"]
 
 
 def _filas(devoluciones):
     return [
         (
             d.id, d.prestamo_id, d.prestamo.socio.nombre_completo, d.prestamo.ejemplar.libro.titulo,
-            f"{d.fecha:%d/%m/%Y}", d.estado_fisico.value, d.dias_atraso, f"${d.monto_multa:,.2f}",
+            f"{d.fecha:%d/%m/%Y}", d.estado_fisico.value, d.dias_atraso, f"${d.multa_por_atraso:,.2f}",
+            f"${d.cargo_por_danio:,.2f}", f"${d.monto_multa:,.2f}",
             "Sí" if d.multa_pagada else "No",
         )
         for d in devoluciones
@@ -39,8 +40,12 @@ def registrar_devolucion():
     observaciones = pedir_texto("Observaciones (opcional)")
     devolucion = servicio.registrar_devolucion(id_prestamo, estado_fisico, observaciones)
     mostrar_exito("Devolución registrada.")
+    if devolucion.multa_por_atraso > 0:
+        mostrar_aviso(f"{devolucion.dias_atraso} días de atraso: multa de ${devolucion.multa_por_atraso:,.2f}.")
+    if devolucion.cargo_por_danio > 0:
+        mostrar_aviso(f"Material devuelto dañado: cargo de ${devolucion.cargo_por_danio:,.2f}.")
     if devolucion.monto_multa > 0:
-        mostrar_aviso(f"{devolucion.dias_atraso} días de atraso: multa de ${devolucion.monto_multa:,.2f}.")
+        mostrar_aviso(f"Total a pagar: ${devolucion.monto_multa:,.2f}.")
     if devolucion.prestamo.es_interbibliotecario:
         mostrar_aviso("Se generó el remito de retorno a la sede propietaria del ejemplar.")
 

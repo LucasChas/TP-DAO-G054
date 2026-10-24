@@ -16,7 +16,7 @@ Los reportes se pueden ver en pantalla y también **exportar a PDF** (con tablas
 
 - **Vencidos:** préstamos activos con la fecha de vencimiento pasada, con los días de atraso y la **multa estimada** calculada con la política de multas vigente (patrón Strategy).
 - **Multas por socio:**
-  - **cobrado:** multas pagadas;
+  - **cobrado:** multas pagadas (incluye el cargo por devolver material dañado);
   - **adeudado:** multas registradas en devoluciones y todavía impagas;
   - **estimado:** multa de los préstamos vencidos aún no devueltos.
 

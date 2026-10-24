@@ -3,7 +3,7 @@ from datetime import date
 import pytest
 
 from biblioteca.modelos import Ejemplar, Libro, Prestamo
-from biblioteca.modelos.enumeraciones import EstadoPrestamo, TipoMaterial, TipoPrestamo
+from biblioteca.modelos.enumeraciones import EstadoFisico, EstadoPrestamo, TipoMaterial, TipoPrestamo
 from biblioteca.patrones.estrategias_multa import (
     CalculadoraDeMultas,
     MultaPorDiasDeAtraso,
@@ -55,3 +55,14 @@ class TestCalculadora:
         calculadora.cambiar_estrategia(SinMulta())
         assert isinstance(calculadora.estrategia, SinMulta)
         assert calculadora.calcular(prestamo_de(TipoMaterial.CONSULTA), date(2026, 10, 3)) == (2, 0)
+
+
+@pytest.mark.parametrize("prestado, devuelto, cargo", [
+    (EstadoFisico.BUENO, EstadoFisico.DANIADO, 1000),
+    (EstadoFisico.REGULAR, EstadoFisico.DANIADO, 1000),
+    (EstadoFisico.BUENO, EstadoFisico.REGULAR, 0),
+    (EstadoFisico.BUENO, EstadoFisico.BUENO, 0),
+    (EstadoFisico.DANIADO, EstadoFisico.DANIADO, 0),
+])
+def test_solo_se_cobra_el_danio_nuevo(prestado, devuelto, cargo):
+    assert CalculadoraDeMultas(SinMulta()).cargo_por_danio(prestado, devuelto) == cargo

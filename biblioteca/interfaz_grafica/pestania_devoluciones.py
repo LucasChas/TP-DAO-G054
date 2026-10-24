@@ -10,7 +10,7 @@ from biblioteca.servicios import ServicioPrestamos
 
 
 class PestaniaDevoluciones(ttk.Frame):
-    COLUMNAS = ("Id", "Préstamo", "Socio", "Libro", "Fecha", "Estado físico", "Días de atraso", "Multa", "Pagada")
+    COLUMNAS = ("Id", "Préstamo", "Socio", "Libro", "Fecha", "Estado físico", "Días de atraso", "Por atraso", "Por daño", "Total", "Pagada")
 
     def __init__(self, padre, servicio):
         """servicio es el ServicioDevoluciones compartido con la pestaña de reportes,
@@ -44,8 +44,8 @@ class PestaniaDevoluciones(ttk.Frame):
             devoluciones = self.servicio.listar_devoluciones()
         self.tabla.cargar([
             (d.id, d.prestamo_id, d.prestamo.socio.nombre_completo, d.prestamo.ejemplar.libro.titulo,
-             c.formatear_fecha(d.fecha), d.estado_fisico.value, d.dias_atraso, c.formatear_pesos(d.monto_multa),
-             "Sí" if d.multa_pagada else "No")
+             c.formatear_fecha(d.fecha), d.estado_fisico.value, d.dias_atraso, c.formatear_pesos(d.multa_por_atraso),
+             c.formatear_pesos(d.cargo_por_danio), c.formatear_pesos(d.monto_multa), "Sí" if d.multa_pagada else "No")
             for d in devoluciones
         ])
 
@@ -70,8 +70,12 @@ class PestaniaDevoluciones(ttk.Frame):
     @staticmethod
     def _mensaje_devolucion(devolucion):
         mensaje = "Devolución registrada."
+        if devolucion.multa_por_atraso > 0:
+            mensaje += f"\n{devolucion.dias_atraso} días de atraso: multa de {c.formatear_pesos(devolucion.multa_por_atraso)}."
+        if devolucion.cargo_por_danio > 0:
+            mensaje += f"\nMaterial devuelto dañado: cargo de {c.formatear_pesos(devolucion.cargo_por_danio)}."
         if devolucion.monto_multa > 0:
-            mensaje += f"\n{devolucion.dias_atraso} días de atraso: multa de {c.formatear_pesos(devolucion.monto_multa)}."
+            mensaje += f"\nTotal a pagar: {c.formatear_pesos(devolucion.monto_multa)}."
         if devolucion.prestamo.es_interbibliotecario:
             mensaje += "\nSe generó el remito de retorno a la sede propietaria."
         return mensaje

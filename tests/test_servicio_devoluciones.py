@@ -71,6 +71,29 @@ class TestDevolucionLocal:
         ejemplar = ejemplar_actual(red.ejemplar_centro)
         assert (ejemplar.estado, ejemplar.estado_fisico) == (EstadoEjemplar.EN_REPARACION, EstadoFisico.DANIADO)
 
+    def test_devolver_el_material_danado_cobra_un_cargo_fijo(self, servicio, prestamo_local):
+        devolucion = servicio.registrar_devolucion(prestamo_local.id, EstadoFisico.DANIADO, "Hojas mojadas", fecha=VENCE)
+        assert (devolucion.multa_por_atraso, devolucion.cargo_por_danio, devolucion.monto_multa) == (0, 1000, 1000)
+        assert devolucion.tiene_multa_impaga
+
+    def test_el_cargo_por_danio_se_suma_a_la_multa_por_atraso(self, servicio, prestamo_local):
+        devolucion = servicio.registrar_devolucion(prestamo_local.id, EstadoFisico.DANIADO, fecha=VENCE + timedelta(days=3))
+        assert (devolucion.multa_por_atraso, devolucion.cargo_por_danio, devolucion.monto_multa) == (1500, 1000, 2500)
+
+    def test_devolver_en_estado_regular_no_tiene_cargo(self, servicio, prestamo_local):
+        devolucion = servicio.registrar_devolucion(prestamo_local.id, EstadoFisico.REGULAR, fecha=VENCE)
+        assert (devolucion.cargo_por_danio, devolucion.monto_multa, devolucion.multa_pagada) == (0, 0, True)
+
+    def test_la_condonacion_no_anula_el_cargo_por_danio(self, prestamo_local):
+        servicio = ServicioDevoluciones(CalculadoraDeMultas(SinMulta()))
+        devolucion = servicio.registrar_devolucion(prestamo_local.id, EstadoFisico.DANIADO, fecha=VENCE + timedelta(days=3))
+        assert (devolucion.multa_por_atraso, devolucion.cargo_por_danio) == (0, 1000)
+
+    def test_el_cargo_por_danio_impago_impide_nuevos_prestamos(self, servicio, prestamos, prestamo_local, red):
+        servicio.registrar_devolucion(prestamo_local.id, EstadoFisico.DANIADO, fecha=VENCE)
+        with pytest.raises(SocioConMultasImpagas):
+            prestamos.registrar_prestamo_local(red.ana.id, red.ejemplar_norte.id, red.norte.id, fecha=VENCE)
+
     def test_el_ejemplar_devuelto_se_aparta_para_la_reserva_pendiente(self, servicio, prestamos, red):
         # Ana se lleva el único ejemplar de la Sede Norte y Juan lo reserva.
         prestamo = prestamos.registrar_prestamo_local(red.ana.id, red.ejemplar_norte.id, red.norte.id, fecha=HOY)
@@ -162,7 +185,8 @@ class TestDevolucionInterbibliotecaria:
         from biblioteca.reportes import tasa_de_envios
 
         remitos = ServicioRemitos()
-        servicio.registrar_devolucion(prestamo_entregado.id, EstadoFisico.DANIADO, "Hojas mojadas", fecha=VENCE)
+        devolucion = servicio.registrar_devolucion(prestamo_entregado.id, EstadoFisico.DANIADO, "Hojas mojadas", fecha=VENCE)
+        assert devolucion.cargo_por_danio == 1000
         retorno = remitos.listar_remitos_de_prestamo(prestamo_entregado.id)[-1]
         remitos.empaquetar(retorno.id)
         remitos.despachar(retorno.id)

@@ -30,8 +30,9 @@ class ServicioDevoluciones:
     def registrar_devolucion(self, id_prestamo, estado_fisico, observaciones=None, fecha=None):
         """El socio devuelve el ejemplar en la sede donde lo retiró.
 
-        Se registra el estado físico del material y se calcula la multa con la
-        estrategia vigente. Después:
+        Se registra el estado físico del material y se calcula la multa por atraso
+        con la estrategia vigente, más el cargo por daño si el material se devuelve
+        dañado. Después:
         - préstamo local: el ejemplar vuelve a circular (o queda en reparación si está dañado);
         - préstamo interbibliotecario: se genera el remito de retorno a su sede propietaria.
         """
@@ -46,13 +47,16 @@ class ServicioDevoluciones:
                 raise DatoInvalido("La fecha de devolución no puede ser anterior a la entrega.")
 
             dias_atraso, monto = self.calculadora.calcular(prestamo, fecha)
+            cargo_por_danio = self.calculadora.cargo_por_danio(prestamo.ejemplar.estado_fisico, estado_fisico)
+            total = monto + cargo_por_danio
             devolucion = Devolucion(
                 prestamo=prestamo,
                 fecha=fecha,
                 estado_fisico=estado_fisico,
                 dias_atraso=dias_atraso,
-                monto_multa=monto,
-                multa_pagada=monto == 0,
+                monto_multa=total,
+                cargo_por_danio=cargo_por_danio,
+                multa_pagada=total == 0,
                 observaciones=(observaciones or "").strip() or None,
             )
             DevolucionDAO(sesion).crear(devolucion)
