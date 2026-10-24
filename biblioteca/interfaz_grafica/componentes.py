@@ -140,6 +140,18 @@ def centrar_sobre(ventana, padre):
 # --- Formularios --------------------------------------------------------------------------
 
 
+ANCHO_MINIMO_OPCION = 50
+
+
+def _ancho_en_caracteres(texto):
+    """Ancho que necesita un texto, en la unidad de width de ttk (el ancho del carácter "0")."""
+    # La caja muestra el texto con TkTextFont y la lista desplegable con TkDefaultFont.
+    return max(
+        -(-fuente.measure(texto) // fuente.measure("0")) + 2
+        for fuente in (font.nametofont("TkTextFont"), font.nametofont("TkDefaultFont"))
+    )
+
+
 @dataclass
 class Campo:
     """Un dato a pedir en un formulario.
@@ -202,7 +214,11 @@ class Formulario(tk.Toplevel):
 
     def _crear_control(self, marco, campo):
         if campo.tipo == "opcion":
-            control = ttk.Combobox(marco, values=[texto for texto, _ in campo.opciones], state="readonly", width=50)
+            # Un campo que depende de otro se mide con todas sus opciones posibles, así la
+            # ventana no cambia de tamaño al elegir el otro campo.
+            posibles = campo.opciones_segun(None) if campo.opciones_segun else campo.opciones
+            ancho = max([ANCHO_MINIMO_OPCION] + [_ancho_en_caracteres(texto) for texto, _ in posibles])
+            control = ttk.Combobox(marco, values=[texto for texto, _ in campo.opciones], state="readonly", width=ancho)
             for texto, valor in campo.opciones:
                 if valor == campo.valor:
                     control.set(texto)

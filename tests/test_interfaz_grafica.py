@@ -197,3 +197,24 @@ def test_el_selector_de_ejemplares_muestra_solo_los_de_la_sede_elegida(aplicacio
             assert selector_ejemplar.get() == ""
     finally:
         formulario.destroy()
+
+
+def test_los_selectores_son_tan_anchos_como_su_opcion_mas_larga(aplicacion, mensajes):
+    from tkinter import font
+
+    from biblioteca.interfaz_grafica.componentes import Campo, Formulario
+    from biblioteca.interfaz_grafica.opciones import opciones_ejemplares, opciones_sedes
+
+    cargar_datos_de_ejemplo()
+    formulario = Formulario(aplicacion, "Préstamo local", [
+        Campo("id_sede", "Sede", tipo="opcion", opciones=opciones_sedes()),
+        Campo("id_ejemplar", "Ejemplar de la sede", tipo="opcion", depende_de="id_sede", opciones_segun=opciones_ejemplares),
+    ])
+    try:
+        selector = formulario._controles["id_ejemplar"]
+        selector.update_idletasks()
+        fuente = font.nametofont("TkTextFont")
+        mas_larga = max(fuente.measure(texto) for texto, _ in opciones_ejemplares())
+        assert selector.winfo_reqwidth() > mas_larga
+    finally:
+        formulario.destroy()
