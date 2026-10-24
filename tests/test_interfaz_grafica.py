@@ -155,3 +155,21 @@ def test_un_rango_de_fechas_invalido_se_avisa(aplicacion, mensajes):
     pestania.desde.insert(0, "31/02/2026")
     pestania.reporte_mas_solicitados()
     assert mensajes["avisos"] == ["'31/02/2026' no es una fecha válida (dd/mm/aaaa)."]
+
+
+def test_se_exporta_el_reporte_mostrado_a_pdf_y_csv(aplicacion, mensajes, tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)  # los reportes se guardan en reportes_generados/ dentro de la carpeta actual
+    cargar_datos_de_ejemplo()
+    pestania = aplicacion.pestanias["Reportes"]
+    pestania.reporte_tasa()
+    pestania.exportar("pdf")
+    assert pestania.ultimo_archivo.read_bytes().startswith(b"%PDF")
+    assert pestania.ultimo_archivo.parent.name == "reportes_generados"
+    pestania.exportar("csv")
+    assert pestania.ultimo_archivo.suffix == ".csv"
+    assert mensajes["errores"] == []
+
+
+def test_exportar_sin_elegir_reporte_avisa(aplicacion, mensajes):
+    aplicacion.pestanias["Reportes"].exportar("pdf")
+    assert mensajes["avisos"] == ["Primero elija un reporte para mostrar."]

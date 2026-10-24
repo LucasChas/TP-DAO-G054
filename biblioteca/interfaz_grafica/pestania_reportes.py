@@ -4,6 +4,7 @@ from tkinter import ttk
 
 from biblioteca.interfaz_grafica import componentes as c
 from biblioteca.reportes import (
+    exportacion,
     libros_mas_solicitados,
     movimiento_entre_sedes,
     prestamos_activos_y_transito,
@@ -47,9 +48,16 @@ class PestaniaReportes(ttk.Frame):
         self.hasta = ttk.Entry(filtro)
         self.hasta.pack(fill="x")
 
+        exportar = ttk.LabelFrame(lateral, text="Exportar el reporte mostrado", padding=8)
+        exportar.pack(fill="x", pady=(14, 0))
+        ttk.Button(exportar, text="Exportar a PDF (con gráfico)", command=lambda: self.exportar("pdf")).pack(fill="x", pady=2)
+        ttk.Button(exportar, text="Exportar a CSV", command=lambda: self.exportar("csv")).pack(fill="x", pady=2)
+
         self.contenido = ttk.Frame(self)
         self.contenido.pack(side="left", fill="both", expand=True)
         self.titulo_actual = None
+        self.clave_actual = None
+        self.ultimo_archivo = None
 
     def actualizar(self):
         if self.titulo_actual is None:
@@ -89,6 +97,7 @@ class PestaniaReportes(ttk.Frame):
         return fechas
 
     def reporte_activos(self):
+        self.clave_actual = "activos"
         reporte = prestamos_activos_y_transito.generar()
         self._mostrar("Préstamos activos y material en tránsito", [
             ("Préstamos en curso",
@@ -106,6 +115,7 @@ class PestaniaReportes(ttk.Frame):
         ])
 
     def reporte_vencidos(self):
+        self.clave_actual = "vencidos"
         reporte = prestamos_vencidos_y_multas.generar(calculadora=self.servicio_devoluciones.calculadora)
         self._mostrar("Préstamos vencidos y multas acumuladas", [
             (f"Préstamos vencidos (política: {reporte.politica})",
@@ -120,6 +130,7 @@ class PestaniaReportes(ttk.Frame):
                f"Total a cobrar: {c.formatear_pesos(reporte.total_adeudado)}")
 
     def reporte_mas_solicitados(self):
+        self.clave_actual = "solicitados"
         rango = self._rango()
         if rango is None:
             return
@@ -131,6 +142,7 @@ class PestaniaReportes(ttk.Frame):
         ])
 
     def reporte_movimientos(self):
+        self.clave_actual = "movimientos"
         rango = self._rango()
         if rango is None:
             return
@@ -143,6 +155,7 @@ class PestaniaReportes(ttk.Frame):
         ], pie=f"Tiempo promedio de tránsito en la red: {_horas(reporte.horas_promedio_general)}")
 
     def reporte_tasa(self):
+        self.clave_actual = "tasa"
         reporte = tasa_de_envios.generar()
         columnas = ("Grupo", "Exitosos", "Con daño", "Extraviados", "Anulados", "En curso", "Tasa de éxito")
 
@@ -157,3 +170,25 @@ class PestaniaReportes(ttk.Frame):
              [(f.numero, f.sentido, f.libro, f.origen, f.destino, f.tipo, c.formatear_fecha(f.fecha, con_hora=True),
                f.observacion) for f in reporte.incidencias]),
         ])
+
+    def exportar(self, formato):
+        """Exporta el reporte que se está mostrando, con el mismo rango de fechas y política de multas."""
+        if self.clave_actual is None:
+            c.avisar("Primero elija un reporte para mostrar.", self)
+            return
+        desde, hasta = None, None
+        if self.clave_actual in ("solicitados", "movimientos"):
+            rango = self._rango()
+            if rango is None:
+                return
+            desde, hasta = rango
+        try:
+            ruta = exportacion.exportar(
+                self.clave_actual, formato, desde=desde, hasta=hasta,
+                calculadora=self.servicio_devoluciones.calculadora,
+            )
+        except OSError as error:
+            c.mostrar_error(f"No se pudo guardar el archivo: {error}", self)
+            return
+        self.ultimo_archivo = ruta
+        c.informar(f"Reporte exportado en:\n{ruta.resolve()}", self)
