@@ -1,6 +1,6 @@
 # Guion del video: DAO, Strategy, State e Iterator en la red de bibliotecas
 
-Video animado y abstracto de unos **17 minutos**, calculados con una narración pausada (unas 150 palabras por minuto) y algunos segundos por escena para que se vea la animación. Lo escribí a partir del código del repositorio, no de la descripción del prompt: cada archivo, clase y método que se nombra existe en el código, y los fragmentos se copiaron tal cual. Donde el código no cumple una regla, aparece marcado como **⚠** y la corrección figura como *propuesta*.
+Video animado y abstracto de unos **17 minutos**, calculados con una narración pausada (unas 150 palabras por minuto) y algunos segundos por escena para que se vea la animación. Lo escribí a partir del código del repositorio, no de la descripción del prompt: cada archivo, clase y método que se nombra existe en el código, y los fragmentos se copiaron tal cual. El chequeo encontró cuatro incumplimientos (⚠). Ya están corregidos en el código, con sus tests, y el video los muestra como correcciones hechas.
 
 ## Colores y metáforas fijas (se usan igual en todo el video)
 
@@ -527,32 +527,32 @@ def _resolver_consecuencias(sesion, remito, fecha_hora):
 
 **Duración:** 1:10
 
-**Visual:** Un tablero con una fila por proceso y seis columnas: 1 DAO · 2 State · 3 Strategy · 4 Iterator · 5 Coherencia · 6 Trazabilidad. Las casillas se llenan con ✔ (verde), ⚠ (amarillo) o "—" (no aplica). Cuando aparece un ⚠, la cámara hace zoom y se ve la corrección propuesta.
+**Visual:** Un tablero con una fila por proceso y seis columnas: 1 DAO · 2 State · 3 Strategy · 4 Iterator · 5 Coherencia · 6 Trazabilidad. Las casillas se llenan con ✔ (verde) o "—" (no aplica). Cuatro casillas aparecen primero en ⚠ (amarillo): la cámara hace zoom, se ve la corrección y la casilla cambia a ✔.
 
 | Proceso | 1 DAO | 2 State | 3 Strategy | 4 Iterator | 5 Coherencia | 6 Trazab. |
 |---|---|---|---|---|---|---|
-| Remitos | ✔ | ✔ | — | — | ⚠ | ✔ |
-| Devoluciones | ✔ | ✔ (retorno) | ⚠ leve | — | ✔ | ✔ |
+| Remitos | ✔ | ✔ | — | — | ✔ (corregido) | ✔ |
+| Devoluciones | ✔ | ✔ (retorno) | ✔ (corregido) | — | ✔ | ✔ |
 | Préstamos | ✔ | ✔ (enum + remito) | — | — | ✔ | ✔ |
-| Reservas | ⚠ leve | ✔ (enum) | — | ✔ | ✔ | ✔ |
+| Reservas | ✔ (corregido) | ✔ (enum) | — | ✔ | ✔ | ✔ |
 | Disponibilidad | ✔ | — | — | ✔ | ✔ | ✔ |
-| Reporte de multas | ⚠ | — | ✔ | — | ✔ | ✔ |
+| Reporte de multas | ✔ (corregido) | — | ✔ | — | ✔ | ✔ |
 | Socios | ✔ | ✔ (enum) | — | — | ✔ | ✔ |
-| Sedes | ✔ | ✔ (enum) | — | — | ⚠ | ✔ |
+| Sedes | ✔ | ✔ (enum) | — | — | ✔ (corregido) | ✔ |
 | Catálogo | ✔ | ✔ (enum) | — | ✔ (no hace falta) | ✔ | ✔ |
 
 **Narración:**
-> Revisamos cada proceso con la lista de reglas. Casi todo pasa. Hay cuatro avisos amarillos.
+> Revisamos cada proceso con la lista de reglas. Al principio aparecieron cuatro avisos amarillos. Ya están corregidos.
 >
-> **Uno: el reporte de multas entra solo al depósito.** En `prestamos_vencidos_y_multas.py`, `generar` busca con `sesion.query` en vez de pedírselo a un DAO. El riesgo: la regla de "préstamo vencido" queda escrita dos veces. *Propuesta:* usar `PrestamoDAO.listar_vencidos_al`, que ya existe.
+> **Uno: los reportes entraban solos al depósito.** Armaban sus propias búsquedas en la base. Ahora le piden todo a un DAO, por ejemplo `PrestamoDAO.listar_vencidos_al`. Y un test vigila que nadie más arme búsquedas fuera de los DAO.
 >
-> **Dos: un remito de retorno puede quedar trabado.** Si se da de baja la sede dueña del ejemplar mientras está afuera, el retorno no se puede despachar ni anular. *Propuesta:* que `dar_de_baja_sede` no deje dar de baja una sede con remitos en curso.
+> **Dos: un remito de retorno podía quedar trabado.** Si se daba de baja la sede dueña de un ejemplar que estaba afuera, el retorno no se podía despachar ni anular. Ahora `dar_de_baja_sede` no deja dar de baja una sede mientras le falte volver a algún ejemplar.
 >
-> **Tres, leve: retirar una reserva usa dos carritos.** `registrar_retiro` lee en un carrito y presta en otro. *Propuesta:* compartir el carrito.
+> **Tres: retirar una reserva usaba dos carritos.** Ahora usa uno solo.
 >
-> **Cuatro, leve: al cambiar la política, primero se cambia la tarjeta y después se guarda.** Si el guardado falla, quedan distintas. *Propuesta:* guardar primero.
+> **Cuatro: al cambiar la política, primero se cambiaba la tarjeta y después se guardaba.** Ahora se guarda primero.
 >
-> Sobre el Iterator: no encontré recorridos de ejemplares con filtros hechos a mano, así que no hace falta agregarlo en otro lado.
+> El Iterator no necesitó cambios: no había recorridos de ejemplares con filtros hechos a mano.
 
 ---
 
@@ -615,7 +615,7 @@ flowchart LR
     RES --> DAO
     DIS --> DAO
     ABM --> DAO
-    REP -. "⚠ consulta directa" .-> DAO
+    REP --> DAO
 ```
 
 ## 2. Tabla de patrones
@@ -631,14 +631,14 @@ flowchart LR
 
 | Proceso | DAO | State | Strategy | Iterator | Coherencia | Archivo / clase | Observaciones |
 |---|---|---|---|---|---|---|---|
-| **Remitos** | ✔ | ✔ | — | — | ⚠ | `servicio_remitos.py` → `ServicioRemitos._ejecutar`, `generar_remito`, `anular_remito`, `_resolver_consecuencias` | Toda transición pasa por State y `TransicionRemitoInvalida`. ⚠ Un remito de retorno hacia una sede dada de baja no se puede despachar ni anular (ver escena 25). *Propuesta:* bloquear la baja de una sede con remitos en curso |
-| **Devoluciones** | ✔ | ✔ | ⚠ leve | — | ✔ | `servicio_devoluciones.py` → `ServicioDevoluciones.registrar_devolucion`, `cambiar_estrategia_de_multa`, `registrar_pago_de_multa`, `estrategia_guardada` | Una sola sesión: devolución + remito de retorno + liberación. Sin `if/elif` por política. ⚠ leve: cambia la estrategia en memoria antes de guardarla. *Propuesta:* invertir el orden |
+| **Remitos** | ✔ | ✔ | — | — | ✔ | `servicio_remitos.py` → `ServicioRemitos._ejecutar`, `generar_remito`, `anular_remito`, `_resolver_consecuencias` | Toda transición pasa por State y `TransicionRemitoInvalida`. *Corregido:* un retorno ya no queda trabado por la baja de una sede (ver Sedes) |
+| **Devoluciones** | ✔ | ✔ | ✔ | — | ✔ | `servicio_devoluciones.py` → `ServicioDevoluciones.registrar_devolucion`, `cambiar_estrategia_de_multa`, `registrar_pago_de_multa`, `estrategia_guardada` | Una sola sesión: devolución + remito de retorno + liberación. Sin `if/elif` por política. *Corregido:* `cambiar_estrategia_de_multa` guarda la política antes de cambiarla en memoria |
 | **Préstamos** | ✔ | ✔ | — | — | ✔ | `servicio_prestamos.py` → `ServicioPrestamos.solicitar_prestamo_interbibliotecario`, `entregar_prestamo`, `cancelar_prestamo` | El préstamo usa la enumeración `EstadoPrestamo`; el cierre y la anulación del remito pasan por State (`remito_de_ida(...).cerrar`, `anular_remito`) |
-| **Reservas** | ⚠ leve | ✔ | — | ✔ | ✔ | `servicio_reservas.py` → `ServicioReservas.reservar`, `registrar_retiro`; `asignacion_reservas.py` → `asignar_a_reserva_pendiente`, `liberar_ejemplar` | Iterator en `reservar` (`en_circulacion`, `disponibles`). ⚠ leve: `registrar_retiro` usa dos sesiones. *Propuesta:* compartir la sesión con el préstamo local |
+| **Reservas** | ✔ | ✔ | — | ✔ | ✔ | `servicio_reservas.py` → `ServicioReservas.reservar`, `registrar_retiro`; `asignacion_reservas.py` → `asignar_a_reserva_pendiente`, `liberar_ejemplar` | Iterator en `reservar` (`en_circulacion`, `disponibles`). *Corregido:* `registrar_retiro` usa una sola sesión, con `ServicioPrestamos.registrar_prestamo_local_en_sesion` |
 | **Disponibilidad** | ✔ | — | — | ✔ | ✔ | `servicio_disponibilidad.py` → `ServicioDisponibilidad.consultar_disponibilidad`, `ejemplares_disponibles` | Lectura pura: `EjemplarDAO.listar` trae la lista y `CatalogoEjemplares` la recorre |
-| **Reporte de multas** | ⚠ | — | ✔ | — | ✔ | `reportes/prestamos_vencidos_y_multas.py` → `generar` | Usa `CalculadoraDeMultas(estrategia_guardada())`. ⚠ Consulta la base con `sesion.query` en lugar de usar los DAO (igual en los otros 4 reportes). *Propuesta:* `PrestamoDAO.listar_vencidos_al` + un `DevolucionDAO.listar_con_multa` nuevo |
+| **Reporte de multas** | ✔ | — | ✔ | — | ✔ | `reportes/prestamos_vencidos_y_multas.py` → `generar` | Usa `CalculadoraDeMultas(estrategia_guardada())`. *Corregido:* los datos los traen `PrestamoDAO.listar_vencidos_al` y `DevolucionDAO.listar_con_multa`; los otros 4 reportes también usan DAO |
 | **Socios** | ✔ | ✔ | — | — | ✔ | `servicio_socios.py` → `ServicioSocios` + `SocioDAO` | Estado simple con la enumeración `EstadoSocio`; el préstamo y la reserva lo validan con `validar_socio_habilitado` |
-| **Sedes** | ✔ | ✔ | — | — | ⚠ | `servicio_sedes.py` → `ServicioSedes.dar_de_baja_sede` + `SedeDAO` | Enumeración `EstadoSede`; State impide despachar hacia o desde una sede dada de baja. ⚠ La baja no revisa remitos en curso (es el mismo hallazgo que en remitos) |
+| **Sedes** | ✔ | ✔ | — | — | ✔ | `servicio_sedes.py` → `ServicioSedes.dar_de_baja_sede` + `SedeDAO` | Enumeración `EstadoSede`; State impide despachar hacia o desde una sede dada de baja. *Corregido:* `dar_de_baja_sede` rechaza la baja mientras a algún ejemplar le falte volver |
 | **Catálogo** | ✔ | ✔ | — | ✔ (no hace falta) | ✔ | `servicio_catalogo.py` → `ServicioCatalogo` + `LibroDAO`, `EjemplarDAO` | `listar_ejemplares` filtra en la base; no hay recorrido con filtros que justifique usar el Iterator. `finalizar_reparacion` usa `liberar_ejemplar` |
 
 ## 4. Diagrama de estados del remito
@@ -733,7 +733,7 @@ stateDiagram-v2
 
 **Reporte de multas**
 23. ¿Con qué política estima el reporte la multa de los préstamos vencidos?
-24. ¿Qué regla de diseño no cumple hoy el reporte?
+24. ¿Qué regla de diseño no cumplía el reporte y cómo se corrigió?
 
 **Socios**
 25. ¿Qué pasa si un socio inhabilitado pide un préstamo?
@@ -741,7 +741,7 @@ stateDiagram-v2
 
 **Sedes**
 27. ¿Qué impide el semáforo si una sede está dada de baja?
-28. ¿Qué problema aparece si se da de baja la sede dueña de un ejemplar que está prestado en otra sede?
+28. ¿Se puede dar de baja la sede dueña de un ejemplar que está prestado en otra sede?
 
 **Catálogo**
 29. ¿En qué estados se puede dar de baja un ejemplar?
@@ -772,29 +772,28 @@ stateDiagram-v2
 21. Los dados de baja y los extraviados (`en_circulacion()`).
 22. Los trae el DAO (`EjemplarDAO.listar`) y los recorre el Iterator (`CatalogoEjemplares`).
 23. Con la política guardada (`CalculadoraDeMultas(estrategia_guardada())`).
-24. Persistencia por DAO: consulta con `sesion.query` directamente.
+24. Persistencia por DAO: consultaba la base con `sesion.query`. Ahora usa `PrestamoDAO.listar_vencidos_al` y `DevolucionDAO.listar_con_multa`.
 25. `validar_socio_habilitado` lanza `SocioInhabilitado` y no se crea nada.
 26. Porque tiene solo dos estados y casi ninguna regla propia: alcanza con la enumeración `EstadoSocio`.
 27. Despachar un remito hacia o desde esa sede (`SedeDadaDeBaja` en `Empaquetado.despachar`).
-28. Su remito de retorno no se puede despachar ni anular: queda trabado hasta que se reactive la sede.
+28. No. `dar_de_baja_sede` lo rechaza: si no, el remito de retorno de ese ejemplar no se podría despachar ni anular.
 29. Disponible o en reparación (`dar_de_baja_ejemplar`).
 30. Queda con estado físico "Regular" y se libera: queda disponible o se aparta para la reserva más antigua (`liberar_ejemplar`).
 
 ---
 
-## 6. Detalle de los incumplimientos (⚠)
+## 6. Incumplimientos encontrados y cómo se corrigieron
 
-| # | Regla | Dónde | Qué pasa | Riesgo, en palabras simples | *Propuesta* |
+| # | Regla | Qué pasaba | Riesgo, en palabras simples | Corrección aplicada | Test que lo controla |
 |---|---|---|---|---|---|
-| 1 | 1. Persistencia por DAO | `biblioteca/reportes/prestamos_vencidos_y_multas.py` → `generar` (y también `prestamos_activos_y_transito.py`, `libros_mas_solicitados.py`, `movimiento_entre_sedes.py`, `tasa_de_envios.py`) | Usa `sesion.query(Prestamo)` y `sesion.query(Devolucion)` sin pasar por un DAO | Es un empleado que entra solo al depósito. La regla de "préstamo vencido" queda escrita dos veces: acá y en `PrestamoDAO.listar_vencidos_al`. Si un día cambia, hay que acordarse de los dos lugares | Usar `PrestamoDAO(sesion).listar_vencidos_al(fecha)`, que ya aplica el mismo filtro, y agregar `DevolucionDAO.listar_con_multa()`. En los otros reportes, mover sus consultas a métodos de `RemitoDAO`, `SedeDAO` y `PrestamoDAO` |
-| 2 | 5. Coherencia entre procesos | `ServicioSedes.dar_de_baja_sede` + `Empaquetado.despachar` + `_anular` | Si la sede dueña del ejemplar se da de baja mientras el ejemplar está prestado en otra sede, su remito de retorno no se puede despachar (`SedeDadaDeBaja`) ni anular (los retornos no se anulan). Lo reproduje: el remito queda en `Empaquetado` | El libro queda "en tránsito" para siempre, hasta que alguien reactive la sede. Un proceso (sedes) deja a otro (remitos) sin salida | Que `dar_de_baja_sede` lance `OperacionNoPermitida` si hay remitos sin finalizar con esa sede como origen o destino (por ejemplo, con un `RemitoDAO.hay_en_curso_para_sede(id_sede)` nuevo) |
-| 3 | 1. Una sola sesión por caso de uso | `ServicioReservas.registrar_retiro` | Abre una sesión para leer la reserva, la cierra y llama a `ServicioPrestamos.registrar_prestamo_local`, que abre otra | Bajo: la segunda sesión vuelve a validar el ejemplar y la reserva. Pero si entre las dos alguien cambia la reserva, el error que ve el usuario puede ser confuso | Separar en `ServicioPrestamos` un método que reciba la sesión ya abierta, y llamarlo desde `registrar_retiro` |
-| 4 | 3. Variantes con Strategy (persistencia de la política) | `ServicioDevoluciones.cambiar_estrategia_de_multa` | Cambia la estrategia en memoria y después la guarda con `ConfiguracionDAO` | Bajo: si el guardado falla, el programa cobra con una regla y la base recuerda otra. Al reiniciar, vuelve la vieja | Guardar primero y llamar a `self.calculadora.cambiar_estrategia(estrategia)` solo si el guardado salió bien |
+| 1 | 1. Persistencia por DAO | `prestamos_vencidos_y_multas.generar` y los otros cuatro reportes (`prestamos_activos_y_transito`, `libros_mas_solicitados`, `movimiento_entre_sedes`, `tasa_de_envios`) consultaban con `sesion.query`. La carga de datos de ejemplo, también | Un empleado entraba solo al depósito. La regla de "préstamo vencido" quedaba escrita dos veces | Los reportes usan `PrestamoDAO.listar_vencidos_al`, `listar_por_vencimiento` y `ranking_interbibliotecarios`, `DevolucionDAO.listar_con_multa`, `RemitoDAO.listar` y `SedeDAO.listar`. La carga de datos de ejemplo usa `ServicioSedes.listar_sedes` | `test_persistencia.py::test_solo_los_dao_consultan_la_base` |
+| 2 | 5. Coherencia entre procesos | Si la sede dueña de un ejemplar se daba de baja mientras el ejemplar estaba afuera, su remito de retorno no se podía despachar (`SedeDadaDeBaja`) ni anular (los retornos no se anulan) | El libro quedaba "en tránsito" hasta que alguien reactivara la sede | `ServicioSedes.dar_de_baja_sede` lanza `OperacionNoPermitida` si `PrestamoDAO.hay_interbibliotecarios_fuera_de_sede` o `RemitoDAO.hay_retornos_en_curso`. Los envíos de ida que todavía no salieron no impiden la baja, porque se pueden anular | `test_remitos.py::test_no_se_da_de_baja_una_sede_con_un_ejemplar_que_tiene_que_volver` y `test_no_se_da_de_baja_una_sede_con_un_retorno_en_curso` |
+| 3 | 1. Una sola sesión por caso de uso | `ServicioReservas.registrar_retiro` leía en una sesión y registraba el préstamo en otra | Bajo: si entre las dos alguien cambiaba la reserva, el error podía ser confuso | Nuevo `ServicioPrestamos.registrar_prestamo_local_en_sesion`, que `registrar_retiro` llama dentro de su propia sesión | `test_servicio_reservas.py::test_el_retiro_usa_una_sola_sesion` |
+| 4 | 3. Strategy (política guardada) | `cambiar_estrategia_de_multa` cambiaba la estrategia en memoria antes de guardarla | Bajo: si el guardado fallaba, el programa cobraba con una regla y la base recordaba otra | Primero guarda con `ConfiguracionDAO` y después cambia la estrategia | `test_servicio_devoluciones.py::test_si_no_se_puede_guardar_la_politica_sigue_la_anterior` |
 
 **Observación (no es un incumplimiento):** `_resolver_consecuencias` pregunta por `remito.nombre_estado == "Daniado"` en el servicio. Es una decisión consciente: el módulo de estados no toca la base, y lo que necesita la base lo resuelve `ServicioRemitos`. Las transiciones que ese método dispara (`remito.cerrar`, `generar_remito`) igual pasan por State.
 
-## Puntos para confirmar antes de producir el video
+## Notas de producción
 
-1. **Hallazgos ⚠.** Los cuatro avisos de la escena 25 son reales en el código actual. El de la sede dada de baja lo reproduje con un script. ¿Querés que el video los muestre como "mejoras pendientes", o preferís corregirlos antes de grabar? Si los corregís, la escena 25 queda toda en ✔.
-2. **Nombres de la escena de integración.** "Ana" y "Beto" son personajes inventados para el video; no salen de los datos de ejemplo.
-3. **Montos.** El ejemplo de $1500 supone un libro (no revista ni material de consulta) y la política por defecto.
+1. **Personajes.** "Ana" y "Beto" son personajes del video. No salen de los datos de ejemplo.
+2. **Montos.** El ejemplo de $1500 supone un libro (no revista ni material de consulta) y la política por defecto.
