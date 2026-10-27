@@ -331,20 +331,20 @@ class CalculadoraDeMultas:
 
 **Duración:** 0:40
 
-**Visual:** En la pantalla de la interfaz gráfica, pestaña Devoluciones, un desplegable dice "Política de multas vigente". Alguien elige "Sin multa (condonación)". La tarjeta violeta viaja a la ranura y, además, una copia de su nombre baja al depósito azul en un sobre que dice `politica_de_multas`. Se apaga la computadora, se prende y la ranura vuelve a tener la misma tarjeta.
+**Visual:** En la pantalla de la interfaz gráfica, pestaña Devoluciones, un desplegable dice "Política de multas vigente". Alguien elige "Sin multa (condonación)". Primero una copia del nombre de la tarjeta baja al depósito azul en un sobre que dice `politica_de_multas`; recién después la tarjeta violeta entra en la ranura. Se apaga la computadora, se prende y la ranura vuelve a tener la misma tarjeta.
 
 **Código en pantalla:** `biblioteca/servicios/servicio_devoluciones.py`
 
 ```python
     def cambiar_estrategia_de_multa(self, estrategia):
-        self.calculadora.cambiar_estrategia(estrategia)
         with obtener_sesion() as sesion:
             ConfiguracionDAO(sesion).guardar(CLAVE_POLITICA, type(estrategia).__name__)
+        self.calculadora.cambiar_estrategia(estrategia)
 ```
 
 **Narración:**
 > ¿Quién elige la tarjeta? Una persona, desde afuera. En la interfaz gráfica, con el selector de `pestania_devoluciones.py`. En la consola, desde `menu_devoluciones.py`.
-> El servicio cambia la tarjeta y guarda su nombre con `ConfiguracionDAO`. Cuando el programa arranca de nuevo, `estrategia_guardada` lee ese nombre y `estrategia_por_nombre` fabrica la tarjeta.
+> El servicio primero guarda el nombre de la tarjeta con `ConfiguracionDAO`, y recién después la cambia. Cuando el programa arranca de nuevo, `estrategia_guardada` lee ese nombre y `estrategia_por_nombre` fabrica la tarjeta.
 > Para agregar una política nueva, se crea una clase nueva y se suma a la lista `ESTRATEGIAS_DISPONIBLES`. El servicio de devoluciones no se toca.
 > Esto lo prueban `test_se_puede_cambiar_la_estrategia` y `test_la_estrategia_se_elige_desde_afuera`, en `tests/test_estrategias_multa.py` y `tests/test_servicio_devoluciones.py`.
 
