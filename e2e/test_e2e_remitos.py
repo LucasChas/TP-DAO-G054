@@ -193,3 +193,22 @@ def test_cn32_accion_sin_remito_seleccionado(gui, red):
     gui.ir_a("Remitos")
     mensajes = gui.clic("Empaquetar", Mensaje(titulo="Atención", captura="01_sin_seleccion"))
     assert mensajes == [("Atención", "Seleccione un remito en la lista.")]
+
+
+def test_cp33_el_trayecto_se_actualiza_al_elegir_otro_remito(gui, base):
+    """Regresión del error reportado: con una fila del trayecto elegida, al cambiar de remito
+    el título cambiaba pero la tabla seguía mostrando el trayecto del remito anterior."""
+    gui.menu("Archivo", "Cargar datos de ejemplo", Mensaje())
+    pestania = gui.ir_a("Remitos")
+    gui.seleccionar(pestania.tabla, "Número", "R-000001")
+    gui.seleccionar(pestania.tabla_trayecto, "Estado nuevo", "Recibido")
+    for numero, primera, ultima in [
+        ("R-000003", "Retorno por daño en R-000002", "Ejemplar reintegrado a su sede"),
+        ("R-000004", "-", "Terminal de ómnibus"),
+        ("R-000002", "-", "Se generó el remito de retorno R-000003"),
+    ]:
+        gui.seleccionar(pestania.tabla, "Número", numero)
+        observaciones = [f["Observación"] for f in gui.filas(pestania.tabla_trayecto)]
+        assert numero in pestania.marco_trayecto.cget("text")
+        assert (observaciones[0], observaciones[-1]) == (primera, ultima), numero
+    gui.capturar("01_trayecto_del_remito_elegido")

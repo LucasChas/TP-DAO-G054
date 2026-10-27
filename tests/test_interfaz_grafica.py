@@ -279,3 +279,17 @@ def test_buscar_un_dni_inexistente_muestra_el_error(aplicacion, mensajes):
     pestania.busqueda_dni.insert(0, "12345678")
     pestania.buscar_por_dni()
     assert mensajes["errores"] == ["No existe un socio con DNI 12345678."]
+
+
+def test_el_trayecto_cambia_con_el_remito_aunque_haya_una_fila_del_trayecto_elegida(aplicacion, mensajes):
+    """Regresión: la primera columna del trayecto es una fecha y Tabla.cargar fallaba al convertirla a entero,
+    así que la tabla quedaba con el trayecto del remito anterior."""
+    cargar_datos_de_ejemplo()
+    aplicacion.mostrar_pestania("Remitos")
+    pestania = aplicacion.pestanias["Remitos"]
+    seleccionar(pestania.tabla, 1)
+    pestania.tabla_trayecto.seleccionar_primera()
+    seleccionar(pestania.tabla, 3)
+    observaciones = [fila[3] for fila in pestania.tabla_trayecto.filas()]
+    assert observaciones[0] == "Retorno por daño en R-000002"
+    assert observaciones[-1] == "Ejemplar reintegrado a su sede"

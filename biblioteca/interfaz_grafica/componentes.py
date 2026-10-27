@@ -75,7 +75,9 @@ class Tabla(ttk.Frame):
 
     def cargar(self, filas):
         """Reemplaza el contenido. Si la fila que estaba seleccionada sigue estando, queda seleccionada."""
-        seleccionado = self.id_seleccionado()
+        # Se compara como texto: en tablas como el trayecto del remito la primera columna es una fecha, no un id.
+        seleccion = self.arbol.selection()
+        seleccionado = self.arbol.item(seleccion[0], "values")[0] if seleccion else None
         self.arbol.delete(*self.arbol.get_children())
         filas = [["-" if valor is None else valor for valor in fila] for fila in filas]
         for fila in filas:
