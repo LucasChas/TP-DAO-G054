@@ -138,3 +138,36 @@ def test_las_reservas_activas_excluyen_las_canceladas(red, ejemplar_centro_ocupa
     servicio.cancelar_reserva(primera.id)
     assert [r.socio.dni for r in servicio.listar_reservas(solo_activas=True)] == [red.juan.dni]
     assert len(servicio.listar_reservas()) == 2
+
+
+class TestRegistrarRetiro:
+    def test_el_retiro_presta_el_ejemplar_apartado_al_titular(self, servicio, prestamos, red, ejemplar_centro_ocupado):
+        reserva = servicio.reservar(red.ana.id, red.rayuela.id, red.centro.id, fecha=HOY)
+        prestamos.cancelar_prestamo(ejemplar_centro_ocupado.id, fecha=HOY)
+        prestamo = servicio.registrar_retiro(reserva.id, fecha=HOY)
+        assert (prestamo.socio_id, prestamo.ejemplar_id, prestamo.sede_origen_id) == (
+            red.ana.id, red.ejemplar_centro.id, red.centro.id)
+        assert prestamo.estado == EstadoPrestamo.ACTIVO
+        assert prestamo.fecha_vencimiento == HOY + timedelta(days=14)
+        assert servicio.obtener_reserva(reserva.id).estado == EstadoReserva.CUMPLIDA
+        assert estado_del_ejemplar(red.centro.id) == EstadoEjemplar.PRESTADO
+
+    def test_no_se_retira_una_reserva_pendiente(self, servicio, red, ejemplar_centro_ocupado):
+        reserva = servicio.reservar(red.ana.id, red.rayuela.id, red.centro.id, fecha=HOY)
+        with pytest.raises(OperacionNoPermitida, match="pendiente: solo se retiran reservas disponibles"):
+            servicio.registrar_retiro(reserva.id, fecha=HOY)
+
+    def test_no_se_retira_dos_veces(self, servicio, prestamos, red, ejemplar_centro_ocupado):
+        reserva = servicio.reservar(red.ana.id, red.rayuela.id, red.centro.id, fecha=HOY)
+        prestamos.cancelar_prestamo(ejemplar_centro_ocupado.id, fecha=HOY)
+        servicio.registrar_retiro(reserva.id, fecha=HOY)
+        with pytest.raises(OperacionNoPermitida, match="cumplida"):
+            servicio.registrar_retiro(reserva.id, fecha=HOY)
+
+    def test_el_retiro_respeta_las_validaciones_del_prestamo(self, servicio, prestamos, red, ejemplar_centro_ocupado):
+        reserva = servicio.reservar(red.ana.id, red.rayuela.id, red.centro.id, fecha=HOY)
+        prestamos.cancelar_prestamo(ejemplar_centro_ocupado.id, fecha=HOY)
+        ServicioSocios().inhabilitar_socio(red.ana.id, "Deuda")
+        with pytest.raises(SocioInhabilitado):
+            servicio.registrar_retiro(reserva.id, fecha=HOY)
+        assert servicio.obtener_reserva(reserva.id).estado == EstadoReserva.DISPONIBLE

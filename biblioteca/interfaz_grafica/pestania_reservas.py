@@ -15,6 +15,7 @@ class PestaniaReservas(ttk.Frame):
         self.servicio = ServicioReservas()
         barra = c.barra_de_botones(self, [
             ("Reservar", self.reservar),
+            ("Registrar retiro", self.registrar_retiro),
             ("Cancelar reserva", self.cancelar),
             ("Procesar reservas no retiradas", self.procesar_vencidas),
         ])
@@ -40,6 +41,16 @@ class PestaniaReservas(ttk.Frame):
         if datos and c.ejecutar(
             lambda: self.servicio.reservar(**datos), self,
             "Reserva registrada. Los ejemplares se asignan por orden de llegada.",
+        ):
+            self.actualizar()
+
+    def registrar_retiro(self):
+        """El socio de la reserva elegida se lleva el ejemplar apartado: se registra el préstamo local."""
+        id_reserva = c.id_seleccionado_o_aviso(self.tabla, self, "una reserva")
+        if id_reserva is not None and c.ejecutar(
+            lambda: self.servicio.registrar_retiro(id_reserva), self,
+            lambda p: f"Retiro registrado: se prestó {p.ejemplar.codigo_inventario} a {p.socio.nombre_completo}. "
+                      f"Vence el {c.formatear_fecha(p.fecha_vencimiento)}.",
         ):
             self.actualizar()
 

@@ -26,6 +26,19 @@ Característica: Reservas
     Entonces el sistema muestra "Reservas vencidas por no retirar: 1."
     Y la reserva queda "Vencida"
 
+  @CP-34 @positivo @R14 @R06
+  Escenario: CP-34 Registrar el retiro desde la pestaña Reservas
+    Dado "Pérez, Ana" tiene una reserva de Rayuela disponible para retiro con "CEN-0001" apartado
+    Cuando el usuario selecciona la reserva y hace click en "Registrar retiro"
+    Entonces el sistema muestra "Retiro registrado: se prestó CEN-0001 a Pérez, Ana. Vence el <hoy+14>."
+    Y la reserva queda "Cumplida" y el préstamo local de "CEN-0001" queda "Activo"
+
+  @CN-48 @negativo @R14
+  Escenario: CN-48 Registrar el retiro de una reserva pendiente
+    Dado la reserva de "Pérez, Ana" está pendiente (no hay ejemplar apartado)
+    Cuando el usuario selecciona la reserva y hace click en "Registrar retiro"
+    Entonces el sistema muestra el mensaje "Operación rechazada": "La reserva está pendiente: solo se retiran reservas disponibles para retiro."
+
   @CN-33 @negativo @R14
   Escenario: CN-33 Reservar con ejemplares disponibles
     Dado "CEN-0001" está disponible

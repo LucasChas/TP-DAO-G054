@@ -59,7 +59,7 @@ Con eso todos los reportes muestran información.
 pytest -q
 ```
 
-Hay 241 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 97 % del paquete `biblioteca`, sin contar las interfaces. Los 20 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
+Hay 247 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 97 % del paquete `biblioteca`, sin contar las interfaces. Los 22 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
 
 ## Funcionalidades
 
@@ -71,7 +71,7 @@ Hay 241 tests y cada uno usa una base SQLite en memoria nueva, así que no toca 
 | 4. Préstamos locales e interbibliotecarios | **Préstamos:** préstamo local, solicitud interbibliotecaria (sede origen y destino), entrega, cancelación y listados |
 | 5. Empaquetar, despachar y recibir con remito trazable | **Remitos:** empaquetar, despachar, puntos de control, recibir con estado físico, daño, extravío, anulación y trayecto completo |
 | 6. Consultar disponibilidad | **Consultar disponibilidad:** ejemplares de un libro por sede y por estado |
-| 7. Gestionar reservas | **Reservas:** reservar, cancelar, procesar reservas no retiradas y listados |
+| 7. Gestionar reservas | **Reservas:** reservar, registrar el retiro del ejemplar apartado, cancelar, procesar reservas no retiradas y listados |
 | 8. Devoluciones y estado físico | **Devoluciones y multas:** devolución con estado físico, multas, pagos y política de multas |
 | Reportes | **Reportes:** los cinco reportes descriptos más abajo, en pantalla o exportados a PDF y CSV |
 
@@ -85,6 +85,7 @@ Es una ventana con una pestaña por área: Sedes, Socios, Catálogo, Préstamos,
 - las operaciones que actúan sobre un registro se aplican a la fila seleccionada.
 
 Detalles por pestaña:
+- **Reservas:** cuando una reserva queda "Disponible para retiro", "Registrar retiro" presta el ejemplar apartado al socio de la reserva (préstamo local de 14 días) y la reserva pasa a "Cumplida".
 - **Préstamos:** al elegir la sede (o la sede de origen, en el interbibliotecario), la lista de ejemplares muestra solo los que pertenecen a esa sede.
 - **Catálogo:** al elegir un libro se ven sus ejemplares, y "Ver disponibilidad" muestra cuántos hay en cada sede.
 - **Remitos:** al elegir un remito se ve su trayecto completo, con cada cambio de estado.
@@ -135,7 +136,7 @@ Ninguna de las dos interfaces accede a la base directamente: las dos llaman a lo
 
 ## Pruebas E2E y auditoría
 
-La carpeta `e2e/` tiene 79 pruebas de punta a punta que manejan la interfaz gráfica real (formularios y cuadros de mensaje de Tk) y la consola. Necesitan una pantalla; en Linux se ejecutan con Xvfb:
+La carpeta `e2e/` tiene 82 pruebas de punta a punta que manejan la interfaz gráfica real (formularios y cuadros de mensaje de Tk) y la consola. Necesitan una pantalla; en Linux se ejecutan con Xvfb:
 
 ```bash
 xvfb-run -a -s "-screen 0 1320x780x24" python -m pytest e2e -v

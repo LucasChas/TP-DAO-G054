@@ -110,3 +110,32 @@ def test_cn38_prestar_un_ejemplar_apartado_para_otro_socio(gui, red):
     mensajes = gui.clic("Préstamo local", Formulario({"Socio": "Gómez, Juan", "Sede": "Sede Centro", "Ejemplar de la sede": "CEN-0001"}),
                         Mensaje(titulo="Operación rechazada", captura="01_apartado_para_otro"))
     assert mensajes == [("Operación rechazada", "El ejemplar CEN-0001 está apartado para la reserva de otro socio.")]
+
+
+def test_cp34_registrar_retiro_desde_la_pestania_de_reservas(gui, red):
+    prestamo = _rayuela_de_centro_prestado(red)
+    ServicioReservas().reservar(red.ana.id, red.rayuela.id, red.centro.id)
+    ServicioDevoluciones().registrar_devolucion(prestamo.id, EstadoFisico.BUENO)
+    pestania = gui.ir_a("Reservas")
+    gui.seleccionar(pestania.tabla, "Socio", "Pérez, Ana")
+    gui.capturar("01_reserva_disponible_para_retiro")
+    mensajes = gui.clic("Registrar retiro", Mensaje(captura="02_retiro_registrado"))
+    vence = (HOY + timedelta(days=14)).strftime("%d/%m/%Y")
+    assert mensajes == [("Listo", f"Retiro registrado: se prestó CEN-0001 a Pérez, Ana. Vence el {vence}.")]
+    pestania.solo_activas.set(False)
+    pestania.actualizar()
+    assert next(f for f in gui.filas(pestania.tabla) if f["Socio"] == "Pérez, Ana")["Estado"] == "Cumplida"
+    prestamos = gui.ir_a("Préstamos")
+    fila = next(f for f in gui.filas(prestamos.tabla) if f["Socio"] == "Pérez, Ana")
+    gui.capturar("03_prestamo_del_retiro")
+    assert (fila["Ejemplar"], fila["Tipo"], fila["Estado"]) == ("CEN-0001", "Local", "Activo")
+
+
+def test_cn48_registrar_retiro_de_una_reserva_pendiente(gui, red):
+    _rayuela_de_centro_prestado(red)
+    ServicioReservas().reservar(red.ana.id, red.rayuela.id, red.centro.id)
+    pestania = gui.ir_a("Reservas")
+    gui.seleccionar(pestania.tabla, "Socio", "Pérez, Ana")
+    mensajes = gui.clic("Registrar retiro", Mensaje(titulo="Operación rechazada", captura="01_reserva_pendiente"))
+    assert mensajes == [("Operación rechazada",
+                         "La reserva está pendiente: solo se retiran reservas disponibles para retiro.")]

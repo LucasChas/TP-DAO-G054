@@ -38,6 +38,15 @@ def listar_todas():
     mostrar_tabla("Todas las reservas", COLUMNAS, _filas(servicio.listar_reservas()))
 
 
+def registrar_retiro():
+    listar_activas()
+    prestamo = servicio.registrar_retiro(pedir_entero("Id de la reserva que se retira"))
+    mostrar_exito(
+        f"Retiro registrado: préstamo {prestamo.id} de {prestamo.ejemplar.codigo_inventario} a "
+        f"{prestamo.socio.nombre_completo}. Vence el {prestamo.fecha_vencimiento:%d/%m/%Y}."
+    )
+
+
 def cancelar_reserva():
     listar_activas()
     servicio.cancelar_reserva(pedir_entero("Id de la reserva a cancelar"))
@@ -56,6 +65,7 @@ def menu_reservas():
     ejecutar_menu("Reservas", [
         ("Reservar libro", reservar),
         ("Listar reservas activas", listar_activas),
+        ("Registrar retiro", registrar_retiro),
         ("Cancelar reserva", cancelar_reserva),
         ("Procesar reservas no retiradas", procesar_vencidas),
         ("Listar todas las reservas", listar_todas),

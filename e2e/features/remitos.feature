@@ -47,6 +47,13 @@ Característica: Remitos
     Y "R-000002" queda "Cerrado" con la observación "Ejemplar reintegrado a su sede"
     Y "NOR-0001" queda "Disponible"
 
+  @CP-33 @positivo @R12 @V04
+  Escenario: CP-33 El trayecto se actualiza al elegir otro remito
+    Dado se cargaron los datos de ejemplo
+    Y el usuario eligió R-000001 y una fila de su trayecto
+    Cuando el usuario elige R-000003, R-000004 y R-000002
+    Entonces el título y las filas del trayecto corresponden a cada remito elegido
+
   @CN-27 @negativo @R12 @P03
   Escenario: CN-27 Recibir un remito que no salió
     Dado el remito "R-000001" está "Generado"

@@ -293,3 +293,22 @@ def test_el_trayecto_cambia_con_el_remito_aunque_haya_una_fila_del_trayecto_eleg
     observaciones = [fila[3] for fila in pestania.tabla_trayecto.filas()]
     assert observaciones[0] == "Retorno por daño en R-000002"
     assert observaciones[-1] == "Ejemplar reintegrado a su sede"
+
+
+def test_registrar_retiro_desde_la_pestania_de_reservas(aplicacion, mensajes):
+    sede = ServicioSedes().registrar_sede("Sede Centro", "Av. Colón 100")
+    ana = ServicioSocios().registrar_socio("30111222", "Ana", "Pérez")
+    juan = ServicioSocios().registrar_socio("28999888", "Juan", "Gómez")
+    libro = ServicioCatalogo().registrar_libro("9789500700016", "Rayuela", "Julio Cortázar")
+    ejemplar = ServicioCatalogo().registrar_ejemplar(libro.id, sede.id, "CEN-0001")
+    prestamo = ServicioPrestamos().registrar_prestamo_local(juan.id, ejemplar.id, sede.id)
+    from biblioteca.servicios import ServicioDevoluciones, ServicioReservas
+    reserva = ServicioReservas().reservar(ana.id, libro.id, sede.id)
+    ServicioDevoluciones().registrar_devolucion(prestamo.id, EstadoFisico.BUENO)
+    aplicacion.mostrar_pestania("Reservas")
+    pestania = aplicacion.pestanias["Reservas"]
+    seleccionar(pestania.tabla, reserva.id)
+    pestania.registrar_retiro()
+    assert mensajes["errores"] == []
+    assert mensajes["informes"][0].startswith("Retiro registrado: se prestó CEN-0001 a Pérez, Ana. Vence el ")
+    assert pestania.tabla.filas() == []  # con "Solo activas", la reserva cumplida ya no se lista

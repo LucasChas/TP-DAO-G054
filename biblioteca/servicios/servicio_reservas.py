@@ -10,6 +10,7 @@ from biblioteca.patrones.iterador_catalogo import CatalogoEjemplares
 from biblioteca.servicios.asignacion_reservas import liberar_ejemplar
 from biblioteca.servicios.reglas import validar_sede_activa, validar_socio_habilitado
 from biblioteca.servicios.servicio_catalogo import obtener_libro_o_error
+from biblioteca.servicios.servicio_prestamos import ServicioPrestamos
 from biblioteca.servicios.servicio_sedes import obtener_sede_o_error
 from biblioteca.servicios.servicio_socios import obtener_socio_o_error
 
@@ -68,6 +69,19 @@ class ServicioReservas:
             if ejemplar is not None:
                 liberar_ejemplar(sesion, ejemplar, fecha)
         return reserva
+
+    def registrar_retiro(self, id_reserva, fecha=None):
+        """El socio retira el ejemplar que tenía apartado: se registra el préstamo local
+        y la reserva queda cumplida. Solo se retira una reserva disponible para retiro."""
+        with obtener_sesion() as sesion:
+            reserva = obtener_reserva_o_error(ReservaDAO(sesion), id_reserva)
+            if reserva.estado != EstadoReserva.DISPONIBLE:
+                raise OperacionNoPermitida(
+                    f"La reserva está {reserva.estado.value.lower()}: solo se retiran reservas disponibles para retiro."
+                )
+            datos = (reserva.socio_id, reserva.ejemplar_id, reserva.sede_id)
+        # El préstamo valida al socio (habilitado, sin vencidos ni multas) y marca la reserva como cumplida.
+        return ServicioPrestamos().registrar_prestamo_local(*datos, fecha=fecha)
 
     def procesar_reservas_vencidas(self, fecha=None):
         """Vence las reservas cuyo plazo de retiro pasó y reasigna sus ejemplares.
