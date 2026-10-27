@@ -1,5 +1,5 @@
 ﻿Préstamos activos y material en tránsito
-Generado el 27/10/2026 04:56
+Generado el 27/10/2026 17:25
 
 Préstamos en curso
 Id;Socio;Libro;Ejemplar;Tipo;Sede de retiro;Estado;Vence;Días restantes
@@ -8,7 +8,7 @@ Id;Socio;Libro;Ejemplar;Tipo;Sede de retiro;Estado;Vence;Días restantes
 
 Material en tránsito
 Remito;Sentido;Libro;Ejemplar;Origen;Destino;Despachado;Última ubicación;En viaje
-R-000004;Ida;Cien años de soledad;SUR-0002;Sede Sur;Sede Norte;26/10/2026 09:00;Terminal de ómnibus;19.9 h
+R-000004;Ida;Cien años de soledad;SUR-0002;Sede Sur;Sede Norte;26/10/2026 09:00;Terminal de ómnibus;32.4 h
 
 Resumen por sede
 Sede;Préstamos activos;Por llegar;Listos para retiro;Enviando;Recibiendo

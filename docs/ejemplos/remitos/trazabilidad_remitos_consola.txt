@@ -41,15 +41,15 @@ Seleccione una opción:
   10. Listar todos los remitos
   0. Volver
 
-Seleccione una opción:                                                            Todos los remitos                                                           
-┏━━━━┳━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
-┃ Id ┃ Número   ┃ Sentido ┃ Ejemplar ┃ Libro                ┃ Origen             ┃ Destino            ┃ Generado         ┃ Estado     ┃
-┡━━━━╇━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━┩
-│ 1  │ R-000001 │ Ida     │ NOR-0001 │ Rayuela              │ Sede Norte         │ Biblioteca Central │ 02/10/2026 04:55 │ Cerrado    │
-│ 2  │ R-000002 │ Ida     │ SUR-0003 │ El Aleph             │ Sede Sur           │ Biblioteca Central │ 12/10/2026 04:55 │ Cerrado    │
-│ 3  │ R-000003 │ Retorno │ SUR-0003 │ El Aleph             │ Biblioteca Central │ Sede Sur           │ 14/10/2026 11:00 │ Cerrado    │
-│ 4  │ R-000004 │ Ida     │ SUR-0002 │ Cien años de soledad │ Sede Sur           │ Sede Norte         │ 25/10/2026 04:55 │ EnTransito │
-└────┴──────────┴─────────┴──────────┴──────────────────────┴────────────────────┴────────────────────┴──────────────────┴────────────┘
+Seleccione una opción:                                                            Todos los remitos                                                            
+┏━━━━┳━━━━━━━━━━┳━━━━━━━━━┳━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┓
+┃ Id ┃ Número   ┃ Sentido ┃ Ejemplar ┃ Libro                ┃ Origen             ┃ Destino            ┃ Generado         ┃ Estado      ┃
+┡━━━━╇━━━━━━━━━━╇━━━━━━━━━╇━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━┩
+│ 1  │ R-000001 │ Ida     │ NOR-0001 │ Rayuela              │ Sede Norte         │ Biblioteca Central │ 02/10/2026 17:26 │ Cerrado     │
+│ 2  │ R-000002 │ Ida     │ SUR-0003 │ El Aleph             │ Sede Sur           │ Biblioteca Central │ 12/10/2026 17:26 │ Cerrado     │
+│ 3  │ R-000003 │ Retorno │ SUR-0003 │ El Aleph             │ Biblioteca Central │ Sede Sur           │ 14/10/2026 11:00 │ Cerrado     │
+│ 4  │ R-000004 │ Ida     │ SUR-0002 │ Cien años de soledad │ Sede Sur           │ Sede Norte         │ 25/10/2026 17:26 │ En tránsito │
+└────┴──────────┴─────────┴──────────┴──────────────────────┴────────────────────┴────────────────────┴──────────────────┴─────────────┘
 
 ────────────────────────────────────────────────────────────────────── Remitos ───────────────────────────────────────────────────────────────────────
   1. Listar remitos en curso
@@ -68,12 +68,12 @@ Seleccione una opción: Id del remito:               Trayecto del remito R-00000
 ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Fecha y hora     ┃ Estado anterior ┃ Estado nuevo ┃ Observación                         ┃
 ┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ 02/10/2026 04:55 │ -               │ Generado     │ -                                   │
+│ 02/10/2026 17:26 │ -               │ Generado     │ -                                   │
 │ 03/10/2026 08:00 │ Generado        │ Empaquetado  │ -                                   │
 │ 03/10/2026 09:00 │ Empaquetado     │ Despachado   │ -                                   │
-│ 03/10/2026 13:00 │ Despachado      │ EnTransito   │ Centro de distribución Alta Córdoba │
-│ 04/10/2026 10:00 │ EnTransito      │ Recibido     │ -                                   │
-│ 04/10/2026 04:55 │ Recibido        │ Cerrado      │ Entregado al socio                  │
+│ 03/10/2026 13:00 │ Despachado      │ En tránsito  │ Centro de distribución Alta Córdoba │
+│ 04/10/2026 10:00 │ En tránsito     │ Recibido     │ -                                   │
+│ 04/10/2026 17:26 │ Recibido        │ Cerrado      │ Entregado al socio                  │
 └──────────────────┴─────────────────┴──────────────┴─────────────────────────────────────┘
 
 ────────────────────────────────────────────────────────────────────── Remitos ───────────────────────────────────────────────────────────────────────
@@ -93,12 +93,12 @@ Seleccione una opción: Id del remito:                  Trayecto del remito R-00
 ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Fecha y hora     ┃ Estado anterior ┃ Estado nuevo ┃ Observación                             ┃
 ┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┩
-│ 12/10/2026 04:55 │ -               │ Generado     │ -                                       │
+│ 12/10/2026 17:26 │ -               │ Generado     │ -                                       │
 │ 13/10/2026 08:00 │ Generado        │ Empaquetado  │ -                                       │
 │ 13/10/2026 09:00 │ Empaquetado     │ Despachado   │ -                                       │
 │ 14/10/2026 11:00 │ Despachado      │ Recibido     │ Lomo despegado                          │
-│ 14/10/2026 11:00 │ Recibido        │ Daniado      │ Lomo despegado                          │
-│ 14/10/2026 11:00 │ Daniado         │ Cerrado      │ Se generó el remito de retorno R-000003 │
+│ 14/10/2026 11:00 │ Recibido        │ Dañado       │ Lomo despegado                          │
+│ 14/10/2026 11:00 │ Dañado          │ Cerrado      │ Se generó el remito de retorno R-000003 │
 └──────────────────┴─────────────────┴──────────────┴─────────────────────────────────────────┘
 
 ────────────────────────────────────────────────────────────────────── Remitos ───────────────────────────────────────────────────────────────────────
@@ -142,10 +142,10 @@ Seleccione una opción: Id del remito:            Trayecto del remito R-000004 (
 ┏━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━┓
 ┃ Fecha y hora     ┃ Estado anterior ┃ Estado nuevo ┃ Observación         ┃
 ┡━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━┩
-│ 25/10/2026 04:55 │ -               │ Generado     │ -                   │
+│ 25/10/2026 17:26 │ -               │ Generado     │ -                   │
 │ 26/10/2026 08:00 │ Generado        │ Empaquetado  │ -                   │
 │ 26/10/2026 09:00 │ Empaquetado     │ Despachado   │ -                   │
-│ 26/10/2026 13:00 │ Despachado      │ EnTransito   │ Terminal de ómnibus │
+│ 26/10/2026 13:00 │ Despachado      │ En tránsito  │ Terminal de ómnibus │
 └──────────────────┴─────────────────┴──────────────┴─────────────────────┘
 
 ────────────────────────────────────────────────────────────────────── Remitos ───────────────────────────────────────────────────────────────────────

@@ -25,19 +25,18 @@ REQUISITOS = [
     Requisito("R01", PROC, "Administrar sedes: alta y modificación con dirección, datos de contacto y horarios", "Cumple",
               ["biblioteca/servicios/servicio_sedes.py:21", "biblioteca/servicios/servicio_sedes.py:40",
                "biblioteca/interfaz_grafica/pestania_sedes.py:38"],
-              "Defecto menor D2: desde la GUI no se puede borrar un dato opcional (teléfono, email, horario) al modificar; "
-              "el sistema informa \"Sede modificada.\" pero conserva el valor (CN-45, xfail)."),
+              "El defecto D2 (vaciar un dato opcional al modificar no lo borraba) se corrigió después de la auditoría; CN-45 lo verifica."),
     Requisito("R02", PROC, "Sedes con estado activo / baja (baja lógica y reactivación)", "Cumple",
               ["biblioteca/servicios/servicio_sedes.py:62", "biblioteca/servicios/servicio_sedes.py:74",
                "biblioteca/modelos/sede.py:20"]),
     Requisito("R03", PROC, "Administrar socios (alta, modificación, búsqueda, inhabilitación con motivo)", "Cumple",
               ["biblioteca/servicios/servicio_socios.py:28", "biblioteca/servicios/servicio_socios.py:58",
                "biblioteca/servicios/servicio_socios.py:86"],
-              "La búsqueda por DNI existe en consola; la GUI no tiene buscador (lista completa)."),
+              "Búsqueda por DNI en consola y, desde la corrección de C1, también en la GUI (CP-30)."),
     Requisito("R04", PROC, "Administrar el catálogo de libros (alta, modificación, búsqueda)", "Cumple",
               ["biblioteca/servicios/servicio_catalogo.py:52", "biblioteca/servicios/servicio_catalogo.py:73",
                "biblioteca/servicios/servicio_catalogo.py:139"],
-              "El ISBN se valida por formato (10/13 dígitos) pero no por dígito verificador. La búsqueda por texto solo está en consola."),
+              "Desde la corrección de C1 el ISBN se valida con su dígito verificador (CN-47) y la GUI busca por título o autor (CP-31)."),
     Requisito("R05", PROC, "Administrar ejemplares físicos indicando la sede a la que pertenece cada uno", "Cumple",
               ["biblioteca/modelos/ejemplar.py:17", "biblioteca/servicios/servicio_catalogo.py:91",
                "biblioteca/servicios/servicio_catalogo.py:106", "biblioteca/servicios/servicio_catalogo.py:121"]),
@@ -144,6 +143,7 @@ class Hallazgo:
     detalle: str
     evidencia: list
     arreglo: str
+    resuelto: str = ""  # qué se cambió, cuando el hallazgo ya se corrigió
 
 
 HALLAZGOS = [
@@ -163,9 +163,12 @@ HALLAZGOS = [
              "ve \"Sede modificada.\" pero el teléfono/email siguen guardados. Afecta sedes, socios y libros.",
              ["biblioteca/interfaz_grafica/componentes.py:258", "biblioteca/servicios/servicio_sedes.py:53",
               "biblioteca/servicios/servicio_socios.py:51", "biblioteca/servicios/servicio_catalogo.py:82",
-              "e2e/test_e2e_sedes.py (CN-45, xfail)"],
+              "e2e/test_e2e_sedes.py"],
              "En los formularios de modificación enviar \"\" en lugar de None para los campos opcionales vacíos "
-             "(texto_opcional ya convierte \"\" en None al guardar), o usar un valor centinela distinto de None para \"sin cambios\"."),
+             "(texto_opcional ya convierte \"\" en None al guardar), o usar un valor centinela distinto de None para \"sin cambios\".",
+             "Los formularios de modificación de sedes, socios y libros pasan los opcionales vacíos como \"\" "
+             "(componentes.opcionales_vacios_para_borrar, componentes.py:277) y modificar_libro acepta \"\" para borrar el año. "
+             "CN-45 pasa y hay un test unitario por cada pestaña."),
     Hallazgo("F1", "Media", "El remito no se puede exportar ni imprimir como documento",
              "El remito existe como entidad con número, sedes, sentido y trayecto, y se ve en pantalla, pero no hay salida en "
              "PDF/CSV del remito. Si en la defensa se pide \"mostrar el remito\" solo se puede mostrar la pantalla o un reporte.",
@@ -181,7 +184,10 @@ HALLAZGOS = [
     Hallazgo("P2", "Baja", "La política de multas elegida no se guarda",
              "La Strategy vigente vive en memoria: al reiniciar vuelve a \"Por tipo de material\", y consola y GUI tienen "
              "instancias separadas.", ["biblioteca/interfaz_grafica/aplicacion.py:33", "biblioteca/servicios/servicio_devoluciones.py:23"],
-             "Persistir el nombre de la estrategia vigente (tabla de configuración) y reconstruirla al iniciar."),
+             "Persistir el nombre de la estrategia vigente (tabla de configuración) y reconstruirla al iniciar.",
+             "Nueva tabla configuracion (modelos/configuracion.py, dao/configuracion_dao.py). ServicioDevoluciones guarda la "
+             "estrategia al cambiarla y la recupera la primera vez que se usa (servicio_devoluciones.py:18 y :46); el reporte de "
+             "multas usa la misma. Consola y GUI comparten así la política. Verificado por CP-32 (reinicio de la GUI) y 4 tests unitarios."),
     Hallazgo("P3", "Baja", "El ciclo de vida del ejemplar no usa State",
              "El ejemplar tiene 7 estados con transiciones repartidas entre servicios y estados del remito "
              "(asignaciones ejemplar.estado = ...). No hay una clase que diga qué transiciones son válidas.",
@@ -196,5 +202,9 @@ HALLAZGOS = [
              "ISBN sin dígito verificador; la GUI no tiene buscador de libros ni de socios por DNI (sí la consola); "
              "los estados del remito se muestran con su nombre interno (\"EnTransito\", \"Daniado\").",
              ["biblioteca/servicios/servicio_catalogo.py:21", "biblioteca/interfaz_grafica/pestania_remitos.py:44"],
-             "Validar el dígito verificador; agregar un campo de búsqueda; mapear nombre_estado a un texto visible."),
+             "Validar el dígito verificador; agregar un campo de búsqueda; mapear nombre_estado a un texto visible.",
+             "Dígito verificador de ISBN-10 e ISBN-13 (servicio_catalogo.py:21; CN-47). Búsqueda de libros por título o autor y de "
+             "socios por DNI en la GUI (pestania_catalogo.py:59, pestania_socios.py:36; CP-31, CP-30, CN-46). Los estados del remito "
+             "se muestran como \"En tránsito\" y \"Dañado\" en GUI, consola y mensajes de error (estados_remito.py:225). "
+             "Se corrigieron 10 ISBN de prueba y de los datos de ejemplo que tenían el dígito verificador mal."),
 ]

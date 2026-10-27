@@ -186,7 +186,12 @@ def construir_contenido(resultados, features):
     estados_e2e = Counter(resultados.get(c.prueba.split("::")[1], ("Sin ejecutar",))[0] for c in CASOS)
     unit = resultado_unitarios()
     casos_por_req = {r.id: [c.id for c in CASOS if r.id in c.requisitos] for r in REQUISITOS}
-    resumen = dict(porcentaje=porcentaje, cuenta=cuenta, total=len(obligatorios), e2e=estados_e2e, unit=unit)
+    pasan = int(re.search(r"(\d+) passed", unit).group(1))
+    fallan = int(m.group(1)) if (m := re.search(r"(\d+) failed", unit)) else 0
+    resumen = dict(porcentaje=porcentaje, cuenta=cuenta, total=len(obligatorios), e2e=estados_e2e, unit=unit,
+                   unit_corto=f"{pasan}/{pasan + fallan}")
+    pendientes = [x for x in HALLAZGOS if not x.resuelto]
+    resueltos = [x for x in HALLAZGOS if x.resuelto]
 
     # 1 -------------------------------------------------------------------------------------- Grupo
     h(1, "1. Grupo", "grupo")
@@ -212,7 +217,7 @@ def construir_contenido(resultados, features):
     h(2, "Alcances")
     tabla(["Incluye (verificado en el código)", "No incluye"], [[
         "Interfaz gráfica Tkinter (8 pestañas) e interfaz de consola sobre los mismos servicios; persistencia en SQLite con SQLAlchemy; "
-        "8 procesos obligatorios; 11 validaciones; patrones State, Strategy, Iterator y DAO; 5 reportes con exportación; datos de ejemplo; 228 tests unitarios.",
+        "8 procesos obligatorios; 11 validaciones; patrones State, Strategy, Iterator y DAO; 5 reportes con exportación; datos de ejemplo; 241 tests unitarios.",
         "Notificaciones, historial de lecturas y recomendaciones (opcionales de la consigna); usuarios y permisos; exportación o impresión del remito como documento; "
         "un reporte de disponibilidad de todo el catálogo por sede.",
     ]])
@@ -239,7 +244,7 @@ def construir_contenido(resultados, features):
         ["`excepciones/`", "ErrorDeNegocio y 11 excepciones derivadas", "errores.py"],
     ])
     tabla(["Aspecto", "Detalle verificado"], [
-        ["Tamaño", "77 módulos, 5.483 líneas en `biblioteca/`; 228 tests unitarios en `tests/` (199 funciones, algunas parametrizadas)."],
+        ["Tamaño", "79 módulos, 5.654 líneas en `biblioteca/`; 241 tests unitarios en `tests/` (211 funciones, algunas parametrizadas)."],
         ["Persistencia", "SQLite (`biblioteca.db` en la carpeta de ejecución) con SQLAlchemy 2.1; claves foráneas activadas con PRAGMA en cada conexión (base_de_datos.py:15)."],
         ["Transacciones", "`obtener_sesion()` es un context manager: commit si no hubo error, rollback si lo hubo (base_de_datos.py:54)."],
         ["Errores", "Las interfaces capturan `ErrorDeNegocio` y muestran el motivo sin cerrar el programa (componentes.py:43, consola.py:100)."],
@@ -262,7 +267,9 @@ def construir_contenido(resultados, features):
     tabla(["Req.", "Descripción", "Estado", "Dónde (archivo:línea)", "Evidencia (casos E2E / tests)", "Observaciones"], filas, "matriz")
     h(2, "Faltantes y riesgos para la defensa (por prioridad)")
     tabla(["#", "Prioridad", "Hallazgo", "Arreglo sugerido"],
-          [[x.id, x.prioridad, f"**{x.titulo}.** {x.detalle}", x.arreglo] for x in HALLAZGOS])
+          [[x.id, x.prioridad, f"**{x.titulo}.** {x.detalle}", x.arreglo] for x in pendientes])
+    if resueltos:
+        p("Corregidos después de la auditoría: " + ", ".join(f"{x.id} ({x.titulo.lower()})" for x in resueltos) + ". Detalle en la sección 9.")
 
     # 5 -------------------------------------------------------------------------------------- Patrones
     h(1, "5. Patrones de diseño", "patrones")
@@ -314,7 +321,7 @@ def construir_contenido(resultados, features):
         ["Implícito", "Unidad de trabajo: el context manager de sesión agrupa las operaciones del caso de uso.", "`biblioteca/configuracion/base_de_datos.py:54`"],
         ["No es Singleton", "El motor es una variable global de módulo (`motor`), no un Singleton de la cátedra. Funciona, pero no conviene presentarlo como patrón.", "`biblioteca/configuracion/base_de_datos.py:12`"],
         ["Mal aplicado (P1)", "Las consecuencias del State se resuelven en el servicio comparando `nombre_estado` con strings.", "`biblioteca/servicios/servicio_remitos.py:43`"],
-        ["Mejorable (P2)", "La estrategia vigente no se persiste: vuelve a la de por defecto al reiniciar.", "`biblioteca/interfaz_grafica/aplicacion.py:33`"],
+        ["Resuelto (P2)", "La estrategia vigente se guarda en la tabla `configuracion` y se recupera al iniciar; consola y GUI comparten la política.", "`biblioteca/servicios/servicio_devoluciones.py:18`"],
         ["Falta (P3)", "El ejemplar tiene 7 estados manejados con enum y asignaciones dispersas; es el candidato natural a otro State.", "`biblioteca/modelos/enumeraciones.py:25`"],
         ["Repetición", "Los 8 DAO repiten crear/actualizar/obtener_por_id; un DAO base genérico lo evitaría.", "`biblioteca/dao/*.py`"],
     ])
@@ -418,9 +425,9 @@ def construir_contenido(resultados, features):
     h(2, "Resultados")
     tabla(["Suite", "Resultado", "Detalle"], [
         ["E2E (`e2e/`)", f"{estados_e2e['Pasa']} pasan · {estados_e2e['Falla esperada (defecto)']} falla esperada · {estados_e2e['Falla']} fallan",
-         "La falla esperada (CN-45, xfail estricto) documenta el defecto D2. Log: `docs/pruebas/resultados_e2e.txt`, JUnit: `resultados_e2e.xml`."],
-        ["Unitarios (`tests/`)", unit, "La falla es el defecto D1 (depende de la hora del reloj). Log: `docs/pruebas/resultados_unitarios.txt`."],
-        ["Cobertura unitaria", "97 % de `biblioteca` sin las interfaces", "Medido con coverage 7 (el README declara 96 %)."],
+         "CN-45 documentaba el defecto D2 como falla esperada; desde su corrección pasa. Log: `docs/pruebas/resultados_e2e.txt`, JUnit: `resultados_e2e.xml`."],
+        ["Unitarios (`tests/`)", unit, "El test del defecto D1 solo falla si se ejecuta antes de las 10:00 (depende de la hora del reloj). Log: `docs/pruebas/resultados_unitarios.txt`."],
+        ["Cobertura unitaria", "97 % de `biblioteca` sin las interfaces", "Medido con coverage 7 (el README declaraba 96 %; se actualizó)."],
     ])
     por_area = OrderedDict()
     for c in CASOS:
@@ -443,11 +450,15 @@ def construir_contenido(resultados, features):
 
     # 9 -------------------------------------------------------------------------------------- Faltantes
     h(1, "9. Faltantes y mejoras sugeridas", "faltantes")
-    for x in HALLAZGOS:
+    for x in pendientes:
         h(3, f"{x.id} · {x.titulo} (prioridad {x.prioridad.lower()})")
         p(x.detalle)
         p("**Evidencia:** " + ", ".join(f"`{e}`" for e in x.evidencia))
         p("**Arreglo sugerido:** " + x.arreglo)
+    if resueltos:
+        h(3, "Hallazgos corregidos después de la auditoría")
+        tabla(["#", "Hallazgo original", "Qué se cambió"],
+              [[x.id, f"**{x.titulo}.** {x.detalle}", x.resuelto] for x in resueltos])
     h(3, "Opcionales de la consigna")
     tabla(["Req.", "Proceso", "Estado", "Observaciones"],
           [[r.id, r.descripcion, r.estado, r.observaciones or "-"] for r in REQUISITOS if r.grupo == "Proceso opcional"])
@@ -462,7 +473,7 @@ pip install -r requirements.txt
 
 python main.py              # consola  (opción 10: cargar datos de ejemplo)
 python main.py --grafica    # interfaz gráfica (Archivo > Cargar datos de ejemplo)""", "Sistema")
-    codigo("""python -m pytest tests -q                                   # 228 tests unitarios
+    codigo("""python -m pytest tests -q                                   # 241 tests unitarios
 xvfb-run -a -s "-screen 0 1320x780x24" python -m pytest e2e -v   # E2E (en Windows/macOS sin xvfb-run)
 
 # Regenerar capturas, reportes de ejemplo y documentación:
@@ -533,8 +544,9 @@ def render_html(resumen):
     e2e = resumen["e2e"]
     tarjetas = [
         (f"{resumen['porcentaje']:.1f} %", "cumplimiento de lo obligatorio", f"{resumen['cuenta']['Cumple']} de {resumen['total']} cumplen · {resumen['cuenta']['Parcial']} parciales"),
-        (f"{e2e['Pasa']}/{sum(e2e.values())}", "casos E2E que pasan", f"{e2e['Falla esperada (defecto)']} defecto documentado (xfail)"),
-        ("227/228", "tests unitarios que pasan", "1 falla por la hora del reloj (D1)"),
+        (f"{e2e['Pasa']}/{sum(e2e.values())}", "casos E2E que pasan",
+         f"{e2e['Falla esperada (defecto)']} defecto documentado (xfail)" if e2e['Falla esperada (defecto)'] else "D2, P2 y C1 corregidos"),
+        (resumen["unit_corto"], "tests unitarios que pasan", "D1 falla antes de las 10:00 (hora del reloj)"),
         ("4", "patrones aplicados", "State · Strategy · Iterator · DAO"),
     ]
     plantilla = (Path(__file__).parent / "plantilla_informe.html").read_text(encoding="utf-8")

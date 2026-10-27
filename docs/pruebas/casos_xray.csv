@@ -37,11 +37,11 @@ Then el sistema muestra el mensaje ""Operación rechazada"": ""La sede 'Sede Sur
 G054 | Sedes | Modificación | CN | Modificar sin seleccionar una fila;- Las acciones sobre un registro requieren una fila elegida;G054-TPI2026\Sedes;Cucumber;"Given existen sedes cargadas y ninguna está seleccionada
 When el usuario hace click en ""Modificar""
 Then el sistema muestra el aviso ""Seleccione una sede en la lista."""
-G054 | Sedes | Modificación | CN | Vaciar un dato opcional no lo borra (DEFECTO);- Si el usuario vacía un dato opcional, el dato debería quedar vacío;G054-TPI2026\Sedes;Cucumber;"Given la sede ""Sede Centro"" tiene teléfono y email
+G054 | Sedes | Modificación | CN | Vaciar un dato opcional al modificar lo borra;- Si el usuario vacía un dato opcional, el dato debería quedar vacío;G054-TPI2026\Sedes;Cucumber;"Given la sede ""Sede Centro"" tiene teléfono y email
 When el usuario selecciona ""Sede Centro"", hace click en ""Modificar""
 And el usuario borra ""Teléfono"" y ""Email"" y acepta
 Then el sistema muestra el mensaje ""Sede modificada.""
-And la grilla debería mostrar teléfono y email vacíos"
+And la grilla muestra teléfono y email vacíos"
 G054 | Socios | Alta | CP | Alta de socio con DNI con puntos;"- El DNI se guarda sin puntos
 - El socio queda habilitado";G054-TPI2026\Socios;Cucumber;"Given el usuario abrió la pestaña ""Socios""
 When el usuario hace click en ""Nuevo socio""
@@ -71,12 +71,19 @@ Then el sistema muestra el aviso ""Complete el dato 'Motivo'."""
 G054 | Socios | Inhabilitación | CN | Inhabilitar a un socio ya inhabilitado;- No se repite la inhabilitación;G054-TPI2026\Socios;Cucumber;"Given la socia ""Torres, Lía"" está inhabilitada
 When el usuario la inhabilita de nuevo
 Then el sistema muestra el mensaje ""Operación rechazada"": ""El socio Torres, Lía ya está inhabilitado."""
+G054 | Socios | Búsqueda | CP | Buscar un socio por DNI;"- Se acepta el DNI con puntos
+- La fila del socio queda seleccionada";G054-TPI2026\Socios;Cucumber;"Given existe el socio DNI ""28999888""
+When el usuario ingresa ""28.999.888"" en ""DNI"" y hace click en ""Buscar por DNI""
+Then la grilla selecciona a ""Gómez, Juan"""
+G054 | Socios | Búsqueda | CN | Buscar un DNI que no existe;- Se informa que no hay socio con ese DNI;G054-TPI2026\Socios;Cucumber;"Given no hay socio con DNI ""12345678""
+When el usuario busca el DNI ""12345678""
+Then el sistema muestra el mensaje ""Operación rechazada"": ""No existe un socio con DNI 12345678."""
 G054 | Catálogo y disponibilidad | Libros y ejemplares | CP | Alta de libro y de un ejemplar en una sede;"- El ISBN se normaliza
 - El ejemplar indica su sede propietaria
 - El código se guarda en mayúsculas";G054-TPI2026\Catálogo y disponibilidad;Cucumber;"Given existen las sedes de la red
-When el usuario registra el libro ""Ficciones"" con ISBN ""978-950-04-3046-7""
+When el usuario registra el libro ""Ficciones"" con ISBN ""978-950-04-3046-3""
 And el usuario selecciona el libro y registra el ejemplar ""nor-0100"" en ""Sede Norte""
-Then el sistema muestra ""Libro registrado."" y el ISBN ""9789500430467""
+Then el sistema muestra ""Libro registrado."" y el ISBN ""9789500430463""
 And el sistema muestra ""Ejemplar registrado."" y el ejemplar ""NOR-0100"" de ""Sede Norte"", ""Disponible"""
 G054 | Catálogo y disponibilidad | Disponibilidad | CP | Consultar disponibilidad de un libro por sede;- Se ve cuántos ejemplares hay por sede y estado;G054-TPI2026\Catálogo y disponibilidad;Cucumber;"Given Rayuela tiene un ejemplar en cada sede
 And el de Centro está prestado y el de Sur comprometido en una solicitud
@@ -92,9 +99,9 @@ And el sistema muestra ""Ejemplar dado de baja."" y el ejemplar queda ""Dado de 
 G054 | Catálogo y disponibilidad | Libros | CN | ISBN inválido;- El ISBN tiene 10 o 13 dígitos;G054-TPI2026\Catálogo y disponibilidad;Cucumber;"Given el usuario abrió la pestaña ""Catálogo""
 When el usuario registra un libro con ISBN ""123""
 Then el sistema muestra el mensaje ""Operación rechazada"": ""El ISBN '123' no es válido: debe tener 10 o 13 dígitos."""
-G054 | Catálogo y disponibilidad | Libros | CN | ISBN duplicado con guiones;- No se admiten libros duplicados;G054-TPI2026\Catálogo y disponibilidad;Cucumber;"Given existe Rayuela con ISBN ""9789500700011""
-When el usuario registra un libro con ISBN ""978-950-07-0001-1""
-Then el sistema muestra el mensaje ""Operación rechazada"": ""Ya existe un libro con ISBN 9789500700011."""
+G054 | Catálogo y disponibilidad | Libros | CN | ISBN duplicado con guiones;- No se admiten libros duplicados;G054-TPI2026\Catálogo y disponibilidad;Cucumber;"Given existe Rayuela con ISBN ""9789500700016""
+When el usuario registra un libro con ISBN ""978-950-07-0001-6""
+Then el sistema muestra el mensaje ""Operación rechazada"": ""Ya existe un libro con ISBN 9789500700016."""
 G054 | Catálogo y disponibilidad | Ejemplares | CN | Código de inventario duplicado;- No se admiten ejemplares duplicados;G054-TPI2026\Catálogo y disponibilidad;Cucumber;"Given existe el ejemplar ""CEN-0001""
 When el usuario registra un ejemplar con código ""cen-0001""
 Then el sistema muestra el mensaje ""Operación rechazada"": ""Ya existe un ejemplar con código CEN-0001."""
@@ -113,6 +120,15 @@ Then el sistema muestra el mensaje ""Operación rechazada"": ""El ejemplar CEN-0
 G054 | Catálogo y disponibilidad | Ejemplares | CN | Finalizar reparación de un ejemplar sano;- Solo se finaliza la reparación de un ejemplar en reparación;G054-TPI2026\Catálogo y disponibilidad;Cucumber;"Given el ejemplar ""NOR-0001"" está disponible
 When el usuario hace click en ""Finalizar reparación""
 Then el sistema muestra el mensaje ""Operación rechazada"": ""El ejemplar NOR-0001 no está en reparación."""
+G054 | Catálogo y disponibilidad | Libros | CP | Buscar libros por título o autor;"- La búsqueda no distingue mayúsculas
+- ""Ver todos"" quita el filtro";G054-TPI2026\Catálogo y disponibilidad;Cucumber;"Given el catálogo tiene Rayuela, Revista Ñ y el Diccionario de la RAE
+When el usuario ingresa ""rae"" y hace click en ""Buscar""
+And el usuario hace click en ""Ver todos""
+Then la grilla muestra solo ""Diccionario de la lengua""
+And la grilla vuelve a mostrar los 3 libros"
+G054 | Catálogo y disponibilidad | Libros | CN | ISBN con dígito verificador incorrecto;- El ISBN tiene que tener un dígito verificador válido;G054-TPI2026\Catálogo y disponibilidad;Cucumber;"Given el usuario abrió la pestaña ""Catálogo""
+When el usuario registra un libro con ISBN ""978-950-04-3046-7""
+Then el sistema muestra el mensaje ""Operación rechazada"": ""El ISBN '978-950-04-3046-7' no es válido: el dígito verificador no corresponde."""
 G054 | Préstamos | Local | CP | Préstamo local a 14 días;"- El préstamo local queda activo
 - Vence a los 14 días de la entrega";G054-TPI2026\Préstamos;Cucumber;"Given la socia ""Pérez, Ana"" está habilitada y ""CEN-0001"" está disponible en ""Sede Centro""
 When el usuario hace click en ""Préstamo local""
@@ -164,13 +180,13 @@ G054 | Remitos | Ciclo de vida | CP | Empaquetar, despachar, punto de control, r
 - La entrega al socio cierra el remito";G054-TPI2026\Remitos;Cucumber;"Given existe el remito ""R-000001"" (Ida, Norte → Centro) en estado ""Generado""
 When el usuario hace click en ""Empaquetar"", ""Despachar"", ""Punto de control"" y ""Recibir"" con estado ""Bueno""
 And el usuario entrega el préstamo al socio en la pestaña ""Préstamos""
-Then el sistema informa cada estado: ""Empaquetado"", ""Despachado"", ""EnTransito"", ""Recibido""
+Then el sistema informa cada estado: ""Empaquetado"", ""Despachado"", ""En tránsito"", ""Recibido""
 And el remito queda ""Cerrado"" y el trayecto muestra los 6 movimientos en orden"
-G054 | Remitos | Incidencias | CP | Recepción con daño genera el remito de retorno;"- Un daño nuevo pasa por Daniado
+G054 | Remitos | Incidencias | CP | Recepción con daño genera el remito de retorno;"- Un daño nuevo pasa por el estado Dañado
 - Se cancela el préstamo y se genera el retorno";G054-TPI2026\Remitos;Cucumber;"Given el remito ""R-000001"" está despachado
 When el usuario recibe el remito con estado físico ""Dañado""
 Then el sistema muestra ""Remito recibido. Estado actual: Cerrado.""
-And el trayecto muestra Recibido → Daniado → Cerrado
+And el trayecto muestra Recibido → Dañado → Cerrado
 And aparece ""R-000002"" (Retorno, Centro → Norte, Generado)"
 G054 | Remitos | Incidencias | CP | Registrar daño antes de entregar al socio;- El daño detectado después de recibir también genera retorno;G054-TPI2026\Remitos;Cucumber;"Given el remito ""R-000001"" está ""Recibido""
 When el usuario hace click en ""Registrar daño"" con una descripción
@@ -272,6 +288,10 @@ Then el sistema muestra el mensaje ""Operación rechazada"": ""Esa devolución n
 G054 | Devoluciones y multas | Devolución | CN | Devolución sin préstamos activos;- Solo se devuelven préstamos activos;G054-TPI2026\Devoluciones y multas;Cucumber;"Given no hay préstamos activos
 When el usuario hace click en ""Registrar devolución"" y acepta sin préstamo
 Then el sistema muestra el aviso ""Complete el dato 'Préstamo'."""
+G054 | Devoluciones y multas | Multas | CP | La política de multas se mantiene al reiniciar;- La política elegida se guarda en la base;G054-TPI2026\Devoluciones y multas;Cucumber;"Given la política vigente es la de por defecto
+When el usuario elige ""Sin multa (condonación)""
+And el usuario cierra y vuelve a abrir el programa
+Then la pestaña ""Devoluciones y multas"" muestra ""Sin multa (condonación)"" como política vigente"
 G054 | Reportes y general | Datos de ejemplo | CP | Cargar datos de ejemplo;- Se cargan sedes, socios, catálogo e historial;G054-TPI2026\Reportes y general;Cucumber;"Given la base está vacía
 When el usuario elige ""Archivo"" > ""Cargar datos de ejemplo""
 Then el sistema muestra ""Se cargaron los datos de ejemplo.""
