@@ -107,10 +107,9 @@ REQUISITOS = [
               "comparando nombre_estado con strings, fuera de las clases de estado."),
     Requisito("P04", OBL, "Investigar el dominio y definir entidades, atributos y reglas", "Cumple",
               ["docs/modelo_de_dominio.md:1", "biblioteca/modelos/__init__.py:1"]),
-    Requisito("E01", ENT, "Documento de presentación según la plantilla (grupo, objetivos, alcances, DER/UML)", "Parcial",
-              ["docs/Presentacion-grupo-G054.docx"],
-              "Antes de esta auditoría no existía en el repositorio. Se generó con los datos verificables; "
-              "faltan los legajos y la confirmación de los integrantes (el README solo nombra a Lucas Chas)."),
+    Requisito("E01", ENT, "Documento de presentación según la plantilla (grupo, objetivos, alcances, DER/UML)", "Cumple",
+              ["docs/Presentacion-grupo-G054.docx", "README.md:9"],
+              "No existía antes de esta auditoría; se generó sobre la plantilla con los cinco integrantes y sus legajos."),
     Requisito("S01", SUG, "Reporte: préstamos activos y material en tránsito", "Cumple",
               ["biblioteca/reportes/prestamos_activos_y_transito.py:62"], obligatorio=False),
     Requisito("S02", SUG, "Reporte: préstamos vencidos y multas acumuladas", "Cumple",
@@ -159,10 +158,6 @@ HALLAZGOS = [
              "Que entregar_prestamo, solicitar_prestamo_interbibliotecario, cancelar_prestamo y registrar_devolucion acepten "
              "fecha_hora (datetime) en lugar de combinar con el reloj, y que datos_de_ejemplo.py pase horas explícitas "
              "(por ejemplo _momento(23, 11) para la entrega). Alternativa mínima: usar max(fecha_hora, último movimiento)."),
-    Hallazgo("E01", "Alta", "La presentación del grupo no estaba hecha y faltan legajos",
-             "La plantilla Presentacion-grupo.docx estaba vacía y no había ninguna versión en el repositorio. El README solo nombra "
-             "a un integrante y sin legajo.",
-             ["README.md:9"], "Completar legajos y nombres en docs/Presentacion-grupo-G054.docx (sección 1) antes de entregar."),
     Hallazgo("D2", "Media", "Al modificar, vaciar un dato opcional no lo borra",
              "La GUI envía None cuando el campo queda vacío y los servicios interpretan None como \"no modificar\". El usuario "
              "ve \"Sede modificada.\" pero el teléfono/email siguen guardados. Afecta sedes, socios y libros.",

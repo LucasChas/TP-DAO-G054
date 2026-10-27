@@ -6,7 +6,13 @@ Grupo G054.
 
 ## Integrantes
 
-- Lucas Chas
+| Legajo | Nombre |
+|---|---|
+| 95346 | Chas Diaz Lucas Martin |
+| 408708 | Melina Micaela Moran Gianotti |
+| 403112 | Fabrizio Sebastián Banffi Moreno |
+| 94488 | Lorenzo Francisco Gonzalez |
+| 94183 | Graña Carranza Mateo |
 
 ## Descripción
 

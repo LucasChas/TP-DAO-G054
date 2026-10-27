@@ -27,6 +27,13 @@ from e2e.casos import CASOS  # noqa: E402
 from requisitos import HALLAZGOS, REQUISITOS  # noqa: E402
 
 HOY = date.today().strftime("%d/%m/%Y")
+INTEGRANTES = [
+    ("95346", "Chas Diaz Lucas Martin"),
+    ("408708", "Melina Micaela Moran Gianotti"),
+    ("403112", "Fabrizio Sebastián Banffi Moreno"),
+    ("94488", "Lorenzo Francisco Gonzalez"),
+    ("94183", "Graña Carranza Mateo"),
+]
 REPO = "https://github.com/LucasChas/TP-DAO-G054/blob/claude/eager-wright-hnv32r/"
 
 # --------------------------------------------------------------------------------- datos de entrada
@@ -188,10 +195,7 @@ def construir_contenido(resultados, features):
         ["Tema", "Tema 1 – Biblioteca: Sistema de Préstamos Interbibliotecarios (TP Integrador 2026, DAO, ISI – UTN FRC)"],
         ["Repositorio", "github.com/LucasChas/TP-DAO-G054 (código en la rama `desarrollo`)"],
     ])
-    tabla(["Legajo", "Nombre"], [["(completar)", "Lucas Chas"]])
-    nota("El README solo nombra a Lucas Chas y no hay legajos en ningún archivo del repositorio. "
-         "No se completan datos que no se pudieron verificar: hay que agregar legajos (y el resto de los integrantes, si los hay) antes de entregar.",
-         "alerta")
+    tabla(["Legajo", "Nombre"], [list(x) for x in INTEGRANTES])
 
     # 2 -------------------------------------------------------------------------------------- Propuesta
     h(1, "2. Propuesta", "propuesta")
@@ -628,10 +632,9 @@ def render_docx(resumen, destino):
         r.text = ""
     p0.runs[0].text = "Número de grupo: G054        Tema: 1 – Biblioteca: Sistema de Préstamos Interbibliotecarios"
     anidada = t_grupo.rows[2].cells[0].tables[0]
-    anidada.rows[1].cells[0].text = "(completar)"
-    anidada.rows[1].cells[1].text = "Lucas Chas"
-    nota_grupo = t_grupo.rows[2].cells[0].add_paragraph()
-    runs(nota_grupo, "Legajo pendiente: no figura en el repositorio. Confirmar si hay más integrantes.", 8)
+    for fila, (legajo, nombre) in zip(anidada.rows[1:], INTEGRANTES):
+        fila.cells[0].text = legajo
+        fila.cells[1].text = nombre
 
     # Secciones 2: objetivos, alcances y diagramas dentro de los recuadros de la plantilla.
     def bloques_entre(inicio, fin):
