@@ -1,0 +1,65 @@
+
+────────────────────────────────────────────────────── Red de Bibliotecas - Préstamos Interbibliotecarios ──────────────────────────────────────────────────────
+  1. Sedes
+  2. Socios
+  3. Catálogo
+  4. Consultar disponibilidad
+  5. Préstamos
+  6. Reservas
+  7. Remitos
+  8. Devoluciones y multas
+  9. Reportes
+  10. Cargar datos de ejemplo
+  0. Salir
+
+Seleccione una opción: ✘ Error: Opción inválida.
+
+────────────────────────────────────────────────────── Red de Bibliotecas - Préstamos Interbibliotecarios ──────────────────────────────────────────────────────
+  1. Sedes
+  2. Socios
+  3. Catálogo
+  4. Consultar disponibilidad
+  5. Préstamos
+  6. Reservas
+  7. Remitos
+  8. Devoluciones y multas
+  9. Reportes
+  10. Cargar datos de ejemplo
+  0. Salir
+
+Seleccione una opción: 
+─────────────────────────────────────────────────────────────────── Administración de socios ───────────────────────────────────────────────────────────────────
+  1. Listar socios
+  2. Buscar socio por DNI
+  3. Registrar socio
+  4. Modificar socio
+  5. Inhabilitar socio
+  6. Habilitar socio
+  0. Volver
+
+Seleccione una opción: DNI: Nombre: Apellido: Email (opcional): Teléfono (opcional): ✘ Error: El DNI '12ab' no es válido: debe tener 7 u 8 dígitos.
+
+─────────────────────────────────────────────────────────────────── Administración de socios ───────────────────────────────────────────────────────────────────
+  1. Listar socios
+  2. Buscar socio por DNI
+  3. Registrar socio
+  4. Modificar socio
+  5. Inhabilitar socio
+  6. Habilitar socio
+  0. Volver
+
+Seleccione una opción: 
+────────────────────────────────────────────────────── Red de Bibliotecas - Préstamos Interbibliotecarios ──────────────────────────────────────────────────────
+  1. Sedes
+  2. Socios
+  3. Catálogo
+  4. Consultar disponibilidad
+  5. Préstamos
+  6. Reservas
+  7. Remitos
+  8. Devoluciones y multas
+  9. Reportes
+  10. Cargar datos de ejemplo
+  0. Salir
+
+Seleccione una opción: ¡Hasta luego!

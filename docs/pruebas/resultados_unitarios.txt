@@ -1,0 +1,24 @@
+...F.................................................................... [ 31%]
+........................................................................ [ 63%]
+........................................................................ [ 94%]
+............                                                             [100%]
+=================================== FAILURES ===================================
+____ test_el_historial_de_cada_remito_de_ejemplo_esta_en_orden_cronologico _____
+
+    def test_el_historial_de_cada_remito_de_ejemplo_esta_en_orden_cronologico():
+        from biblioteca.servicios import ServicioRemitos
+    
+        cargar_datos_de_ejemplo()
+        for remito in ServicioRemitos().listar_remitos():
+            fechas = [m.fecha_hora for m in remito.movimientos]
+>           assert fechas == sorted(fechas), remito.numero
+E           AssertionError: R-000001
+E           assert [datetime.dat..., 54, 283325)] == [datetime.dat...10, 4, 10, 0)]
+E             
+E             At index 4 diff: datetime.datetime(2026, 10, 4, 10, 0) != datetime.datetime(2026, 10, 4, 4, 56, 54, 283325)
+E             Use -v to get more diff
+
+tests/test_datos_de_ejemplo.py:35: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_datos_de_ejemplo.py::test_el_historial_de_cada_remito_de_ejemplo_esta_en_orden_cronologico
+1 failed, 227 passed in 24.82s

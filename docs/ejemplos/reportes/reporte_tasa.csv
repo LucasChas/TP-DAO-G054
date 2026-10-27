@@ -1,0 +1,20 @@
+﻿Tasa de envíos logísticos exitosos e incidencias
+Generado el 27/10/2026 04:56
+
+Toda la red y por sentido
+Grupo;Exitosos;Con daño;Extraviados;Anulados;En curso;Tasa de éxito
+Toda la red;2;1;0;0;1;66.7 %
+Ida;1;1;0;0;1;50.0 %
+Retorno;1;0;0;0;0;100.0 %
+
+Por sede de origen
+Grupo;Exitosos;Con daño;Extraviados;Anulados;En curso;Tasa de éxito
+Biblioteca Central;1;0;0;0;0;100.0 %
+Sede Norte;1;0;0;0;0;100.0 %
+Sede Sur;0;1;0;0;1;0.0 %
+
+Incidencias
+Remito;Sentido;Libro;Origen;Destino;Tipo;Fecha;Observación
+R-000002;Ida;El Aleph;Sede Sur;Biblioteca Central;Daño;14/10/2026 11:00;Lomo despegado
+
+Tasa de éxito de la red: 66.7 %

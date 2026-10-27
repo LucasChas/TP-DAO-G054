@@ -1,0 +1,17 @@
+﻿Movimiento de ejemplares entre sedes
+Generado el 27/10/2026 04:56
+
+Envíos por ruta
+Origen;Destino;Envíos;Recibidos;Tránsito promedio
+Biblioteca Central;Sede Sur;1;1;31.0 h
+Sede Norte;Biblioteca Central;1;1;25.0 h
+Sede Sur;Biblioteca Central;1;1;26.0 h
+Sede Sur;Sede Norte;1;0;-
+
+Envíos y recepciones por sede
+Sede;Enviados;Recibidos
+Biblioteca Central;1;2
+Sede Norte;1;0
+Sede Sur;2;1
+
+Tiempo promedio de tránsito en la red: 27.3 h
