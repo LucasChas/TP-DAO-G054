@@ -127,6 +127,16 @@ docs/                # documentación del trabajo
 
 Ninguna de las dos interfaces accede a la base directamente: las dos llaman a los mismos servicios y reportes. Los modelos no conocen ninguna interfaz.
 
+## Pruebas E2E y auditoría
+
+La carpeta `e2e/` tiene 74 pruebas de punta a punta que manejan la interfaz gráfica real (formularios y cuadros de mensaje de Tk) y la consola. Necesitan una pantalla; en Linux se ejecutan con Xvfb:
+
+```bash
+xvfb-run -a -s "-screen 0 1320x780x24" python -m pytest e2e -v
+```
+
+Los casos están en Gherkin en `e2e/features/` y en `docs/pruebas/casos_xray.csv` (para Jira/Xray). El informe de la auditoría (cumplimiento de la consigna, patrones, flujos con capturas y resultados) está en [docs/informe_auditoria.html](docs/informe_auditoria.html) y, sobre la plantilla de la cátedra, en `docs/Presentacion-grupo-G054.docx`. Se regeneran con `PYTHONPATH=. python docs/auditoria/construir_documentacion.py`.
+
 ## Documentación
 
 - [Consigna](docs/consigna.md)
