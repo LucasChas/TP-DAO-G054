@@ -1,0 +1,20 @@
+﻿Préstamos activos y material en tránsito
+Generado el 27/10/2026 17:35
+
+Préstamos en curso
+Id;Socio;Libro;Ejemplar;Tipo;Sede de retiro;Estado;Vence;Días restantes
+4;López, María;Cien años de soledad;SUR-0002;Interbibliotecario;Sede Norte;En envío;-;-
+1;Pérez, Ana;Rayuela;NOR-0001;Interbibliotecario;Biblioteca Central;Activo;18/10/2026;-9
+
+Material en tránsito
+Remito;Sentido;Libro;Ejemplar;Origen;Destino;Despachado;Última ubicación;En viaje
+R-000004;Ida;Cien años de soledad;SUR-0002;Sede Sur;Sede Norte;26/10/2026 09:00;Terminal de ómnibus;32.6 h
+
+Resumen por sede
+Sede;Préstamos activos;Por llegar;Listos para retiro;Enviando;Recibiendo
+Biblioteca Central;1;0;0;0;0
+Sede Norte;0;1;0;0;1
+Sede Sur;0;0;0;1;0
+
+Préstamos en curso: 2
+Envíos en tránsito: 1

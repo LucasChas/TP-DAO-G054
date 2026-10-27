@@ -1,0 +1,35 @@
+flowchart TB
+  subgraph UI["Interfaces (presentación)"]
+    GUI["interfaz_grafica/<br/>Tkinter: Aplicacion + 8 pestañas"]
+    CON["interfaz/<br/>Consola (rich): menús"]
+  end
+  subgraph SRV["servicios/ (casos de uso y validaciones)"]
+    S1["ServicioSedes · ServicioSocios · ServicioCatalogo"]
+    S2["ServicioPrestamos · ServicioRemitos · ServicioReservas"]
+    S3["ServicioDevoluciones · ServicioDisponibilidad · reglas · validaciones"]
+  end
+  subgraph PAT["patrones/"]
+    P1["State: estados_remito"]
+    P2["Strategy: estrategias_multa"]
+    P3["Iterator: iterador_catalogo"]
+  end
+  REP["reportes/<br/>5 reportes · armado · PDF (reportlab+matplotlib) · CSV"]
+  DAO["dao/<br/>8 DAO (uno por entidad), reciben la sesión"]
+  MOD["modelos/<br/>entidades SQLAlchemy + enumeraciones"]
+  CFG["configuracion/<br/>motor, obtener_sesion() (commit/rollback), datos de ejemplo"]
+  DB[("SQLite<br/>biblioteca.db")]
+  EXC["excepciones/<br/>ErrorDeNegocio y derivadas"]
+  GUI --> SRV
+  CON --> SRV
+  GUI --> REP
+  CON --> REP
+  SRV --> PAT
+  SRV --> DAO
+  REP --> DAO
+  DAO --> MOD
+  MOD --> PAT
+  SRV --> CFG
+  CFG --> DB
+  MOD --> DB
+  SRV -. lanza .-> EXC
+  UI -. captura y muestra .-> EXC

@@ -1,0 +1,31 @@
+classDiagram
+  direction LR
+  class CatalogoEjemplares {
+    <<agregado>>
+    -_ejemplares: list
+    +__iter__()
+    +por_sede(id)
+    +por_libro(id)
+    +disponibles(id_sede)
+    +en_circulacion(id_sede)
+  }
+  class IteradorEjemplares {
+    <<iterador>>
+    -_ejemplares
+    -_condicion
+    -_posicion
+    +__iter__()
+    +__next__()
+  }
+  class ServicioDisponibilidad {
+    <<cliente>>
+    +consultar_disponibilidad()
+    +ejemplares_disponibles()
+  }
+  class ServicioReservas {
+    <<cliente>>
+    +reservar()
+  }
+  CatalogoEjemplares ..> IteradorEjemplares : crea
+  ServicioDisponibilidad --> CatalogoEjemplares
+  ServicioReservas --> CatalogoEjemplares

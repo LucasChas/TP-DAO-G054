@@ -1,0 +1,35 @@
+classDiagram
+  direction LR
+  class ServicioDevoluciones {
+    <<cliente>>
+    +calculadora
+    +cambiar_estrategia_de_multa(e)
+    +registrar_devolucion()
+  }
+  class CalculadoraDeMultas {
+    <<contexto>>
+    +CARGO_POR_DANIO = 1000
+    -_estrategia
+    +cambiar_estrategia(e)
+    +calcular(prestamo, fecha)
+    +cargo_por_danio(antes, despues)
+  }
+  class EstrategiaMulta {
+    <<abstract>>
+    +descripcion*
+    +calcular(dias, tipo_material)*
+  }
+  class MultaPorTipoDeMaterial {
+    LIBRO 500 · REVISTA 300 · CONSULTA 1000
+  }
+  class MultaPorDiasDeAtraso {
+    MONTO_DIARIO = 500
+  }
+  class SinMulta {
+    0
+  }
+  ServicioDevoluciones --> CalculadoraDeMultas
+  CalculadoraDeMultas o--> EstrategiaMulta
+  EstrategiaMulta <|-- MultaPorTipoDeMaterial
+  EstrategiaMulta <|-- MultaPorDiasDeAtraso
+  EstrategiaMulta <|-- SinMulta

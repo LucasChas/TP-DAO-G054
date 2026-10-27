@@ -1,0 +1,105 @@
+classDiagram
+  direction TB
+  class Sede {
+    +nombre
+    +direccion
+    +telefono
+    +email
+    +horario_atencion
+    +estado: EstadoSede
+    +fecha_baja
+    +esta_activa()
+  }
+  class Socio {
+    +dni
+    +nombre
+    +apellido
+    +email
+    +telefono
+    +fecha_alta
+    +estado: EstadoSocio
+    +motivo_inhabilitacion
+    +esta_habilitado()
+    +nombre_completo()
+  }
+  class Libro {
+    +isbn
+    +titulo
+    +autor
+    +editorial
+    +anio_publicacion
+    +tipo_material: TipoMaterial
+  }
+  class Ejemplar {
+    +codigo_inventario
+    +estado: EstadoEjemplar
+    +estado_fisico: EstadoFisico
+    +esta_disponible()
+  }
+  class Prestamo {
+    +PLAZO_DIAS = 14
+    +tipo: TipoPrestamo
+    +fecha_solicitud
+    +fecha_entrega
+    +fecha_vencimiento
+    +estado: EstadoPrestamo
+    +registrar_entrega(fecha)
+    +esta_vencido_al(fecha)
+    +dias_de_atraso_al(fecha)
+  }
+  class Remito {
+    +numero
+    +sentido: SentidoRemito
+    +nombre_estado
+    +fecha_generacion
+    -_estado: EstadoRemito
+    +generar()$
+    +empaquetar()
+    +despachar()
+    +registrar_punto_de_control()
+    +recibir()
+    +registrar_danio()
+    +reportar_extravio()
+    +anular()
+    +cerrar()
+    +cambiar_estado()
+  }
+  class MovimientoRemito {
+    +estado_anterior
+    +estado_nuevo
+    +fecha_hora
+    +observacion
+  }
+  class Reserva {
+    +PLAZO_RETIRO_DIAS = 3
+    +fecha_reserva
+    +fecha_limite_retiro
+    +estado: EstadoReserva
+    +asignar_ejemplar(ejemplar, fecha)
+  }
+  class Devolucion {
+    +fecha
+    +estado_fisico
+    +dias_atraso
+    +monto_multa
+    +cargo_por_danio
+    +multa_pagada
+    +multa_por_atraso()
+    +tiene_multa_impaga()
+  }
+  class EstadoRemito {
+    <<abstract>>
+  }
+  Sede "1" --> "*" Ejemplar : propietaria
+  Libro "1" --> "*" Ejemplar
+  Socio "1" --> "*" Prestamo
+  Ejemplar "1" --> "*" Prestamo
+  Sede "1" --> "*" Prestamo : origen/destino
+  Prestamo "1" --> "0..2" Remito : ida/retorno
+  Remito "1" *-- "1..*" MovimientoRemito : historial
+  Remito --> EstadoRemito : estado actual
+  Prestamo "1" --> "0..1" Devolucion
+  Socio "1" --> "*" Reserva
+  Libro "1" --> "*" Reserva
+  Sede "1" --> "*" Reserva : retiro
+  Reserva --> "0..1" Ejemplar : apartado

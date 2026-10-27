@@ -1,0 +1,14 @@
+﻿Préstamos vencidos y multas acumuladas
+Generado el 27/10/2026 17:35
+
+Préstamos vencidos
+Id;Socio;Libro;Sede de retiro;Venció;Días de atraso;Multa estimada
+1;Pérez, Ana;Rayuela;Biblioteca Central;18/10/2026;9;$4,500.00
+
+Multas acumuladas por socio
+Socio;DNI;Cobrado;Adeudado;Estimado (vencidos);Total
+Pérez, Ana;30111222;$0.00;$0.00;$4,500.00;$4,500.00
+Gómez, Juan;28999888;$0.00;$1,000.00;$0.00;$1,000.00
+
+Total cobrado: $0.00
+Total a cobrar: $5,500.00
