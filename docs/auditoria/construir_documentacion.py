@@ -217,7 +217,7 @@ def construir_contenido(resultados, features):
     h(2, "Alcances")
     tabla(["Incluye (verificado en el código)", "No incluye"], [[
         "Interfaz gráfica Tkinter (8 pestañas) e interfaz de consola sobre los mismos servicios; persistencia en SQLite con SQLAlchemy; "
-        "8 procesos obligatorios; 11 validaciones; patrones State, Strategy, Iterator y DAO; 5 reportes con exportación; datos de ejemplo; 241 tests unitarios.",
+        "8 procesos obligatorios; 11 validaciones; patrones State, Strategy, Iterator y DAO; 5 reportes con exportación; datos de ejemplo; 247 tests unitarios.",
         "Notificaciones, historial de lecturas y recomendaciones (opcionales de la consigna); usuarios y permisos; exportación o impresión del remito como documento; "
         "un reporte de disponibilidad de todo el catálogo por sede.",
     ]])
@@ -244,7 +244,7 @@ def construir_contenido(resultados, features):
         ["`excepciones/`", "ErrorDeNegocio y 11 excepciones derivadas", "errores.py"],
     ])
     tabla(["Aspecto", "Detalle verificado"], [
-        ["Tamaño", "79 módulos, 5.654 líneas en `biblioteca/`; 241 tests unitarios en `tests/` (211 funciones, algunas parametrizadas)."],
+        ["Tamaño", "79 módulos, 5.654 líneas en `biblioteca/`; 247 tests unitarios en `tests/` (217 funciones, algunas parametrizadas)."],
         ["Persistencia", "SQLite (`biblioteca.db` en la carpeta de ejecución) con SQLAlchemy 2.1; claves foráneas activadas con PRAGMA en cada conexión (base_de_datos.py:15)."],
         ["Transacciones", "`obtener_sesion()` es un context manager: commit si no hubo error, rollback si lo hubo (base_de_datos.py:54)."],
         ["Errores", "Las interfaces capturan `ErrorDeNegocio` y muestran el motivo sin cerrar el programa (componentes.py:43, consola.py:100)."],
@@ -473,7 +473,7 @@ pip install -r requirements.txt
 
 python main.py              # consola  (opción 10: cargar datos de ejemplo)
 python main.py --grafica    # interfaz gráfica (Archivo > Cargar datos de ejemplo)""", "Sistema")
-    codigo("""python -m pytest tests -q                                   # 241 tests unitarios
+    codigo("""python -m pytest tests -q                                   # 247 tests unitarios
 xvfb-run -a -s "-screen 0 1320x780x24" python -m pytest e2e -v   # E2E (en Windows/macOS sin xvfb-run)
 
 # Regenerar capturas, reportes de ejemplo y documentación:

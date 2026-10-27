@@ -206,6 +206,10 @@ And el usuario empaqueta, despacha y recibe el remito ""R-000002""
 Then el sistema muestra ""Devolución registrada.\nSe generó el remito de retorno a la sede propietaria.""
 And ""R-000002"" queda ""Cerrado"" con la observación ""Ejemplar reintegrado a su sede""
 And ""NOR-0001"" queda ""Disponible"""
+G054 | Remitos | Trazabilidad | CP | El trayecto se actualiza al elegir otro remito;- El trayecto mostrado corresponde siempre al remito elegido, aunque haya una fila del trayecto seleccionada;G054-TPI2026\Remitos;Cucumber;"Given se cargaron los datos de ejemplo
+And el usuario eligió R-000001 y una fila de su trayecto
+When el usuario elige R-000003, R-000004 y R-000002
+Then el título y las filas del trayecto corresponden a cada remito elegido"
 G054 | Remitos | Transiciones inválidas | CN | Recibir un remito que no salió;- Una acción no permitida no cambia el estado ni el historial;G054-TPI2026\Remitos;Cucumber;"Given el remito ""R-000001"" está ""Generado""
 When el usuario hace click en ""Recibir""
 Then el sistema muestra el mensaje ""Operación rechazada"": ""No se puede recibir un remito en estado Generado.""
@@ -243,6 +247,14 @@ G054 | Reservas | Vencimiento | CP | Vencer reservas no retiradas;- Una reserva 
 When el usuario hace click en ""Procesar reservas no retiradas""
 Then el sistema muestra ""Reservas vencidas por no retirar: 1.""
 And la reserva queda ""Vencida"""
+G054 | Reservas | Retiro | CP | Registrar el retiro desde la pestaña Reservas;"- El retiro presta el ejemplar apartado al titular
+- La reserva queda cumplida y el préstamo activo";G054-TPI2026\Reservas;Cucumber;"Given ""Pérez, Ana"" tiene una reserva de Rayuela disponible para retiro con ""CEN-0001"" apartado
+When el usuario selecciona la reserva y hace click en ""Registrar retiro""
+Then el sistema muestra ""Retiro registrado: se prestó CEN-0001 a Pérez, Ana. Vence el <hoy+14>.""
+And la reserva queda ""Cumplida"" y el préstamo local de ""CEN-0001"" queda ""Activo"""
+G054 | Reservas | Retiro | CN | Registrar el retiro de una reserva pendiente;- Solo se retira una reserva disponible para retiro;G054-TPI2026\Reservas;Cucumber;"Given la reserva de ""Pérez, Ana"" está pendiente (no hay ejemplar apartado)
+When el usuario selecciona la reserva y hace click en ""Registrar retiro""
+Then el sistema muestra el mensaje ""Operación rechazada"": ""La reserva está pendiente: solo se retiran reservas disponibles para retiro."""
 G054 | Reservas | Alta | CN | Reservar con ejemplares disponibles;- Si hay disponibles se presta;G054-TPI2026\Reservas;Cucumber;"Given ""CEN-0001"" está disponible
 When ""Pérez, Ana"" reserva ""Rayuela"" en ""Sede Centro""
 Then el sistema muestra el mensaje ""Operación rechazada"": ""Hay ejemplares de 'Rayuela' disponibles en 'Sede Centro'. Solicite el préstamo."""
