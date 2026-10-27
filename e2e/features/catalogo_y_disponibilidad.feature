@@ -5,9 +5,9 @@ Característica: Catálogo y disponibilidad
   @CP-07 @positivo @R04 @R05
   Escenario: CP-07 Alta de libro y de un ejemplar en una sede
     Dado existen las sedes de la red
-    Cuando el usuario registra el libro "Ficciones" con ISBN "978-950-04-3046-7"
+    Cuando el usuario registra el libro "Ficciones" con ISBN "978-950-04-3046-3"
     Y el usuario selecciona el libro y registra el ejemplar "nor-0100" en "Sede Norte"
-    Entonces el sistema muestra "Libro registrado." y el ISBN "9789500430467"
+    Entonces el sistema muestra "Libro registrado." y el ISBN "9789500430463"
     Y el sistema muestra "Ejemplar registrado." y el ejemplar "NOR-0100" de "Sede Norte", "Disponible"
 
   @CP-08 @positivo @R13
@@ -34,9 +34,9 @@ Característica: Catálogo y disponibilidad
 
   @CN-11 @negativo @V06
   Escenario: CN-11 ISBN duplicado con guiones
-    Dado existe Rayuela con ISBN "9789500700011"
-    Cuando el usuario registra un libro con ISBN "978-950-07-0001-1"
-    Entonces el sistema muestra el mensaje "Operación rechazada": "Ya existe un libro con ISBN 9789500700011."
+    Dado existe Rayuela con ISBN "9789500700016"
+    Cuando el usuario registra un libro con ISBN "978-950-07-0001-6"
+    Entonces el sistema muestra el mensaje "Operación rechazada": "Ya existe un libro con ISBN 9789500700016."
 
   @CN-12 @negativo @V07
   Escenario: CN-12 Código de inventario duplicado
@@ -73,3 +73,17 @@ Característica: Catálogo y disponibilidad
     Dado el ejemplar "NOR-0001" está disponible
     Cuando el usuario hace click en "Finalizar reparación"
     Entonces el sistema muestra el mensaje "Operación rechazada": "El ejemplar NOR-0001 no está en reparación."
+
+  @CP-31 @positivo @R04
+  Escenario: CP-31 Buscar libros por título o autor
+    Dado el catálogo tiene Rayuela, Revista Ñ y el Diccionario de la RAE
+    Cuando el usuario ingresa "rae" y hace click en "Buscar"
+    Y el usuario hace click en "Ver todos"
+    Entonces la grilla muestra solo "Diccionario de la lengua"
+    Y la grilla vuelve a mostrar los 3 libros
+
+  @CN-47 @negativo @R04 @V06
+  Escenario: CN-47 ISBN con dígito verificador incorrecto
+    Dado el usuario abrió la pestaña "Catálogo"
+    Cuando el usuario registra un libro con ISBN "978-950-04-3046-7"
+    Entonces el sistema muestra el mensaje "Operación rechazada": "El ISBN '978-950-04-3046-7' no es válido: el dígito verificador no corresponde."

@@ -10,7 +10,7 @@ tk = pytest.importorskip("tkinter")
 
 from biblioteca.configuracion.datos_de_ejemplo import cargar_datos_de_ejemplo  # noqa: E402
 from biblioteca.modelos.enumeraciones import EstadoFisico, TipoMaterial  # noqa: E402
-from biblioteca.servicios import ServicioPrestamos, ServicioRemitos, ServicioSedes, ServicioSocios  # noqa: E402
+from biblioteca.servicios import ServicioCatalogo, ServicioPrestamos, ServicioRemitos, ServicioSedes, ServicioSocios  # noqa: E402
 
 
 @pytest.fixture
@@ -107,7 +107,7 @@ def test_la_seleccion_se_conserva_al_recargar_la_tabla(aplicacion, mensajes):
 def test_se_registra_un_libro_y_un_ejemplar_en_el_catalogo(aplicacion, responder, mensajes):
     sede = ServicioSedes().registrar_sede("Sede Centro", "Av. Colón 100")
     pestania = aplicacion.pestanias["Catálogo"]
-    responder.append({"isbn": "9789500700011", "titulo": "Rayuela", "autor": "Julio Cortázar", "editorial": None,
+    responder.append({"isbn": "9789500700016", "titulo": "Rayuela", "autor": "Julio Cortázar", "editorial": None,
                       "anio_publicacion": 1963, "tipo_material": TipoMaterial.LIBRO})
     pestania.nuevo_libro()
     seleccionar(pestania.tabla_libros, int(pestania.tabla_libros.filas()[0][0]))
@@ -123,11 +123,11 @@ def test_el_remito_muestra_su_trayecto_y_la_transicion_invalida_se_informa(aplic
     en_viaje = next(r for r in ServicioRemitos().listar_remitos() if r.nombre_estado == "EnTransito")
     seleccionar(pestania.tabla, en_viaje.id)
     assert [fila[2] for fila in pestania.tabla_trayecto.filas()] == [
-        "Generado", "Empaquetado", "Despachado", "EnTransito",
+        "Generado", "Empaquetado", "Despachado", "En tránsito",
     ]
     responder.append({"observacion": None})
     pestania.despachar()
-    assert mensajes["errores"] == ["No se puede despachar un remito en estado EnTransito."]
+    assert mensajes["errores"] == ["No se puede despachar un remito en estado En tránsito."]
 
 
 def test_la_devolucion_usa_la_politica_de_multas_elegida(aplicacion, responder, mensajes):
@@ -218,3 +218,64 @@ def test_los_selectores_son_tan_anchos_como_su_opcion_mas_larga(aplicacion, mens
         assert selector.winfo_reqwidth() > mas_larga
     finally:
         formulario.destroy()
+
+
+def test_modificar_y_dejar_vacio_un_dato_opcional_lo_borra(aplicacion, responder, mensajes):
+    sede = ServicioSedes().registrar_sede("Sede Centro", "Av. Colón 100", "351-4000000", "centro@biblio.org", "8 a 20")
+    socio = ServicioSocios().registrar_socio("30111222", "Ana", "Pérez", "ana@correo.com", "351-5000000")
+    libro = ServicioCatalogo().registrar_libro("9789500700016", "Rayuela", "Julio Cortázar", "Sudamericana", 1963)
+    # pedir_datos devuelve None en los campos que el usuario dejó vacíos.
+    responder.append({"nombre": "Sede Centro", "direccion": "Av. Colón 100", "telefono": None, "email": None,
+                      "horario_atencion": None})
+    responder.append({"nombre": "Ana", "apellido": "Pérez", "email": None, "telefono": None})
+    responder.append({"titulo": "Rayuela", "autor": "Julio Cortázar", "editorial": None, "anio_publicacion": None,
+                      "tipo_material": TipoMaterial.LIBRO})
+    for texto, tabla, identificador, accion in [
+        ("Sedes", "tabla", sede.id, "modificar"), ("Socios", "tabla", socio.id, "modificar"),
+        ("Catálogo", "tabla_libros", libro.id, "modificar_libro"),
+    ]:
+        aplicacion.mostrar_pestania(texto)
+        pestania = aplicacion.pestanias[texto]
+        seleccionar(getattr(pestania, tabla), identificador)
+        getattr(pestania, accion)()
+    sede, socio, libro = (ServicioSedes().obtener_sede(sede.id), ServicioSocios().obtener_socio(socio.id),
+                          ServicioCatalogo().obtener_libro(libro.id))
+    assert (sede.telefono, sede.email, sede.horario_atencion) == (None, None, None)
+    assert (socio.email, socio.telefono) == (None, None)
+    assert (libro.editorial, libro.anio_publicacion) == (None, None)
+    assert mensajes["errores"] == []
+
+
+def test_buscar_libros_por_titulo_o_autor(aplicacion, mensajes):
+    cargar_datos_de_ejemplo()
+    aplicacion.mostrar_pestania("Catálogo")
+    pestania = aplicacion.pestanias["Catálogo"]
+    pestania.busqueda.insert(0, "borges")
+    pestania.buscar()
+    assert [fila[2] for fila in pestania.tabla_libros.filas()] == ["El Aleph", "Ficciones"]
+    pestania.ver_todos()
+    assert len(pestania.tabla_libros.filas()) == 6
+
+
+def test_buscar_libros_sin_resultados_lo_informa(aplicacion, mensajes):
+    pestania = aplicacion.pestanias["Catálogo"]
+    pestania.busqueda.insert(0, "inexistente")
+    pestania.buscar()
+    assert mensajes["informes"] == ["No hay libros cuyo título o autor contenga 'inexistente'."]
+
+
+def test_buscar_socio_por_dni_lo_selecciona(aplicacion, mensajes):
+    socio = ServicioSocios().registrar_socio("30111222", "Ana", "Pérez")
+    ServicioSocios().registrar_socio("28999888", "Juan", "Gómez")
+    aplicacion.mostrar_pestania("Socios")
+    pestania = aplicacion.pestanias["Socios"]
+    pestania.busqueda_dni.insert(0, "30.111.222")
+    pestania.buscar_por_dni()
+    assert pestania.tabla.id_seleccionado() == socio.id
+
+
+def test_buscar_un_dni_inexistente_muestra_el_error(aplicacion, mensajes):
+    pestania = aplicacion.pestanias["Socios"]
+    pestania.busqueda_dni.insert(0, "12345678")
+    pestania.buscar_por_dni()
+    assert mensajes["errores"] == ["No existe un socio con DNI 12345678."]

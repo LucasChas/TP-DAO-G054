@@ -46,7 +46,7 @@ def socio():
 @pytest.fixture
 def libro():
     with obtener_sesion() as sesion:
-        nuevo = Libro(isbn="9789500000001", titulo="Rayuela", autor="Julio Cortázar")
+        nuevo = Libro(isbn="9789500000000", titulo="Rayuela", autor="Julio Cortázar")
         sesion.add(nuevo)
     return nuevo
 
@@ -74,7 +74,7 @@ def red():
     norte = sedes.registrar_sede("Sede Norte", "Av. Cabrera 3000")
     ana = socios.registrar_socio("30111222", "Ana", "Pérez")
     juan = socios.registrar_socio("28999888", "Juan", "Gómez")
-    rayuela = catalogo.registrar_libro("9789500700011", "Rayuela", "Julio Cortázar")
+    rayuela = catalogo.registrar_libro("9789500700016", "Rayuela", "Julio Cortázar")
     ejemplar_centro = catalogo.registrar_ejemplar(rayuela.id, centro.id, "CEN-0001")
     ejemplar_norte = catalogo.registrar_ejemplar(rayuela.id, norte.id, "NOR-0001")
     return SimpleNamespace(

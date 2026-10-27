@@ -24,29 +24,34 @@ def sede():
 
 @pytest.fixture
 def libro(servicio):
-    return servicio.registrar_libro("978-950-07-0001-1", "Rayuela", "Julio Cortázar", anio_publicacion=1963)
+    return servicio.registrar_libro("978-950-07-0001-6", "Rayuela", "Julio Cortázar", anio_publicacion=1963)
 
 
 class TestLibros:
     def test_se_registra_un_libro_con_isbn_normalizado(self, libro):
-        assert libro.isbn == "9789500700011"
+        assert libro.isbn == "9789500700016"
         assert libro.tipo_material == TipoMaterial.LIBRO
 
     def test_no_se_registra_libro_con_isbn_duplicado(self, servicio, libro):
         with pytest.raises(EntidadDuplicada):
-            servicio.registrar_libro("9789500700011", "Otro título", "Otro autor")
+            servicio.registrar_libro("9789500700016", "Otro título", "Otro autor")
 
     @pytest.mark.parametrize("isbn", ["123", "97895007000AB", ""])
     def test_no_se_registra_libro_con_isbn_invalido(self, servicio, isbn):
         with pytest.raises(DatoInvalido):
             servicio.registrar_libro(isbn, "Título", "Autor")
 
+    @pytest.mark.parametrize("isbn", ["978-950-07-0001-1", "0-8044-2957-5"])
+    def test_no_se_registra_libro_con_digito_verificador_incorrecto(self, servicio, isbn):
+        with pytest.raises(DatoInvalido, match="dígito verificador"):
+            servicio.registrar_libro(isbn, "Título", "Autor")
+
     def test_se_acepta_isbn_10_terminado_en_x(self, servicio):
-        assert servicio.registrar_libro("0-306-40615-X", "Título", "Autor").isbn == "030640615X"
+        assert servicio.registrar_libro("0-8044-2957-X", "Título", "Autor").isbn == "080442957X"
 
     def test_no_se_registra_libro_con_anio_futuro(self, servicio):
         with pytest.raises(DatoInvalido):
-            servicio.registrar_libro("9789500700028", "Título", "Autor", anio_publicacion=3000)
+            servicio.registrar_libro("9789500700023", "Título", "Autor", anio_publicacion=3000)
 
     def test_se_modifica_un_libro(self, servicio, libro):
         servicio.modificar_libro(libro.id, editorial="Sudamericana", tipo_material=TipoMaterial.CONSULTA)
@@ -55,7 +60,7 @@ class TestLibros:
         assert modificado.tipo_material == TipoMaterial.CONSULTA
 
     def test_se_buscan_libros_por_titulo_o_autor(self, servicio, libro):
-        servicio.registrar_libro("9789500700028", "Ficciones", "Jorge Luis Borges")
+        servicio.registrar_libro("9789500700023", "Ficciones", "Jorge Luis Borges")
         assert [l.titulo for l in servicio.buscar_libros("cortázar")] == ["Rayuela"]
         assert [l.titulo for l in servicio.buscar_libros("ficc")] == ["Ficciones"]
 
@@ -98,3 +103,8 @@ class TestEjemplares:
         servicio.dar_de_baja_ejemplar(ejemplar.id)
         with pytest.raises(OperacionNoPermitida):
             servicio.dar_de_baja_ejemplar(ejemplar.id)
+
+
+def test_modificar_un_libro_con_anio_vacio_lo_borra(servicio, libro):
+    assert servicio.modificar_libro(libro.id, anio_publicacion="").anio_publicacion is None
+    assert servicio.modificar_libro(libro.id, anio_publicacion=None).anio_publicacion is None

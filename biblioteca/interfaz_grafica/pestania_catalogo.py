@@ -17,11 +17,19 @@ class PestaniaCatalogo(ttk.Frame):
 
         libros = ttk.LabelFrame(self, text="Libros", padding=8)
         libros.pack(fill="both", expand=True)
-        c.barra_de_botones(libros, [
+        barra = c.barra_de_botones(libros, [
             ("Nuevo libro", self.nuevo_libro),
             ("Modificar libro", self.modificar_libro),
             ("Ver disponibilidad", self.ver_disponibilidad),
-        ]).pack(fill="x")
+        ])
+        barra.pack(fill="x")
+        ttk.Label(barra, text="Título o autor:").pack(side="left", padx=(20, 4))
+        self.busqueda = ttk.Entry(barra, width=28)
+        self.busqueda.pack(side="left")
+        self.busqueda.bind("<Return>", lambda evento: self.buscar())
+        ttk.Button(barra, text="Buscar", command=self.buscar).pack(side="left", padx=(6, 0))
+        ttk.Button(barra, text="Ver todos", command=self.ver_todos).pack(side="left", padx=(6, 0))
+        self.texto_buscado = None
         self.tabla_libros = c.Tabla(libros, self.COLUMNAS_LIBROS, alto=9,
                                     anchos={"Id": 50, "Título": 280, "Autor": 200, "Año": 60})
         self.tabla_libros.pack(fill="both", expand=True, pady=(8, 0))
@@ -38,11 +46,31 @@ class PestaniaCatalogo(ttk.Frame):
         self.tabla_ejemplares.pack(fill="both", expand=True, pady=(8, 0))
 
     def actualizar(self):
+        if self.texto_buscado:
+            libros = self.servicio.buscar_libros(self.texto_buscado)
+        else:
+            libros = self.servicio.listar_libros()
         self.tabla_libros.cargar([
             (l.id, l.isbn, l.titulo, l.autor, l.editorial, l.anio_publicacion, l.tipo_material.value)
-            for l in self.servicio.listar_libros()
+            for l in libros
         ])
         self.actualizar_ejemplares()
+
+    def buscar(self):
+        """Muestra solo los libros cuyo título o autor contienen el texto ingresado."""
+        texto = self.busqueda.get().strip()
+        if not texto:
+            c.avisar("Escriba parte del título o del autor para buscar.", self)
+            return
+        self.texto_buscado = texto
+        self.actualizar()
+        if not self.tabla_libros.filas():
+            c.informar(f"No hay libros cuyo título o autor contenga '{texto}'.", self)
+
+    def ver_todos(self):
+        self.texto_buscado = None
+        self.busqueda.delete(0, "end")
+        self.actualizar()
 
     def actualizar_ejemplares(self):
         id_libro = self.tabla_libros.id_seleccionado()
@@ -72,7 +100,8 @@ class PestaniaCatalogo(ttk.Frame):
         if id_libro is None:
             return
         libro = self.servicio.obtener_libro(id_libro)
-        datos = c.pedir_datos(self, f"Modificar {libro.titulo}", self._campos_libro(libro))
+        campos = self._campos_libro(libro)
+        datos = c.opcionales_vacios_para_borrar(c.pedir_datos(self, f"Modificar {libro.titulo}", campos), campos)
         if datos and c.ejecutar(lambda: self.servicio.modificar_libro(id_libro, **datos), self, "Libro modificado."):
             self.actualizar()
 

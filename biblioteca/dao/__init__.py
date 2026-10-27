@@ -3,6 +3,7 @@
 Los DAO reciben la sesión abierta por el servicio, de modo que todas las
 operaciones de un caso de uso se confirman o se deshacen juntas.
 """
+from biblioteca.dao.configuracion_dao import ConfiguracionDAO
 from biblioteca.dao.devolucion_dao import DevolucionDAO
 from biblioteca.dao.ejemplar_dao import EjemplarDAO
 from biblioteca.dao.libro_dao import LibroDAO
@@ -12,4 +13,4 @@ from biblioteca.dao.reserva_dao import ReservaDAO
 from biblioteca.dao.sede_dao import SedeDAO
 from biblioteca.dao.socio_dao import SocioDAO
 
-__all__ = ["DevolucionDAO", "EjemplarDAO", "LibroDAO", "PrestamoDAO", "RemitoDAO", "ReservaDAO", "SedeDAO", "SocioDAO"]
+__all__ = ["ConfiguracionDAO", "DevolucionDAO", "EjemplarDAO", "LibroDAO", "PrestamoDAO", "RemitoDAO", "ReservaDAO", "SedeDAO", "SocioDAO"]

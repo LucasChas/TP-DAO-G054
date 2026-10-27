@@ -38,7 +38,7 @@ def test_cp13_ciclo_completo_del_remito_de_ida_con_trazabilidad(gui, red):
         ("Empaquetar", {"Observación": "Caja 12, sellada"}, "Remito empaquetado. Estado actual: Empaquetado."),
         ("Despachar", {"Observación": "Transporte interno, móvil 3"}, "Remito despachado. Estado actual: Despachado."),
         ("Punto de control", {"Ubicación": "Centro de distribución Alta Córdoba"},
-         "Punto de control registrado. Estado actual: EnTransito."),
+         "Punto de control registrado. Estado actual: En tránsito."),
         ("Recibir", {"Estado físico del ejemplar": "Bueno", "Observación": "Llegó en condiciones"},
          "Remito recibido. Estado actual: Recibido."),
     ]
@@ -62,8 +62,8 @@ def test_cp13_ciclo_completo_del_remito_de_ida_con_trazabilidad(gui, red):
         ("-", "Generado", "-"),
         ("Generado", "Empaquetado", "Caja 12, sellada"),
         ("Empaquetado", "Despachado", "Transporte interno, móvil 3"),
-        ("Despachado", "EnTransito", "Centro de distribución Alta Córdoba"),
-        ("EnTransito", "Recibido", "Llegó en condiciones"),
+        ("Despachado", "En tránsito", "Centro de distribución Alta Córdoba"),
+        ("En tránsito", "Recibido", "Llegó en condiciones"),
         ("Recibido", "Cerrado", "Entregado al socio"),
     ]
 
@@ -78,7 +78,7 @@ def test_cp14_recepcion_con_danio_genera_remito_de_retorno(gui, red):
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     gui.capturar("03_trayecto_con_incidente")
     estados = [f["Estado nuevo"] for f in gui.filas(pestania.tabla_trayecto)]
-    assert estados == ["Generado", "Empaquetado", "Despachado", "Recibido", "Daniado", "Cerrado"]
+    assert estados == ["Generado", "Empaquetado", "Despachado", "Recibido", "Dañado", "Cerrado"]
     retorno = _fila(gui, "R-000002")
     assert (retorno["Sentido"], retorno["Origen"], retorno["Destino"], retorno["Estado"]) == (
         "Retorno", "Sede Centro", "Sede Norte", "Generado")

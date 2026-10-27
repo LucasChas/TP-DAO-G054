@@ -1,6 +1,4 @@
 """E2E de administración de sedes (proceso obligatorio 1). Escenarios en e2e/features/sedes.feature."""
-import pytest
-
 from e2e.driver import Formulario, Mensaje
 
 
@@ -80,14 +78,13 @@ def test_cn05_modificar_sin_seleccionar_una_sede(gui, red):
     assert mensajes == [("Atención", "Seleccione una sede en la lista.")]
 
 
-@pytest.mark.xfail(strict=True, reason="Defecto encontrado en la auditoría: la GUI envía None al vaciar un campo opcional "
-                                       "y ServicioSedes.modificar_sede interpreta None como 'no modificar'.")
 def test_cn45_vaciar_un_dato_opcional_al_modificar_la_sede(gui, red):
+    """Antes era el defecto D2: la sede se informaba modificada pero conservaba los datos borrados."""
     gui.ir_a("Sedes")
     gui.seleccionar(gui.pestania.tabla, "Nombre", "Sede Centro")
     mensajes = gui.clic("Modificar", Formulario({"Teléfono": "", "Email": ""}, captura="01_campos_vaciados"),
                         Mensaje(captura="02_informa_modificada"))
     assert mensajes == [("Listo", "Sede modificada.")]
     fila = next(f for f in gui.filas(gui.pestania.tabla) if f["Nombre"] == "Sede Centro")
-    gui.capturar("03_los_datos_siguen_guardados")
+    gui.capturar("03_datos_borrados")
     assert (fila["Teléfono"], fila["Email"]) == ("-", "-")

@@ -45,7 +45,8 @@ class PestaniaSedes(ttk.Frame):
         if id_sede is None:
             return
         sede = self.servicio.obtener_sede(id_sede)
-        datos = c.pedir_datos(self, f"Modificar {sede.nombre}", self._campos(sede))
+        campos = self._campos(sede)
+        datos = c.opcionales_vacios_para_borrar(c.pedir_datos(self, f"Modificar {sede.nombre}", campos), campos)
         if datos and c.ejecutar(lambda: self.servicio.modificar_sede(id_sede, **datos), self, "Sede modificada."):
             self.actualizar()
 

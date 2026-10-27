@@ -10,7 +10,8 @@ from datetime import date
 from biblioteca.configuracion.base_de_datos import obtener_sesion
 from biblioteca.modelos import Devolucion, Prestamo
 from biblioteca.modelos.enumeraciones import EstadoPrestamo
-from biblioteca.patrones.estrategias_multa import CalculadoraDeMultas, estrategia_por_defecto
+from biblioteca.patrones.estrategias_multa import CalculadoraDeMultas
+from biblioteca.servicios.servicio_devoluciones import estrategia_guardada
 
 
 @dataclass
@@ -55,7 +56,7 @@ class ReporteVencidosYMultas:
 
 def generar(fecha=None, calculadora=None):
     fecha = fecha or date.today()
-    calculadora = calculadora or CalculadoraDeMultas(estrategia_por_defecto())
+    calculadora = calculadora or CalculadoraDeMultas(estrategia_guardada())
     with obtener_sesion() as sesion:
         vencidos = (
             sesion.query(Prestamo)

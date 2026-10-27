@@ -306,3 +306,9 @@ def test_se_da_de_baja_un_ejemplar_en_reparacion_sin_arreglo(remitos, solicitud,
     despachado(remitos, retorno)
     remitos.recibir(retorno.id, EstadoFisico.DANIADO)
     assert ServicioCatalogo().dar_de_baja_ejemplar(red.ejemplar_norte.id).estado == EstadoEjemplar.BAJA
+
+
+def test_los_estados_se_muestran_con_texto_legible():
+    from biblioteca.patrones.estados_remito import texto_estado
+
+    assert [texto_estado(n) for n in ("EnTransito", "Daniado", "Recibido", None)] == ["En tránsito", "Dañado", "Recibido", None]

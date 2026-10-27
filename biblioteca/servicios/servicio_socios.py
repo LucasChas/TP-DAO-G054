@@ -40,7 +40,8 @@ class ServicioSocios:
         return socio
 
     def modificar_socio(self, id_socio, nombre=None, apellido=None, email=None, telefono=None):
-        """Modifica los datos de contacto. El DNI no se modifica porque identifica al socio."""
+        """Modifica los datos de contacto. None no cambia el dato y "" borra uno opcional.
+        El DNI no se modifica porque identifica al socio."""
         with obtener_sesion() as sesion:
             dao = SocioDAO(sesion)
             socio = obtener_socio_o_error(dao, id_socio)

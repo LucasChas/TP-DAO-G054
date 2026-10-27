@@ -34,7 +34,7 @@ class EstadoRemito(ABC):
         return False
 
     def _no_permitida(self, accion):
-        raise TransicionRemitoInvalida(f"No se puede {accion} un remito en estado {self.nombre}.")
+        raise TransicionRemitoInvalida(f"No se puede {accion} un remito en estado {texto_estado(self.nombre)}.")
 
     def empaquetar(self, remito, fecha_hora, observacion):
         self._no_permitida("empaquetar")
@@ -219,3 +219,12 @@ ESTADOS = {
 def crear_estado(nombre):
     """Reconstruye el objeto estado a partir del nombre guardado en la base."""
     return ESTADOS[nombre]()
+
+
+# El nombre de la clase es el que se guarda en la base; al usuario se le muestra este texto.
+TEXTOS = {"EnTransito": "En tránsito", "Daniado": "Dañado"}
+
+
+def texto_estado(nombre):
+    """Texto para mostrar de un estado guardado (None si no hay estado, como el anterior al primero)."""
+    return TEXTOS.get(nombre, nombre)

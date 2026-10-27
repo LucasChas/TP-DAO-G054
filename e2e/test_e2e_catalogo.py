@@ -11,11 +11,11 @@ from e2e.driver import Formulario, Mensaje, Ventana
 def test_cp07_alta_de_libro_y_de_ejemplar_en_una_sede(gui, red):
     pestania = gui.ir_a("Catálogo")
     gui.clic("Nuevo libro", Formulario({
-        "ISBN": "978-950-04-3046-7", "Título": "Ficciones", "Autor": "Jorge Luis Borges",
+        "ISBN": "978-950-04-3046-3", "Título": "Ficciones", "Autor": "Jorge Luis Borges",
         "Editorial": "Emecé", "Año de publicación": "1944", "Tipo de material": "Libro",
     }, captura="01_formulario_libro"), Mensaje(contiene="Libro registrado.", captura="02_libro_registrado"))
     libro = next(f for f in gui.filas(pestania.tabla_libros) if f["Título"] == "Ficciones")
-    assert libro["ISBN"] == "9789500430467"
+    assert libro["ISBN"] == "9789500430463"
     gui.seleccionar(pestania.tabla_libros, "Título", "Ficciones")
     gui.clic("Nuevo ejemplar", Formulario({"Sede propietaria": "Sede Norte", "Código de inventario": "nor-0100"},
                                           captura="03_formulario_ejemplar"),
@@ -67,9 +67,9 @@ def test_cn10_libro_con_isbn_invalido(gui, red):
 
 def test_cn11_libro_con_isbn_duplicado(gui, red):
     gui.ir_a("Catálogo")
-    mensajes = gui.clic("Nuevo libro", Formulario({"ISBN": "978-950-07-0001-1", "Título": "Rayuela (2da ed.)", "Autor": "Cortázar"}),
+    mensajes = gui.clic("Nuevo libro", Formulario({"ISBN": "978-950-07-0001-6", "Título": "Rayuela (2da ed.)", "Autor": "Cortázar"}),
                         Mensaje(titulo="Operación rechazada", captura="01_isbn_duplicado"))
-    assert mensajes == [("Operación rechazada", "Ya existe un libro con ISBN 9789500700011.")]
+    assert mensajes == [("Operación rechazada", "Ya existe un libro con ISBN 9789500700016.")]
 
 
 def test_cn12_ejemplar_con_codigo_de_inventario_duplicado(gui, red):
@@ -93,7 +93,7 @@ def test_cn13_ejemplar_en_una_sede_dada_de_baja(gui, red):
 
 def test_cn14_anio_de_publicacion_no_numerico(gui, red):
     gui.ir_a("Catálogo")
-    mensajes = gui.clic("Nuevo libro", Formulario({"ISBN": "9789500000002", "Título": "T", "Autor": "A", "Año de publicación": "abc"}),
+    mensajes = gui.clic("Nuevo libro", Formulario({"ISBN": "9789500000017", "Título": "T", "Autor": "A", "Año de publicación": "abc"}),
                         Mensaje(titulo="Atención", captura="01_anio_invalido"), Formulario(boton="Cancelar"))
     assert mensajes == [("Atención", "'abc' no es un valor válido para 'Año de publicación'.")]
 
@@ -101,7 +101,7 @@ def test_cn14_anio_de_publicacion_no_numerico(gui, red):
 def test_cn15_anio_de_publicacion_fuera_de_rango(gui, red):
     gui.ir_a("Catálogo")
     anio = (HOY + timedelta(days=366)).year
-    mensajes = gui.clic("Nuevo libro", Formulario({"ISBN": "9789500000002", "Título": "T", "Autor": "A", "Año de publicación": anio}),
+    mensajes = gui.clic("Nuevo libro", Formulario({"ISBN": "9789500000017", "Título": "T", "Autor": "A", "Año de publicación": anio}),
                         Mensaje(titulo="Operación rechazada", captura="01_anio_futuro"))
     assert mensajes == [("Operación rechazada", f"El año de publicación {anio} no es válido.")]
 
@@ -121,3 +121,21 @@ def test_cn17_finalizar_reparacion_de_un_ejemplar_sano(gui, red):
     gui.seleccionar(pestania.tabla_ejemplares, "Código", "NOR-0001")
     mensajes = gui.clic("Finalizar reparación", Mensaje(titulo="Operación rechazada", captura="01_rechazo"))
     assert mensajes == [("Operación rechazada", "El ejemplar NOR-0001 no está en reparación.")]
+
+
+def test_cp31_buscar_libros_por_titulo_o_autor(gui, red):
+    pestania = gui.ir_a("Catálogo")
+    pestania.busqueda.insert(0, "rae")
+    gui.clic("Buscar")
+    gui.capturar("01_resultado_de_la_busqueda")
+    assert [f["Título"] for f in gui.filas(pestania.tabla_libros)] == ["Diccionario de la lengua"]
+    gui.clic("Ver todos")
+    assert len(gui.filas(pestania.tabla_libros)) == 3
+
+
+def test_cn47_libro_con_digito_verificador_incorrecto(gui, red):
+    gui.ir_a("Catálogo")
+    mensajes = gui.clic("Nuevo libro", Formulario({"ISBN": "978-950-04-3046-7", "Título": "Ficciones", "Autor": "Borges"}),
+                        Mensaje(titulo="Operación rechazada", captura="01_digito_verificador"))
+    assert mensajes == [("Operación rechazada",
+                         "El ISBN '978-950-04-3046-7' no es válido: el dígito verificador no corresponde.")]

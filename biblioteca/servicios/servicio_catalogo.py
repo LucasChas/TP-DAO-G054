@@ -18,11 +18,21 @@ from biblioteca.servicios.servicio_sedes import obtener_sede_o_error
 from biblioteca.servicios.validaciones import texto_obligatorio, texto_opcional
 
 
+def _digito_verificador_correcto(isbn):
+    """ISBN-10: suma ponderada de 10 a 1 divisible por 11 (X vale 10).
+    ISBN-13: suma con pesos 1 y 3 alternados divisible por 10."""
+    if len(isbn) == 10:
+        return sum((10 - i) * (10 if c == "X" else int(c)) for i, c in enumerate(isbn)) % 11 == 0
+    return sum(int(c) * (3 if i % 2 else 1) for i, c in enumerate(isbn)) % 10 == 0
+
+
 def normalizar_isbn(isbn):
-    """Quita guiones y espacios y controla que sea un ISBN-10 o ISBN-13."""
+    """Quita guiones y espacios y controla que sea un ISBN-10 o ISBN-13 con su dígito verificador."""
     limpio = re.sub(r"[-\s]", "", isbn or "").upper()
     if not re.fullmatch(r"\d{9}[\dX]|\d{13}", limpio):
         raise DatoInvalido(f"El ISBN '{isbn}' no es válido: debe tener 10 o 13 dígitos.")
+    if not _digito_verificador_correcto(limpio):
+        raise DatoInvalido(f"El ISBN '{isbn}' no es válido: el dígito verificador no corresponde.")
     return limpio
 
 
@@ -71,7 +81,8 @@ class ServicioCatalogo:
         return libro
 
     def modificar_libro(self, id_libro, titulo=None, autor=None, editorial=None, anio_publicacion=None, tipo_material=None):
-        """Modifica los datos indicados. El ISBN no se modifica porque identifica la obra."""
+        """Modifica los datos indicados (None no cambia el dato; "" borra un dato opcional).
+        El ISBN no se modifica porque identifica la obra."""
         with obtener_sesion() as sesion:
             dao = LibroDAO(sesion)
             libro = obtener_libro_o_error(dao, id_libro)
@@ -81,7 +92,9 @@ class ServicioCatalogo:
                 libro.autor = texto_obligatorio(autor, "autor")
             if editorial is not None:
                 libro.editorial = texto_opcional(editorial)
-            if anio_publicacion is not None:
+            if anio_publicacion == "":
+                libro.anio_publicacion = None
+            elif anio_publicacion is not None:
                 libro.anio_publicacion = validar_anio(anio_publicacion)
             if tipo_material is not None:
                 libro.tipo_material = tipo_material

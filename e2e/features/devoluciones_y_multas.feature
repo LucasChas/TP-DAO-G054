@@ -43,3 +43,10 @@ Característica: Devoluciones y multas
     Dado no hay préstamos activos
     Cuando el usuario hace click en "Registrar devolución" y acepta sin préstamo
     Entonces el sistema muestra el aviso "Complete el dato 'Préstamo'."
+
+  @CP-32 @positivo @P01 @R15
+  Escenario: CP-32 La política de multas se mantiene al reiniciar
+    Dado la política vigente es la de por defecto
+    Cuando el usuario elige "Sin multa (condonación)"
+    Y el usuario cierra y vuelve a abrir el programa
+    Entonces la pestaña "Devoluciones y multas" muestra "Sin multa (condonación)" como política vigente

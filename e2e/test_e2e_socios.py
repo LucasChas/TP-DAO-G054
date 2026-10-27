@@ -63,3 +63,18 @@ def test_cn09_inhabilitar_un_socio_ya_inhabilitado(gui, red):
     gui.seleccionar(gui.pestania.tabla, "DNI", "33444555")
     mensajes = gui.clic("Inhabilitar", Formulario({"Motivo": "Otro"}), Mensaje(titulo="Operación rechazada", captura="01_ya_inhabilitado"))
     assert mensajes == [("Operación rechazada", "El socio Torres, Lía ya está inhabilitado.")]
+
+
+def test_cp30_buscar_un_socio_por_dni(gui, red):
+    pestania = gui.ir_a("Socios")
+    pestania.busqueda_dni.insert(0, "28.999.888")
+    gui.clic("Buscar por DNI")
+    gui.capturar("01_socio_encontrado")
+    assert pestania.tabla.id_seleccionado() == red.juan.id
+
+
+def test_cn46_buscar_un_dni_que_no_existe(gui, red):
+    pestania = gui.ir_a("Socios")
+    pestania.busqueda_dni.insert(0, "12345678")
+    mensajes = gui.clic("Buscar por DNI", Mensaje(titulo="Operación rechazada", captura="01_no_existe"))
+    assert mensajes == [("Operación rechazada", "No existe un socio con DNI 12345678.")]

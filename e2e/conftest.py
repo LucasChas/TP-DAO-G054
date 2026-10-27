@@ -54,7 +54,7 @@ def gui(base, request):
     app.update()
     driver = DriverGUI(app, os.environ.get("E2E_CAPTURAS"), _prefijo(request.node.name))
     yield driver
-    app.destroy()
+    driver.app.destroy()  # puede ser otra ventana si la prueba reinicia el programa
 
 
 HOY = date.today()
@@ -76,7 +76,7 @@ def red(base):
     juan = socios.registrar_socio("28999888", "Juan", "Gómez")
     lia = socios.registrar_socio("33444555", "Lía", "Torres")
     socios.inhabilitar_socio(lia.id, "Deuda de cuota social")
-    rayuela = catalogo.registrar_libro("9789500700011", "Rayuela", "Julio Cortázar", "Sudamericana", 1963)
+    rayuela = catalogo.registrar_libro("9789500700016", "Rayuela", "Julio Cortázar", "Sudamericana", 1963)
     revista = catalogo.registrar_libro("9771234567003", "Revista Ñ", "Varios", None, 2025, TipoMaterial.REVISTA)
     diccionario = catalogo.registrar_libro("9788423968657", "Diccionario de la lengua", "RAE", "Espasa", 2014, TipoMaterial.CONSULTA)
     ejemplares = {

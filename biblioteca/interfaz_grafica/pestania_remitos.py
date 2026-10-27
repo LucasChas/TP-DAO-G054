@@ -41,7 +41,7 @@ class PestaniaRemitos(ttk.Frame):
     def actualizar(self):
         self.tabla.cargar([
             (r.id, r.numero, r.sentido.value, r.ejemplar.codigo_inventario, r.ejemplar.libro.titulo,
-             r.sede_origen.nombre, r.sede_destino.nombre, c.formatear_fecha(r.fecha_generacion, con_hora=True), r.nombre_estado)
+             r.sede_origen.nombre, r.sede_destino.nombre, c.formatear_fecha(r.fecha_generacion, con_hora=True), r.estado_visible)
             for r in self.servicio.listar_remitos(solo_en_curso=self.solo_en_curso.get())
         ])
         self.actualizar_trayecto()
@@ -57,7 +57,7 @@ class PestaniaRemitos(ttk.Frame):
             text=f"Trayecto del remito {remito.numero}: {remito.sede_origen.nombre} → {remito.sede_destino.nombre}"
         )
         self.tabla_trayecto.cargar([
-            (c.formatear_fecha(m.fecha_hora, con_hora=True), m.estado_anterior, m.estado_nuevo, m.observacion)
+            (c.formatear_fecha(m.fecha_hora, con_hora=True), m.estado_anterior_visible, m.estado_nuevo_visible, m.observacion)
             for m in remito.movimientos
         ])
 
@@ -71,7 +71,7 @@ class PestaniaRemitos(ttk.Frame):
             datos = c.pedir_datos(self, titulo, campos)
             if datos is None:
                 return
-        if c.ejecutar(lambda: accion(id_remito, **datos), self, lambda r: f"{mensaje} Estado actual: {r.nombre_estado}."):
+        if c.ejecutar(lambda: accion(id_remito, **datos), self, lambda r: f"{mensaje} Estado actual: {r.estado_visible}."):
             self.actualizar()
 
     def empaquetar(self):

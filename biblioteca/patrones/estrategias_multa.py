@@ -107,3 +107,12 @@ ESTRATEGIAS_DISPONIBLES = [MultaPorTipoDeMaterial, MultaPorDiasDeAtraso, SinMult
 
 def estrategia_por_defecto():
     return MultaPorTipoDeMaterial()
+
+
+def estrategia_por_nombre(nombre):
+    """Crea la estrategia a partir del nombre de su clase (así se guarda en la base).
+    Si el nombre no corresponde a ninguna, usa la estrategia por defecto."""
+    for clase in ESTRATEGIAS_DISPONIBLES:
+        if clase.__name__ == nombre:
+            return clase()
+    return estrategia_por_defecto()

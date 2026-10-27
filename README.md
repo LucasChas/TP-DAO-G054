@@ -59,7 +59,7 @@ Con eso todos los reportes muestran información.
 pytest -q
 ```
 
-Hay 228 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 96 % del paquete `biblioteca`, sin contar las interfaces. Los 15 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
+Hay 241 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 97 % del paquete `biblioteca`, sin contar las interfaces. Los 20 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
 
 ## Funcionalidades
 
@@ -135,7 +135,7 @@ Ninguna de las dos interfaces accede a la base directamente: las dos llaman a lo
 
 ## Pruebas E2E y auditoría
 
-La carpeta `e2e/` tiene 74 pruebas de punta a punta que manejan la interfaz gráfica real (formularios y cuadros de mensaje de Tk) y la consola. Necesitan una pantalla; en Linux se ejecutan con Xvfb:
+La carpeta `e2e/` tiene 79 pruebas de punta a punta que manejan la interfaz gráfica real (formularios y cuadros de mensaje de Tk) y la consola. Necesitan una pantalla; en Linux se ejecutan con Xvfb:
 
 ```bash
 xvfb-run -a -s "-screen 0 1320x780x24" python -m pytest e2e -v

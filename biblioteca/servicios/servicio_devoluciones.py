@@ -2,14 +2,23 @@
 from datetime import date, datetime
 
 from biblioteca.configuracion.base_de_datos import obtener_sesion
-from biblioteca.dao import DevolucionDAO, PrestamoDAO
+from biblioteca.dao import ConfiguracionDAO, DevolucionDAO, PrestamoDAO
 from biblioteca.excepciones import DatoInvalido, EntidadNoEncontrada, OperacionNoPermitida
 from biblioteca.modelos import Devolucion
 from biblioteca.modelos.enumeraciones import EstadoEjemplar, EstadoFisico, EstadoPrestamo, SentidoRemito
-from biblioteca.patrones.estrategias_multa import CalculadoraDeMultas, estrategia_por_defecto
+from biblioteca.patrones.estrategias_multa import CalculadoraDeMultas, estrategia_por_nombre
 from biblioteca.servicios.asignacion_reservas import liberar_ejemplar
 from biblioteca.servicios.servicio_prestamos import obtener_prestamo_o_error
 from biblioteca.servicios.servicio_remitos import generar_remito
+
+
+CLAVE_POLITICA = "politica_de_multas"
+
+
+def estrategia_guardada():
+    """La política de multas elegida la última vez (o la de por defecto si nunca se eligió una)."""
+    with obtener_sesion() as sesion:
+        return estrategia_por_nombre(ConfiguracionDAO(sesion).obtener(CLAVE_POLITICA))
 
 
 def obtener_devolucion_o_error(dao, id_devolucion):
@@ -21,11 +30,24 @@ def obtener_devolucion_o_error(dao, id_devolucion):
 
 class ServicioDevoluciones:
     def __init__(self, calculadora=None):
-        """La calculadora de multas se puede recibir ya configurada; si no, usa la estrategia por defecto."""
-        self.calculadora = calculadora or CalculadoraDeMultas(estrategia_por_defecto())
+        """La calculadora de multas se puede recibir ya configurada; si no, usa la política guardada.
+
+        La política guardada se lee recién cuando se necesita, porque la consola crea este
+        servicio al importar sus menús, antes de configurar la base de datos.
+        """
+        self._calculadora = calculadora
+
+    @property
+    def calculadora(self):
+        if self._calculadora is None:
+            self._calculadora = CalculadoraDeMultas(estrategia_guardada())
+        return self._calculadora
 
     def cambiar_estrategia_de_multa(self, estrategia):
+        """Cambia la política vigente y la guarda, así se mantiene después de reiniciar el programa."""
         self.calculadora.cambiar_estrategia(estrategia)
+        with obtener_sesion() as sesion:
+            ConfiguracionDAO(sesion).guardar(CLAVE_POLITICA, type(estrategia).__name__)
 
     def registrar_devolucion(self, id_prestamo, estado_fisico, observaciones=None, fecha=None):
         """El socio devuelve el ejemplar en la sede donde lo retiró.

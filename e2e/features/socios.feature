@@ -49,3 +49,15 @@ Característica: Socios
     Dado la socia "Torres, Lía" está inhabilitada
     Cuando el usuario la inhabilita de nuevo
     Entonces el sistema muestra el mensaje "Operación rechazada": "El socio Torres, Lía ya está inhabilitado."
+
+  @CP-30 @positivo @R03
+  Escenario: CP-30 Buscar un socio por DNI
+    Dado existe el socio DNI "28999888"
+    Cuando el usuario ingresa "28.999.888" en "DNI" y hace click en "Buscar por DNI"
+    Entonces la grilla selecciona a "Gómez, Juan"
+
+  @CN-46 @negativo @R03
+  Escenario: CN-46 Buscar un DNI que no existe
+    Dado no hay socio con DNI "12345678"
+    Cuando el usuario busca el DNI "12345678"
+    Entonces el sistema muestra el mensaje "Operación rechazada": "No existe un socio con DNI 12345678."

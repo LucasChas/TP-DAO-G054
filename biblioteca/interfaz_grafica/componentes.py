@@ -102,6 +102,14 @@ class Tabla(ttk.Frame):
         if hijos:
             self.arbol.selection_set(hijos[0])
 
+    def seleccionar_id(self, identificador):
+        """Selecciona y muestra la fila cuyo identificador es el indicado."""
+        for item in self.arbol.get_children():
+            if str(self.arbol.item(item, "values")[0]) == str(identificador):
+                self.arbol.selection_set(item)
+                self.arbol.see(item)
+                return
+
     def id_seleccionado(self):
         seleccion = self.arbol.selection()
         if not seleccion:
@@ -264,6 +272,18 @@ class Formulario(tk.Toplevel):
                 return
         self.resultado = datos
         self.destroy()
+
+
+def opcionales_vacios_para_borrar(datos, campos):
+    """En un formulario de modificación, un dato opcional que el usuario dejó vacío se tiene que borrar.
+
+    pedir_datos devuelve None para los campos vacíos, y los servicios de modificación
+    interpretan None como "no cambiar". Por eso acá se pasan como "" (texto vacío).
+    """
+    if datos is None:
+        return None
+    opcionales = {campo.clave for campo in campos if not campo.obligatorio and campo.tipo in ("texto", "entero")}
+    return {clave: ("" if valor is None and clave in opcionales else valor) for clave, valor in datos.items()}
 
 
 def pedir_datos(padre, titulo, campos):

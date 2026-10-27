@@ -12,7 +12,7 @@ from biblioteca.modelos.enumeraciones import (
     SentidoRemito,
     TipoMaterial,
 )
-from biblioteca.patrones.estrategias_multa import CalculadoraDeMultas, MultaPorDiasDeAtraso, SinMulta
+from biblioteca.patrones.estrategias_multa import CalculadoraDeMultas, MultaPorDiasDeAtraso, MultaPorTipoDeMaterial, SinMulta
 from biblioteca.servicios import (
     ServicioCatalogo,
     ServicioDevoluciones,
@@ -60,7 +60,7 @@ class TestDevolucionLocal:
 
     def test_el_material_de_consulta_tiene_multa_mas_alta(self, servicio, prestamos, red):
         catalogo = ServicioCatalogo()
-        diccionario = catalogo.registrar_libro("9789502801334", "Diccionario", "RAE", tipo_material=TipoMaterial.CONSULTA)
+        diccionario = catalogo.registrar_libro("9789502801339", "Diccionario", "RAE", tipo_material=TipoMaterial.CONSULTA)
         ejemplar = catalogo.registrar_ejemplar(diccionario.id, red.centro.id, "CEN-0100")
         prestamo = prestamos.registrar_prestamo_local(red.ana.id, ejemplar.id, red.centro.id, fecha=HOY)
         devolucion = servicio.registrar_devolucion(prestamo.id, EstadoFisico.BUENO, fecha=VENCE + timedelta(days=3))
@@ -193,3 +193,24 @@ class TestDevolucionInterbibliotecaria:
         remitos.recibir(retorno.id, EstadoFisico.DANIADO)
         assert ejemplar_actual(red.ejemplar_norte).estado == EstadoEjemplar.EN_REPARACION
         assert tasa_de_envios.generar().general.con_danio == 0
+
+
+class TestPoliticaDeMultasGuardada:
+    def test_sin_politica_guardada_se_usa_la_de_por_defecto(self):
+        assert isinstance(ServicioDevoluciones().calculadora.estrategia, MultaPorTipoDeMaterial)
+
+    def test_la_politica_elegida_se_mantiene_al_crear_otro_servicio(self):
+        ServicioDevoluciones().cambiar_estrategia_de_multa(SinMulta())
+        assert isinstance(ServicioDevoluciones().calculadora.estrategia, SinMulta)
+
+    def test_el_reporte_de_multas_usa_la_politica_guardada(self):
+        from biblioteca.reportes import prestamos_vencidos_y_multas
+
+        ServicioDevoluciones().cambiar_estrategia_de_multa(MultaPorDiasDeAtraso())
+        assert prestamos_vencidos_y_multas.generar().politica == MultaPorDiasDeAtraso().descripcion
+
+    def test_un_nombre_de_politica_desconocido_vuelve_a_la_de_por_defecto(self):
+        from biblioteca.patrones.estrategias_multa import estrategia_por_nombre
+
+        assert isinstance(estrategia_por_nombre("PoliticaQueYaNoExiste"), MultaPorTipoDeMaterial)
+        assert isinstance(estrategia_por_nombre(None), MultaPorTipoDeMaterial)

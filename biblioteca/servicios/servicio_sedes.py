@@ -38,7 +38,7 @@ class ServicioSedes:
         return sede
 
     def modificar_sede(self, id_sede, nombre=None, direccion=None, telefono=None, email=None, horario_atencion=None):
-        """Modifica los datos indicados. Los parámetros en None no se cambian."""
+        """Modifica los datos indicados. Los parámetros en None no se cambian; "" borra un dato opcional."""
         with obtener_sesion() as sesion:
             dao = SedeDAO(sesion)
             sede = obtener_sede_o_error(dao, id_sede)

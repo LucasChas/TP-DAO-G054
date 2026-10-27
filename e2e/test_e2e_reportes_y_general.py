@@ -25,7 +25,7 @@ def test_cp26_cargar_datos_de_ejemplo_desde_el_menu(gui, base):
     remitos = gui.ir_a("Remitos")
     assert [(f["Número"], f["Sentido"], f["Estado"]) for f in gui.filas(remitos.tabla)] == [
         ("R-000001", "Ida", "Cerrado"), ("R-000002", "Ida", "Cerrado"),
-        ("R-000003", "Retorno", "Cerrado"), ("R-000004", "Ida", "EnTransito"),
+        ("R-000003", "Retorno", "Cerrado"), ("R-000004", "Ida", "En tránsito"),
     ]
     # Trayecto de cada tipo de remito de ejemplo: ida entregada, ida con daño, retorno y envío en viaje.
     for numero in ("R-000001", "R-000002", "R-000003", "R-000004"):

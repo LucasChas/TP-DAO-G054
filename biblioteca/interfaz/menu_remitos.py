@@ -19,7 +19,7 @@ def _filas(remitos):
     return [
         (
             r.id, r.numero, r.sentido.value, r.ejemplar.codigo_inventario, r.ejemplar.libro.titulo,
-            r.sede_origen.nombre, r.sede_destino.nombre, f"{r.fecha_generacion:%d/%m/%Y %H:%M}", r.nombre_estado,
+            r.sede_origen.nombre, r.sede_destino.nombre, f"{r.fecha_generacion:%d/%m/%Y %H:%M}", r.estado_visible,
         )
         for r in remitos
     ]
@@ -36,7 +36,7 @@ def listar_todos():
 def ver_trazabilidad():
     remito = servicio.obtener_remito(pedir_entero("Id del remito"))
     filas = [
-        (f"{m.fecha_hora:%d/%m/%Y %H:%M}", m.estado_anterior, m.estado_nuevo, m.observacion)
+        (f"{m.fecha_hora:%d/%m/%Y %H:%M}", m.estado_anterior_visible, m.estado_nuevo_visible, m.observacion)
         for m in remito.movimientos
     ]
     mostrar_tabla(
@@ -71,7 +71,7 @@ def recibir():
     id_remito = _pedir_remito()
     estado_fisico = pedir_opcion_enum("Estado físico del ejemplar recibido", EstadoFisico)
     remito = servicio.recibir(id_remito, estado_fisico, pedir_texto("Observación (opcional)"))
-    mostrar_exito(f"Remito {remito.numero} recibido. Estado actual: {remito.nombre_estado}.")
+    mostrar_exito(f"Remito {remito.numero} recibido. Estado actual: {remito.estado_visible}.")
 
 
 def registrar_danio():

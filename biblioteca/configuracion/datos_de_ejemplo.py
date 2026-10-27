@@ -44,12 +44,12 @@ def cargar_datos_de_ejemplo():
 
     catalogo = ServicioCatalogo()
     libros = [
-        ("9789500700011", "Rayuela", "Julio Cortázar", "Sudamericana", 1963, TipoMaterial.LIBRO),
+        ("9789500700016", "Rayuela", "Julio Cortázar", "Sudamericana", 1963, TipoMaterial.LIBRO),
         ("9789875666474", "Ficciones", "Jorge Luis Borges", "Debolsillo", 1944, TipoMaterial.LIBRO),
         ("9788437604947", "Cien años de soledad", "Gabriel García Márquez", "Cátedra", 1967, TipoMaterial.LIBRO),
         ("9789870404637", "El Aleph", "Jorge Luis Borges", "Emecé", 1949, TipoMaterial.LIBRO),
-        ("9789502801334", "Diccionario de la lengua española", "Real Academia Española", "Espasa", 2014, TipoMaterial.CONSULTA),
-        ("9771514298006", "Revista Ñ - Edición aniversario", "Clarín", "AGEA", 2023, TipoMaterial.REVISTA),
+        ("9789502801339", "Diccionario de la lengua española", "Real Academia Española", "Espasa", 2014, TipoMaterial.CONSULTA),
+        ("9771514298009", "Revista Ñ - Edición aniversario", "Clarín", "AGEA", 2023, TipoMaterial.REVISTA),
     ]
     registrados = [catalogo.registrar_libro(*datos) for datos in libros]
 

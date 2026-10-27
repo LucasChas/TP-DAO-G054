@@ -61,10 +61,10 @@ Característica: Sedes
     Cuando el usuario hace click en "Modificar"
     Entonces el sistema muestra el aviso "Seleccione una sede en la lista."
 
-  @CN-45 @negativo @R01 @defecto_conocido
-  Escenario: CN-45 Vaciar un dato opcional no lo borra (DEFECTO)
+  @CN-45 @negativo @R01
+  Escenario: CN-45 Vaciar un dato opcional al modificar lo borra
     Dado la sede "Sede Centro" tiene teléfono y email
     Cuando el usuario selecciona "Sede Centro", hace click en "Modificar"
     Y el usuario borra "Teléfono" y "Email" y acepta
     Entonces el sistema muestra el mensaje "Sede modificada."
-    Y la grilla debería mostrar teléfono y email vacíos
+    Y la grilla muestra teléfono y email vacíos

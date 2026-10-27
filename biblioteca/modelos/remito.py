@@ -6,7 +6,7 @@ from sqlalchemy.orm import reconstructor, relationship
 
 from biblioteca.configuracion.base_de_datos import Base
 from biblioteca.modelos.enumeraciones import SentidoRemito
-from biblioteca.patrones.estados_remito import Generado, crear_estado
+from biblioteca.patrones.estados_remito import Generado, crear_estado, texto_estado
 
 
 class Remito(Base):
@@ -70,6 +70,10 @@ class Remito(Base):
     @property
     def estado(self):
         return self._estado
+
+    @property
+    def estado_visible(self):
+        return texto_estado(self.nombre_estado)
 
     @property
     def ejemplar(self):
@@ -153,6 +157,14 @@ class MovimientoRemito(Base):
     observacion = Column(String(200))
 
     remito = relationship("Remito", back_populates="movimientos")
+
+    @property
+    def estado_anterior_visible(self):
+        return texto_estado(self.estado_anterior)
+
+    @property
+    def estado_nuevo_visible(self):
+        return texto_estado(self.estado_nuevo)
 
     def __repr__(self):
         return f"<MovimientoRemito {self.estado_anterior} -> {self.estado_nuevo}>"

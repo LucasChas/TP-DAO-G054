@@ -7,7 +7,7 @@ Característica: Remitos
     Dado existe el remito "R-000001" (Ida, Norte → Centro) en estado "Generado"
     Cuando el usuario hace click en "Empaquetar", "Despachar", "Punto de control" y "Recibir" con estado "Bueno"
     Y el usuario entrega el préstamo al socio en la pestaña "Préstamos"
-    Entonces el sistema informa cada estado: "Empaquetado", "Despachado", "EnTransito", "Recibido"
+    Entonces el sistema informa cada estado: "Empaquetado", "Despachado", "En tránsito", "Recibido"
     Y el remito queda "Cerrado" y el trayecto muestra los 6 movimientos en orden
 
   @CP-14 @positivo @R10 @R12 @R16
@@ -15,7 +15,7 @@ Característica: Remitos
     Dado el remito "R-000001" está despachado
     Cuando el usuario recibe el remito con estado físico "Dañado"
     Entonces el sistema muestra "Remito recibido. Estado actual: Cerrado."
-    Y el trayecto muestra Recibido → Daniado → Cerrado
+    Y el trayecto muestra Recibido → Dañado → Cerrado
     Y aparece "R-000002" (Retorno, Centro → Norte, Generado)
 
   @CP-15 @positivo @R12 @R16

@@ -83,3 +83,16 @@ def test_cn40_registrar_devolucion_sin_prestamos_activos(gui, red):
     mensajes = gui.clic("Registrar devolución", Formulario({}, captura="01_lista_vacia"),
                         Mensaje(titulo="Atención", captura="02_falta_prestamo"), Formulario(boton="Cancelar"))
     assert mensajes == [("Atención", "Complete el dato 'Préstamo'.")]
+
+
+def test_cp32_la_politica_de_multas_se_mantiene_al_reiniciar(gui, red):
+    from biblioteca.interfaz_grafica.aplicacion import Aplicacion
+
+    pestania = gui.ir_a("Devoluciones y multas")
+    pestania.selector_politica.set("Sin multa (condonación)")
+    gui._con_pasos(lambda: pestania.selector_politica.event_generate("<<ComboboxSelected>>"), [Mensaje()])
+    gui.app.destroy()
+    gui.app = Aplicacion()  # se vuelve a abrir el programa sobre la misma base
+    gui.app.geometry("1320x780+0+0")
+    pestania = gui.ir_a("Devoluciones y multas", captura="01_politica_recuperada")
+    assert pestania.selector_politica.get() == "Sin multa (condonación)"
