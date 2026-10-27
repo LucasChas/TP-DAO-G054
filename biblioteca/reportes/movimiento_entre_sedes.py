@@ -7,7 +7,7 @@ el despacho hasta la recepción. También totaliza envíos y recepciones por sed
 from dataclasses import dataclass, field
 
 from biblioteca.configuracion.base_de_datos import obtener_sesion
-from biblioteca.modelos import Remito, Sede
+from biblioteca.dao import RemitoDAO, SedeDAO
 
 
 @dataclass
@@ -45,8 +45,8 @@ class ReporteMovimientos:
 def generar(desde=None, hasta=None):
     """desde y hasta (fechas, inclusive) filtran por fecha de despacho; ambos son opcionales."""
     with obtener_sesion() as sesion:
-        remitos = sesion.query(Remito).order_by(Remito.id).all()
-        sedes = sesion.query(Sede).order_by(Sede.nombre).all()
+        remitos = RemitoDAO(sesion).listar()
+        sedes = SedeDAO(sesion).listar()
 
     rutas = {}
     por_sede = {sede.id: FilaSede(sede.nombre) for sede in sedes}

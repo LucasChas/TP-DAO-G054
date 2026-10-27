@@ -209,6 +209,19 @@ class TestPoliticaDeMultasGuardada:
         ServicioDevoluciones().cambiar_estrategia_de_multa(MultaPorDiasDeAtraso())
         assert prestamos_vencidos_y_multas.generar().politica == MultaPorDiasDeAtraso().descripcion
 
+    def test_si_no_se_puede_guardar_la_politica_sigue_la_anterior(self, monkeypatch):
+        from biblioteca.dao import ConfiguracionDAO
+
+        servicio = ServicioDevoluciones(CalculadoraDeMultas(MultaPorDiasDeAtraso()))
+
+        def falla(self, clave, valor):
+            raise RuntimeError("la base no responde")
+
+        monkeypatch.setattr(ConfiguracionDAO, "guardar", falla)
+        with pytest.raises(RuntimeError):
+            servicio.cambiar_estrategia_de_multa(SinMulta())
+        assert isinstance(servicio.calculadora.estrategia, MultaPorDiasDeAtraso)
+
     def test_un_nombre_de_politica_desconocido_vuelve_a_la_de_por_defecto(self):
         from biblioteca.patrones.estrategias_multa import estrategia_por_nombre
 

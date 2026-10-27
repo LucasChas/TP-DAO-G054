@@ -1,8 +1,6 @@
 """Datos de ejemplo para probar el sistema desde la consola."""
 from datetime import date, datetime, timedelta
 
-from biblioteca.configuracion.base_de_datos import obtener_sesion
-from biblioteca.modelos import Sede
 from biblioteca.modelos.enumeraciones import EstadoFisico, TipoMaterial
 from biblioteca.servicios import (
     ServicioCatalogo,
@@ -20,11 +18,10 @@ def cargar_datos_de_ejemplo():
 
     Devuelve True si cargó los datos y False si ya había sedes registradas.
     """
-    with obtener_sesion() as sesion:
-        if sesion.query(Sede).count() > 0:
-            return False
-
     sedes = ServicioSedes()
+    if sedes.listar_sedes():
+        return False
+
     centro = sedes.registrar_sede(
         "Biblioteca Central", "Av. Colón 100, Córdoba", "351-4000100", "central@bibliotecas.org", "Lun a Vie 8 a 20"
     )

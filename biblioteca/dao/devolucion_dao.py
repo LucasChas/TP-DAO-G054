@@ -21,6 +21,10 @@ class DevolucionDAO:
     def listar(self):
         return self.sesion.query(Devolucion).order_by(Devolucion.fecha, Devolucion.id).all()
 
+    def listar_con_multa(self):
+        """Devoluciones que generaron una multa, pagada o no."""
+        return self.sesion.query(Devolucion).filter(Devolucion.monto_multa > 0).order_by(Devolucion.id).all()
+
     def listar_multas_impagas(self, id_socio=None):
         consulta = (
             self.sesion.query(Devolucion)

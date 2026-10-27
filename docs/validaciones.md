@@ -92,6 +92,7 @@ Para correr todos los tests: `pytest -q`. Para correr los de una validación pun
 - **Préstamos y reservas:** `reglas.validar_sede_activa`, que lanza `SedeDadaDeBaja`.
 - **Envíos:** `Empaquetado.despachar` en el patrón State.
 - **Catálogo:** `ServicioCatalogo.registrar_ejemplar` no incorpora ejemplares a una sede dada de baja.
+- **Baja de la sede:** `ServicioSedes.dar_de_baja_sede` no da de baja una sede mientras algún ejemplar tenga que volver desde o hacia ella (préstamo interbibliotecario despachado, listo para retiro o activo, o remito de retorno sin cerrar). Si no, su remito de retorno no se podría despachar ni anular. Los envíos de ida que todavía no salieron sí se pueden anular, así que no impiden la baja.
 
 | Tipo | Test |
 |---|---|
@@ -102,6 +103,8 @@ Para correr todos los tests: `pytest -q`. Para correr los de una validación pun
 | Negativo | `test_servicio_prestamos.py::test_no_se_solicita_desde_una_sede_dada_de_baja` |
 | Negativo | `test_servicio_reservas.py::test_no_se_reserva_en_una_sede_dada_de_baja` |
 | Negativo | `test_remitos.py::test_no_se_despacha_hacia_una_sede_dada_de_baja` |
+| Negativo | `test_remitos.py::test_no_se_da_de_baja_una_sede_con_un_ejemplar_que_tiene_que_volver` |
+| Negativo | `test_remitos.py::test_no_se_da_de_baja_una_sede_con_un_retorno_en_curso` |
 | Negativo | `test_servicio_catalogo.py::test_no_se_registra_ejemplar_en_sede_dada_de_baja` |
 
 ## Cobertura

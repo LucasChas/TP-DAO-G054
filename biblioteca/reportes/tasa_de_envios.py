@@ -11,7 +11,7 @@ La tasa de éxito se calcula sobre los envíos terminados.
 from dataclasses import dataclass, field
 
 from biblioteca.configuracion.base_de_datos import obtener_sesion
-from biblioteca.modelos import Remito
+from biblioteca.dao import RemitoDAO
 
 
 @dataclass
@@ -67,7 +67,7 @@ def _clasificar(remito):
 
 def generar():
     with obtener_sesion() as sesion:
-        remitos = sesion.query(Remito).order_by(Remito.id).all()
+        remitos = RemitoDAO(sesion).listar()
 
     general = FilaTasa("Toda la red")
     por_sentido, por_sede = {}, {}

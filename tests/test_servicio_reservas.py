@@ -171,3 +171,14 @@ class TestRegistrarRetiro:
         with pytest.raises(SocioInhabilitado):
             servicio.registrar_retiro(reserva.id, fecha=HOY)
         assert servicio.obtener_reserva(reserva.id).estado == EstadoReserva.DISPONIBLE
+
+    def test_el_retiro_usa_una_sola_sesion(self, servicio, prestamos, red, ejemplar_centro_ocupado, monkeypatch):
+        from biblioteca.configuracion import base_de_datos
+
+        reserva = servicio.reservar(red.ana.id, red.rayuela.id, red.centro.id, fecha=HOY)
+        prestamos.cancelar_prestamo(ejemplar_centro_ocupado.id, fecha=HOY)
+        sesiones = []
+        fabrica = base_de_datos.Sesion
+        monkeypatch.setattr(base_de_datos, "Sesion", lambda: sesiones.append(1) or fabrica())
+        servicio.registrar_retiro(reserva.id, fecha=HOY)
+        assert len(sesiones) == 1

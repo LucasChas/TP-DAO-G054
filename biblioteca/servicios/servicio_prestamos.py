@@ -66,26 +66,31 @@ class ServicioPrestamos:
 
         El préstamo queda activo en el momento y vence a los 14 días.
         """
-        fecha = fecha or date.today()
         with obtener_sesion() as sesion:
-            socio = obtener_socio_o_error(SocioDAO(sesion), id_socio)
-            ejemplar = obtener_ejemplar_o_error(EjemplarDAO(sesion), id_ejemplar)
-            sede = obtener_sede_o_error(SedeDAO(sesion), id_sede)
-            reserva = self._validar_solicitud(sesion, socio, ejemplar, sede, sede, fecha)
+            return self.registrar_prestamo_local_en_sesion(sesion, id_socio, id_ejemplar, id_sede, fecha)
 
-            prestamo = Prestamo(
-                socio=socio,
-                ejemplar=ejemplar,
-                sede_origen=sede,
-                sede_destino=sede,
-                tipo=TipoPrestamo.LOCAL,
-                fecha_solicitud=fecha,
-            )
-            prestamo.registrar_entrega(fecha)
-            ejemplar.estado = EstadoEjemplar.PRESTADO
-            if reserva is not None:
-                reserva.estado = EstadoReserva.CUMPLIDA
-            PrestamoDAO(sesion).crear(prestamo)
+    def registrar_prestamo_local_en_sesion(self, sesion, id_socio, id_ejemplar, id_sede, fecha=None):
+        """Igual que registrar_prestamo_local, pero dentro de una sesión ya abierta, para que
+        otro caso de uso (por ejemplo, el retiro de una reserva) se confirme o se deshaga junto."""
+        fecha = fecha or date.today()
+        socio = obtener_socio_o_error(SocioDAO(sesion), id_socio)
+        ejemplar = obtener_ejemplar_o_error(EjemplarDAO(sesion), id_ejemplar)
+        sede = obtener_sede_o_error(SedeDAO(sesion), id_sede)
+        reserva = self._validar_solicitud(sesion, socio, ejemplar, sede, sede, fecha)
+
+        prestamo = Prestamo(
+            socio=socio,
+            ejemplar=ejemplar,
+            sede_origen=sede,
+            sede_destino=sede,
+            tipo=TipoPrestamo.LOCAL,
+            fecha_solicitud=fecha,
+        )
+        prestamo.registrar_entrega(fecha)
+        ejemplar.estado = EstadoEjemplar.PRESTADO
+        if reserva is not None:
+            reserva.estado = EstadoReserva.CUMPLIDA
+        PrestamoDAO(sesion).crear(prestamo)
         return prestamo
 
     def solicitar_prestamo_interbibliotecario(self, id_socio, id_ejemplar, id_sede_origen, id_sede_destino, fecha=None):

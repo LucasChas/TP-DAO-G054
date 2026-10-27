@@ -79,9 +79,11 @@ class ServicioReservas:
                 raise OperacionNoPermitida(
                     f"La reserva está {reserva.estado.value.lower()}: solo se retiran reservas disponibles para retiro."
                 )
-            datos = (reserva.socio_id, reserva.ejemplar_id, reserva.sede_id)
-        # El préstamo valida al socio (habilitado, sin vencidos ni multas) y marca la reserva como cumplida.
-        return ServicioPrestamos().registrar_prestamo_local(*datos, fecha=fecha)
+            # En la misma sesión: el préstamo valida al socio (habilitado, sin vencidos ni multas)
+            # y marca la reserva como cumplida; si algo falla, no queda nada a medio hacer.
+            return ServicioPrestamos().registrar_prestamo_local_en_sesion(
+                sesion, reserva.socio_id, reserva.ejemplar_id, reserva.sede_id, fecha
+            )
 
     def procesar_reservas_vencidas(self, fecha=None):
         """Vence las reservas cuyo plazo de retiro pasó y reasigna sus ejemplares.

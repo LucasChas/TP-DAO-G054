@@ -137,3 +137,16 @@ class TestModelos:
             guardado = sesion.query(Remito).filter_by(numero="R-0001").one()
             assert [m.estado_nuevo for m in guardado.movimientos] == ["Generado", "Empaquetado"]
             assert guardado.prestamo.es_interbibliotecario
+
+
+def test_solo_los_dao_consultan_la_base():
+    """Fuera de biblioteca/dao/ nadie arma consultas: servicios y reportes se las piden a un DAO."""
+    from pathlib import Path
+
+    raiz = Path(__file__).resolve().parent.parent / "biblioteca"
+    con_consultas = [
+        str(archivo.relative_to(raiz))
+        for archivo in raiz.rglob("*.py")
+        if archivo.parent.name != "dao" and ".query(" in archivo.read_text(encoding="utf-8")
+    ]
+    assert con_consultas == []

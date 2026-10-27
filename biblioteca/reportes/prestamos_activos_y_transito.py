@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime
 
 from biblioteca.configuracion.base_de_datos import obtener_sesion
-from biblioteca.modelos import Prestamo, Remito, Sede
+from biblioteca.dao import PrestamoDAO, RemitoDAO, SedeDAO
 from biblioteca.modelos.enumeraciones import EstadoPrestamo
 
 ESTADOS_EN_CURSO = [
@@ -63,14 +63,9 @@ def generar(ahora=None):
     ahora = ahora or datetime.now()
     hoy = ahora.date()
     with obtener_sesion() as sesion:
-        prestamos = (
-            sesion.query(Prestamo)
-            .filter(Prestamo.estado.in_(ESTADOS_EN_CURSO))
-            .order_by(Prestamo.fecha_vencimiento, Prestamo.id)
-            .all()
-        )
-        remitos = sesion.query(Remito).filter(Remito.nombre_estado.in_(ESTADOS_EN_VIAJE)).order_by(Remito.id).all()
-        sedes = sesion.query(Sede).order_by(Sede.nombre).all()
+        prestamos = PrestamoDAO(sesion).listar_por_vencimiento(ESTADOS_EN_CURSO)
+        remitos = RemitoDAO(sesion).listar(ESTADOS_EN_VIAJE)
+        sedes = SedeDAO(sesion).listar()
 
     reporte = ReportePrestamosActivos(fecha=ahora)
     resumen = {sede.id: ResumenSede(sede.nombre) for sede in sedes}

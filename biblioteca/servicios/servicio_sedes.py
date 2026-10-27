@@ -2,7 +2,7 @@
 from datetime import date
 
 from biblioteca.configuracion.base_de_datos import obtener_sesion
-from biblioteca.dao import SedeDAO
+from biblioteca.dao import PrestamoDAO, RemitoDAO, SedeDAO
 from biblioteca.excepciones import EntidadDuplicada, EntidadNoEncontrada, OperacionNoPermitida
 from biblioteca.modelos import Sede
 from biblioteca.modelos.enumeraciones import EstadoSede
@@ -60,12 +60,26 @@ class ServicioSedes:
         return sede
 
     def dar_de_baja_sede(self, id_sede, fecha=None):
-        """Baja lógica: la sede conserva su historial pero no puede iniciar nuevas operaciones."""
+        """Baja lógica: la sede conserva su historial pero no puede iniciar nuevas operaciones.
+
+        No se permite mientras un ejemplar tenga que volver desde o hacia la sede: su remito de
+        retorno no podría despacharse (no se despacha con una sede dada de baja) ni anularse
+        (un retorno no se anula). Los envíos de ida que todavía no salieron sí se pueden anular.
+        """
         with obtener_sesion() as sesion:
             dao = SedeDAO(sesion)
             sede = obtener_sede_o_error(dao, id_sede)
             if not sede.esta_activa:
                 raise OperacionNoPermitida(f"La sede '{sede.nombre}' ya está dada de baja.")
+            falta_volver = (
+                PrestamoDAO(sesion).hay_interbibliotecarios_fuera_de_sede(sede.id)
+                or RemitoDAO(sesion).hay_retornos_en_curso(sede.id)
+            )
+            if falta_volver:
+                raise OperacionNoPermitida(
+                    f"La sede '{sede.nombre}' tiene ejemplares en préstamo o en viaje entre sedes que todavía "
+                    "tienen que volver. Se puede dar de baja cuando terminen esos traslados."
+                )
             sede.estado = EstadoSede.BAJA
             sede.fecha_baja = fecha or date.today()
             dao.actualizar(sede)

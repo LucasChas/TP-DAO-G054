@@ -205,7 +205,7 @@ if list(catalogo.disponibles()):
 Si los servicios armaran sus propias consultas a la base, la lógica de negocio quedaría mezclada con el acceso a datos y sería difícil de probar y de cambiar.
 
 ### Clases
-Hay un DAO por entidad principal: `SedeDAO`, `SocioDAO`, `LibroDAO`, `EjemplarDAO`, `PrestamoDAO`, `ReservaDAO`, `RemitoDAO` y `DevolucionDAO`. Todos ofrecen `crear`, `actualizar`, `obtener_por_id`, `listar` y consultas propias de su entidad, como `obtener_por_dni`, `primera_pendiente` o `socio_tiene_vencidos`. Como dice el apunte de la cátedra, los DAO no interactúan con el usuario.
+Hay un DAO por entidad principal: `SedeDAO`, `SocioDAO`, `LibroDAO`, `EjemplarDAO`, `PrestamoDAO`, `ReservaDAO`, `RemitoDAO` y `DevolucionDAO`. Todos ofrecen `crear`, `actualizar`, `obtener_por_id`, `listar` y consultas propias de su entidad, como `obtener_por_dni`, `primera_pendiente` o `socio_tiene_vencidos`. Como dice el apunte de la cátedra, los DAO no interactúan con el usuario. Fuera de `biblioteca/dao/` nadie arma consultas: también los reportes le piden los datos a un DAO (lo controla `test_persistencia.py::test_solo_los_dao_consultan_la_base`).
 
 ### Diferencia con el apunte
 En el apunte, cada método del DAO abre su propia sesión. Acá el servicio abre **una sola sesión por caso de uso**, con `obtener_sesion()`, y se la pasa a los DAO que usa. Así una operación que toca varias entidades se confirma o se deshace completa. Por ejemplo, solicitar un préstamo interbibliotecario crea el préstamo, compromete el ejemplar, cumple la reserva y genera el remito: si algo falla a la mitad, no queda nada a medio hacer.

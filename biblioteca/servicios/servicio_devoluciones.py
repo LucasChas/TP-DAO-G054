@@ -44,10 +44,14 @@ class ServicioDevoluciones:
         return self._calculadora
 
     def cambiar_estrategia_de_multa(self, estrategia):
-        """Cambia la política vigente y la guarda, así se mantiene después de reiniciar el programa."""
-        self.calculadora.cambiar_estrategia(estrategia)
+        """Cambia la política vigente y la guarda, así se mantiene después de reiniciar el programa.
+
+        Primero se guarda: si el guardado falla, la calculadora sigue con la política anterior y
+        el programa no cobra con una regla distinta de la que quedó registrada.
+        """
         with obtener_sesion() as sesion:
             ConfiguracionDAO(sesion).guardar(CLAVE_POLITICA, type(estrategia).__name__)
+        self.calculadora.cambiar_estrategia(estrategia)
 
     def registrar_devolucion(self, id_prestamo, estado_fisico, observaciones=None, fecha=None):
         """El socio devuelve el ejemplar en la sede donde lo retiró.

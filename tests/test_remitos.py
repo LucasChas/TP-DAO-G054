@@ -163,6 +163,27 @@ class TestTransicionesInvalidas:
             remitos.despachar(remito_ida.id)
         assert remitos.obtener_remito(remito_ida.id).nombre_estado == "Empaquetado"
 
+    def test_no_se_da_de_baja_una_sede_con_un_ejemplar_que_tiene_que_volver(self, remitos, remito_ida, red):
+        despachado(remitos, remito_ida)
+        for sede in (red.norte, red.centro):
+            with pytest.raises(OperacionNoPermitida, match="tienen que volver"):
+                ServicioSedes().dar_de_baja_sede(sede.id)
+        assert ServicioSedes().obtener_sede(red.norte.id).esta_activa
+
+    def test_no_se_da_de_baja_una_sede_con_un_retorno_en_curso(self, remitos, prestamos, solicitud, remito_ida, red):
+        from biblioteca.servicios import ServicioDevoluciones
+
+        despachado(remitos, remito_ida)
+        remitos.recibir(remito_ida.id, EstadoFisico.BUENO, fecha_hora=AHORA + timedelta(days=1))
+        prestamos.entregar_prestamo(solicitud.id, fecha=HOY + timedelta(days=1))
+        ServicioDevoluciones().registrar_devolucion(solicitud.id, EstadoFisico.BUENO, fecha=HOY + timedelta(days=5))
+        with pytest.raises(OperacionNoPermitida):
+            ServicioSedes().dar_de_baja_sede(red.norte.id)
+        retorno = remitos.listar_remitos_de_prestamo(solicitud.id)[-1]
+        despachado(remitos, retorno)
+        remitos.recibir(retorno.id, EstadoFisico.BUENO, fecha_hora=AHORA + timedelta(days=7))
+        assert not ServicioSedes().dar_de_baja_sede(red.norte.id).esta_activa
+
 
 class TestAnulacion:
     def test_se_anula_un_remito_empaquetado_y_se_cancela_el_prestamo(self, remitos, prestamos, solicitud, remito_ida, red):
