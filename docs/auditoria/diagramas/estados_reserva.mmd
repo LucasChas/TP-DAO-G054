@@ -1,0 +1,10 @@
+stateDiagram-v2
+  [*] --> PENDIENTE : reservar() [sin ejemplares disponibles en la sede]
+  PENDIENTE --> DISPONIBLE : se libera un ejemplar (FIFO), plazo 3 días
+  PENDIENTE --> CANCELADA : cancelar_reserva()
+  DISPONIBLE --> CUMPLIDA : el titular retira el ejemplar
+  DISPONIBLE --> CANCELADA : cancelar_reserva()
+  DISPONIBLE --> VENCIDA : procesar_reservas_vencidas()
+  CUMPLIDA --> [*]
+  CANCELADA --> [*]
+  VENCIDA --> [*]

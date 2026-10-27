@@ -1,0 +1,13 @@
+stateDiagram-v2
+  [*] --> ACTIVO : préstamo LOCAL (vence a 14 días)
+  [*] --> SOLICITADO : solicitud INTERBIBLIOTECARIA (remito de ida)
+  SOLICITADO --> CANCELADO : cancelar / anular remito
+  SOLICITADO --> EN_ENVIO : despachar remito de ida
+  EN_ENVIO --> LISTO_PARA_RETIRO : recibir remito (sano)
+  EN_ENVIO --> CANCELADO : extravío o daño en recepción
+  LISTO_PARA_RETIRO --> CANCELADO : registrar daño antes de entregar
+  LISTO_PARA_RETIRO --> ACTIVO : entregar al socio (vence a 14 días)
+  ACTIVO --> DEVUELTO : registrar_devolucion() + multa (Strategy)
+  DEVUELTO --> [*]
+  CANCELADO --> [*]
+  note right of ACTIVO : "vencido" es calculado, no persistido

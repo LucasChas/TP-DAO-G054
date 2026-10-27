@@ -1,0 +1,20 @@
+stateDiagram-v2
+  [*] --> DISPONIBLE : registrar_ejemplar()
+  DISPONIBLE --> PRESTADO : préstamo local / solicitud interbibliotecaria
+  RESERVADO --> PRESTADO : retiro del titular de la reserva
+  PRESTADO --> EN_TRANSITO : despachar remito de ida
+  EN_TRANSITO --> PRESTADO : recibir ida (sano)
+  PRESTADO --> DISPONIBLE : devolución local sana / anulación
+  PRESTADO --> RESERVADO : devolución local con reserva pendiente
+  PRESTADO --> EN_REPARACION : devolución local dañada
+  PRESTADO --> EN_TRANSITO : devolución interbibliotecaria o daño antes de entregar (retorno)
+  EN_TRANSITO --> DISPONIBLE : recibir retorno sano
+  EN_TRANSITO --> EN_REPARACION : recibir retorno dañado
+  EN_TRANSITO --> EXTRAVIADO : reportar_extravio()
+  DISPONIBLE --> RESERVADO : asignado a reserva pendiente
+  RESERVADO --> DISPONIBLE : reserva cancelada o vencida sin otra en espera
+  EN_REPARACION --> DISPONIBLE : finalizar_reparacion() (físico REGULAR)
+  EN_REPARACION --> BAJA : dar_de_baja_ejemplar()
+  DISPONIBLE --> BAJA : dar_de_baja_ejemplar()
+  BAJA --> [*]
+  EXTRAVIADO --> [*]

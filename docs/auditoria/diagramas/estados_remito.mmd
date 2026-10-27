@@ -1,0 +1,18 @@
+stateDiagram-v2
+  [*] --> Generado : solicitar interbibliotecario / devolución / daño en ida
+  Generado --> Empaquetado : empaquetar()
+  Generado --> Anulado : anular() (solo IDA)
+  Empaquetado --> Despachado : despachar() [sedes activas]
+  Empaquetado --> Anulado : anular() (solo IDA)
+  Despachado --> EnTransito : registrar_punto_de_control(ubicación)
+  EnTransito --> EnTransito : registrar_punto_de_control(ubicación)
+  Despachado --> Recibido : recibir(estado físico)
+  EnTransito --> Recibido : recibir(estado físico)
+  Despachado --> Extraviado : reportar_extravio()
+  EnTransito --> Extraviado : reportar_extravio()
+  Recibido --> Daniado : daño nuevo / registrar_danio()
+  Recibido --> Cerrado : entregar al socio (IDA) / reintegro (RETORNO)
+  Daniado --> Cerrado : genera RETORNO (IDA) / a reparación
+  Extraviado --> Cerrado
+  Anulado --> [*]
+  Cerrado --> [*]

@@ -1,0 +1,36 @@
+classDiagram
+  direction LR
+  class ServicioPrestamos {
+    <<servicio>>
+    +registrar_prestamo_local()
+  }
+  class obtener_sesion {
+    <<context manager>> commit / rollback / close
+  }
+  class PrestamoDAO {
+    -sesion
+    +crear()
+    +actualizar()
+    +obtener_por_id()
+    +listar(estados)
+    +socio_tiene_vencidos()
+  }
+  class SocioDAO {
+    -sesion
+    +crear()
+    +obtener_por_dni()
+    +listar()
+  }
+  class EjemplarDAO {
+    -sesion
+    +obtener_por_codigo()
+    +listar(libro, sede)
+  }
+  class Prestamo {
+    <<entidad>>
+  }
+  ServicioPrestamos ..> obtener_sesion : with
+  ServicioPrestamos --> PrestamoDAO : DAO(sesion)
+  ServicioPrestamos --> SocioDAO
+  ServicioPrestamos --> EjemplarDAO
+  PrestamoDAO ..> Prestamo

@@ -1,0 +1,103 @@
+erDiagram
+  SEDES ||--o{ EJEMPLARES : "es propietaria (sede_id)"
+  LIBROS ||--o{ EJEMPLARES : "tiene (libro_id)"
+  SOCIOS ||--o{ PRESTAMOS : "solicita (socio_id)"
+  EJEMPLARES ||--o{ PRESTAMOS : "se presta (ejemplar_id)"
+  SEDES ||--o{ PRESTAMOS : "origen / destino"
+  PRESTAMOS ||--o{ REMITOS : "ida / retorno (0..2)"
+  SEDES ||--o{ REMITOS : "origen / destino"
+  REMITOS ||--|{ MOVIMIENTOS_REMITO : "historial"
+  PRESTAMOS ||--o| DEVOLUCIONES : "se cierra con"
+  SOCIOS ||--o{ RESERVAS : "realiza"
+  LIBROS ||--o{ RESERVAS : "sobre"
+  SEDES ||--o{ RESERVAS : "sede de retiro"
+  EJEMPLARES |o--o{ RESERVAS : "apartado"
+  SEDES {
+    int id PK
+    string nombre UK
+    string direccion
+    string telefono
+    string email
+    string horario_atencion
+    string estado "ACTIVA|BAJA"
+    date fecha_baja
+  }
+  SOCIOS {
+    int id PK
+    string dni UK
+    string nombre
+    string apellido
+    string email
+    string telefono
+    date fecha_alta
+    string estado "HABILITADO|INHABILITADO"
+    string motivo_inhabilitacion
+  }
+  LIBROS {
+    int id PK
+    string isbn UK
+    string titulo
+    string autor
+    string editorial
+    int anio_publicacion
+    string tipo_material "LIBRO|REVISTA|CONSULTA"
+  }
+  EJEMPLARES {
+    int id PK
+    string codigo_inventario UK
+    int libro_id FK
+    int sede_id FK
+    string estado
+    string estado_fisico
+  }
+  PRESTAMOS {
+    int id PK
+    int socio_id FK
+    int ejemplar_id FK
+    int sede_origen_id FK
+    int sede_destino_id FK
+    string tipo "LOCAL|INTERBIBLIOTECARIO"
+    date fecha_solicitud
+    date fecha_entrega
+    date fecha_vencimiento
+    string estado
+  }
+  REMITOS {
+    int id PK
+    string numero UK "R-000001"
+    int prestamo_id FK
+    int sede_origen_id FK
+    int sede_destino_id FK
+    string sentido "IDA|RETORNO"
+    string nombre_estado
+    datetime fecha_generacion
+  }
+  MOVIMIENTOS_REMITO {
+    int id PK
+    int remito_id FK
+    string estado_anterior
+    string estado_nuevo
+    datetime fecha_hora
+    string observacion
+  }
+  DEVOLUCIONES {
+    int id PK
+    int prestamo_id FK,UK
+    date fecha
+    string estado_fisico
+    int dias_atraso
+    float monto_multa
+    float cargo_por_danio
+    bool multa_pagada
+    text observaciones
+  }
+  RESERVAS {
+    int id PK
+    int socio_id FK
+    int libro_id FK
+    int sede_id FK
+    int ejemplar_id FK
+    date fecha_reserva
+    date fecha_limite_retiro
+    string estado
+  }

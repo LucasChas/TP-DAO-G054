@@ -1,0 +1,63 @@
+classDiagram
+  direction TB
+  class Remito {
+    <<contexto>>
+    -_estado: EstadoRemito
+    +empaquetar()
+    +despachar()
+    +recibir()
+    +anular()
+    +cerrar()
+    +cambiar_estado(nuevo, fecha, obs)
+  }
+  class EstadoRemito {
+    <<abstract>>
+    +nombre*
+    +es_final
+    +empaquetar() → TransicionRemitoInvalida
+    +despachar() → TransicionRemitoInvalida
+    +...
+  }
+  class Generado {
+    +empaquetar()
+    +anular()
+  }
+  class Empaquetado {
+    +despachar()
+    +anular()
+  }
+  class EnViaje {
+    <<abstract>>
+    +registrar_punto_de_control()
+    +recibir()
+    +reportar_extravio()
+  }
+  class Despachado
+  class EnTransito
+  class Recibido {
+    +registrar_danio()
+    +cerrar()
+  }
+  class Daniado {
+    +cerrar()
+  }
+  class Extraviado {
+    +cerrar()
+  }
+  class Anulado {
+    es_final
+  }
+  class Cerrado {
+    es_final
+  }
+  Remito o--> EstadoRemito
+  EstadoRemito <|-- Generado
+  EstadoRemito <|-- Empaquetado
+  EstadoRemito <|-- EnViaje
+  EnViaje <|-- Despachado
+  EnViaje <|-- EnTransito
+  EstadoRemito <|-- Recibido
+  EstadoRemito <|-- Daniado
+  EstadoRemito <|-- Extraviado
+  EstadoRemito <|-- Anulado
+  EstadoRemito <|-- Cerrado
