@@ -11,19 +11,22 @@ class PestaniaReservas(ttk.Frame):
     COLUMNAS = ("Id", "Socio", "Libro", "Sede de retiro", "Fecha", "Ejemplar apartado", "Retirar hasta", "Estado")
 
     def __init__(self, padre):
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = ServicioReservas()
         barra = c.barra_de_botones(self, [
-            ("Reservar", self.reservar),
+            ("Reservar", self.reservar, c.PRIMARIO),
             ("Registrar retiro", self.registrar_retiro),
-            ("Cancelar reserva", self.cancelar),
+            ("Cancelar reserva", self.cancelar, c.PELIGRO),
             ("Procesar reservas no retiradas", self.procesar_vencidas),
         ])
         barra.pack(fill="x")
+        c.separador_vertical(barra)
         self.solo_activas = tk.BooleanVar(value=True)
-        ttk.Checkbutton(barra, text="Solo activas", variable=self.solo_activas, command=self.actualizar).pack(side="left", padx=20)
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Socio": 160, "Libro": 200, "Sede de retiro": 160})
+        ttk.Checkbutton(barra, text="Solo activas", variable=self.solo_activas, command=self.actualizar).pack(side="left")
+        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Socio": 160, "Libro": 200, "Sede de retiro": 160},
+                             mensaje_vacio="No hay reservas para mostrar.")
         self.tabla.pack(fill="both", expand=True, pady=(10, 0))
+        self.tabla.mostrar_cantidad(barra, "reserva", "reservas")
 
     def actualizar(self):
         self.tabla.cargar([

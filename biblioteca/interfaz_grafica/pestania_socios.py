@@ -9,22 +9,26 @@ class PestaniaSocios(ttk.Frame):
     COLUMNAS = ("Id", "DNI", "Apellido y nombre", "Email", "Teléfono", "Alta", "Estado", "Motivo")
 
     def __init__(self, padre):
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = ServicioSocios()
         barra = c.barra_de_botones(self, [
-            ("Nuevo socio", self.nuevo),
+            ("Nuevo socio", self.nuevo, c.PRIMARIO),
             ("Modificar", self.modificar),
-            ("Inhabilitar", self.inhabilitar),
+            ("Inhabilitar", self.inhabilitar, c.PELIGRO),
             ("Habilitar", self.habilitar),
         ])
         barra.pack(fill="x")
-        ttk.Label(barra, text="DNI:").pack(side="left", padx=(20, 4))
+        c.separador_vertical(barra)
+        ttk.Label(barra, text="DNI:").pack(side="left", padx=(0, 4))
         self.busqueda_dni = ttk.Entry(barra, width=14)
         self.busqueda_dni.pack(side="left")
         self.busqueda_dni.bind("<Return>", lambda evento: self.buscar_por_dni())
         ttk.Button(barra, text="Buscar por DNI", command=self.buscar_por_dni).pack(side="left", padx=(6, 0))
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Apellido y nombre": 180, "Email": 210, "Motivo": 260})
+        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Apellido y nombre": 180, "Email": 210, "Motivo": 260},
+                             mensaje_vacio="No hay socios registrados.")
         self.tabla.pack(fill="both", expand=True, pady=(10, 0))
+        self.tabla.mostrar_cantidad(barra, "socio", "socios")
+        self.tabla.al_doble_clic(self.modificar)
 
     def actualizar(self):
         self.tabla.cargar([

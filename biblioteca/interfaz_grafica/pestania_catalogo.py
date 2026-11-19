@@ -10,40 +10,49 @@ from biblioteca.servicios import ServicioCatalogo, ServicioDisponibilidad
 class PestaniaCatalogo(ttk.Frame):
     COLUMNAS_LIBROS = ("Id", "ISBN", "Título", "Autor", "Editorial", "Año", "Tipo")
     COLUMNAS_EJEMPLARES = ("Id", "Código", "Sede propietaria", "Estado", "Estado físico")
+    TITULO_EJEMPLARES = "Ejemplares del libro seleccionado"
 
     def __init__(self, padre):
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = ServicioCatalogo()
 
         libros = ttk.LabelFrame(self, text="Libros", padding=8)
         libros.pack(fill="both", expand=True)
         barra = c.barra_de_botones(libros, [
-            ("Nuevo libro", self.nuevo_libro),
+            ("Nuevo libro", self.nuevo_libro, c.PRIMARIO),
             ("Modificar libro", self.modificar_libro),
             ("Ver disponibilidad", self.ver_disponibilidad),
         ])
         barra.pack(fill="x")
-        ttk.Label(barra, text="Título o autor:").pack(side="left", padx=(20, 4))
+        c.separador_vertical(barra)
+        ttk.Label(barra, text="Título o autor:").pack(side="left", padx=(0, 4))
         self.busqueda = ttk.Entry(barra, width=28)
         self.busqueda.pack(side="left")
         self.busqueda.bind("<Return>", lambda evento: self.buscar())
         ttk.Button(barra, text="Buscar", command=self.buscar).pack(side="left", padx=(6, 0))
         ttk.Button(barra, text="Ver todos", command=self.ver_todos).pack(side="left", padx=(6, 0))
         self.texto_buscado = None
-        self.tabla_libros = c.Tabla(libros, self.COLUMNAS_LIBROS, alto=9,
-                                    anchos={"Id": 50, "Título": 280, "Autor": 200, "Año": 60})
+        self.tabla_libros = c.Tabla(libros, self.COLUMNAS_LIBROS, alto=7,
+                                    anchos={"Id": 50, "Título": 280, "Autor": 200, "Año": 60},
+                                    mensaje_vacio="No hay libros para mostrar.")
         self.tabla_libros.pack(fill="both", expand=True, pady=(8, 0))
+        self.tabla_libros.mostrar_cantidad(barra, "libro", "libros")
         self.tabla_libros.al_seleccionar(self.actualizar_ejemplares)
+        self.tabla_libros.al_doble_clic(self.modificar_libro)
 
-        ejemplares = ttk.LabelFrame(self, text="Ejemplares del libro seleccionado", padding=8)
-        ejemplares.pack(fill="both", expand=True, pady=(10, 0))
-        c.barra_de_botones(ejemplares, [
+        self.marco_ejemplares = ttk.LabelFrame(self, text=self.TITULO_EJEMPLARES, padding=8)
+        self.marco_ejemplares.pack(fill="both", expand=True, pady=(10, 0))
+        barra_ejemplares = c.barra_de_botones(self.marco_ejemplares, [
             ("Nuevo ejemplar", self.nuevo_ejemplar),
             ("Finalizar reparación", self.finalizar_reparacion),
-            ("Dar de baja ejemplar", self.dar_de_baja_ejemplar),
-        ]).pack(fill="x")
-        self.tabla_ejemplares = c.Tabla(ejemplares, self.COLUMNAS_EJEMPLARES, alto=6, anchos={"Id": 50, "Sede propietaria": 200})
+            ("Dar de baja ejemplar", self.dar_de_baja_ejemplar, c.PELIGRO),
+        ])
+        barra_ejemplares.pack(fill="x")
+        self.tabla_ejemplares = c.Tabla(self.marco_ejemplares, self.COLUMNAS_EJEMPLARES, alto=4,
+                                        anchos={"Id": 50, "Sede propietaria": 200},
+                                        mensaje_vacio="Elija un libro de la lista para ver sus ejemplares.")
         self.tabla_ejemplares.pack(fill="both", expand=True, pady=(8, 0))
+        self.tabla_ejemplares.mostrar_cantidad(barra_ejemplares, "ejemplar", "ejemplares")
 
     def actualizar(self):
         if self.texto_buscado:
@@ -75,6 +84,8 @@ class PestaniaCatalogo(ttk.Frame):
     def actualizar_ejemplares(self):
         id_libro = self.tabla_libros.id_seleccionado()
         ejemplares = self.servicio.listar_ejemplares(id_libro=id_libro) if id_libro else []
+        titulo = next((fila[2] for fila in self.tabla_libros.filas() if id_libro and str(fila[0]) == str(id_libro)), None)
+        self.marco_ejemplares.configure(text=f"Ejemplares de '{titulo}'" if titulo else self.TITULO_EJEMPLARES)
         self.tabla_ejemplares.cargar([
             (e.id, e.codigo_inventario, e.sede.nombre, e.estado.value, e.estado_fisico.value) for e in ejemplares
         ])
