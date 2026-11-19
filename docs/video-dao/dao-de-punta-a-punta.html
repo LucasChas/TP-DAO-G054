@@ -327,7 +327,7 @@ def obtener_sesion():
             self._posicion += 1
             if self._condicion(ejemplar):
                 return ejemplar` },
-  solicitar: { f: "servicios/servicio_prestamos.py", s: 101, t:
+  solicitar: { f: "servicios/servicio_prestamos.py", s: 109, t:
 `        with obtener_sesion() as sesion:
             socio = obtener_socio_o_error(SocioDAO(sesion), id_socio)
             ejemplar = obtener_ejemplar_o_error(EjemplarDAO(sesion), id_ejemplar)
@@ -353,10 +353,14 @@ def obtener_sesion():
 `        validar_socio_habilitado(socio)
         if PrestamoDAO(sesion).socio_tiene_vencidos(socio.id, fecha):
             raise SocioConPrestamosVencidos(
-                f"El socio {socio.nombre_completo} tiene préstamos vencidos sin devolver."
+                f"El socio {socio.nombre_completo} tiene préstamos vencidos sin devolver. "
+                "Debe devolverlos antes de recibir un préstamo nuevo."
             )
         if DevolucionDAO(sesion).socio_tiene_multas_impagas(socio.id):
-            raise SocioConMultasImpagas(f"El socio {socio.nombre_completo} tiene multas sin pagar.")
+            raise SocioConMultasImpagas(
+                f"El socio {socio.nombre_completo} tiene multas sin pagar. "
+                "Registre el pago en 'Devoluciones y multas' para poder prestarle."
+            )
         validar_sede_activa(sede_origen, "origen")` },
   generar: { f: "servicios/servicio_remitos.py", s: 18, t:
 `def generar_remito(sesion, prestamo, sentido, fecha_hora, observacion=None):
@@ -391,7 +395,7 @@ def obtener_sesion():
     def _cargar_estado(self):
         """SQLAlchemy llama a este método al traer el remito de la base."""
         self._estado = crear_estado(self.nombre_estado)` },
-  generado: { f: "patrones/estados_remito.py", s: 64, t:
+  generado: { f: "patrones/estados_remito.py", s: 97, t:
 `class Generado(EstadoRemito):
     """El remito se emitió pero el ejemplar todavía no se preparó."""
 
@@ -417,14 +421,34 @@ def obtener_sesion():
         self.nombre_estado = nuevo_estado.nombre` },
   base: { f: "patrones/estados_remito.py", s: 36, t:
 `    def _no_permitida(self, accion):
-        raise TransicionRemitoInvalida(f"No se puede {accion} un remito en estado {texto_estado(self.nombre)}.")
+        raise TransicionRemitoInvalida(
+            f"No se puede {accion} un remito en estado {texto_estado(self.nombre)}. {self._acciones_posibles()}"
+        )
+
+    def _acciones_posibles(self):
+        """Texto con las acciones que este estado sí admite, para orientar al usuario."""
+        if self.es_final:
+            return "Es un estado final: el remito ya no admite acciones."
+        acciones = [
+            texto for metodo, texto in ACCIONES_VISIBLES
+            if getattr(type(self), metodo) is not getattr(EstadoRemito, metodo)
+        ]
+        if isinstance(self, Recibido):
+            acciones.append("entregar el préstamo desde la pestaña Préstamos")
+        if not acciones:
+            return "El sistema cierra el remito en la misma operación."
+        if len(acciones) > 1:
+            lista = ", ".join(acciones[:-1]) + " o " + acciones[-1]
+        else:
+            lista = acciones[0]
+        return f"Desde {texto_estado(self.nombre)} se puede: {lista}."
 
     def empaquetar(self, remito, fecha_hora, observacion):
         self._no_permitida("empaquetar")
 
     def despachar(self, remito, fecha_hora, observacion):
         self._no_permitida("despachar")` },
-  despachar: { f: "patrones/estados_remito.py", s: 81, t:
+  despachar: { f: "patrones/estados_remito.py", s: 114, t:
 `    def despachar(self, remito, fecha_hora, observacion):
         # La consigna prohíbe iniciar envíos hacia o desde una sede dada de baja.
         for rol, sede in (("origen", remito.sede_origen), ("destino", remito.sede_destino)):
@@ -434,7 +458,7 @@ def obtener_sesion():
         if remito.sentido == SentidoRemito.IDA:
             remito.prestamo.estado = EstadoPrestamo.EN_ENVIO
         remito.cambiar_estado(Despachado(), fecha_hora, observacion)` },
-  recibir: { f: "patrones/estados_remito.py", s: 103, t:
+  recibir: { f: "patrones/estados_remito.py", s: 136, t:
 `    def recibir(self, remito, fecha_hora, estado_fisico, observacion):
         ejemplar = remito.ejemplar
         # Un daño que ya estaba registrado antes del envío (por ejemplo, el socio lo
@@ -447,12 +471,18 @@ def obtener_sesion():
         elif remito.sentido == SentidoRemito.IDA:
             ejemplar.estado = EstadoEjemplar.PRESTADO
             remito.prestamo.estado = EstadoPrestamo.LISTO_PARA_RETIRO` },
-  entregar: { f: "servicios/servicio_prestamos.py", s: 130, t:
+  entregar: { f: "servicios/servicio_prestamos.py", s: 138, t:
 `        with obtener_sesion() as sesion:
             prestamo = obtener_prestamo_o_error(PrestamoDAO(sesion), id_prestamo)
+            if not prestamo.es_interbibliotecario:
+                raise OperacionNoPermitida(
+                    "Es un préstamo local: se entrega al socio en el momento de registrarlo "
+                    f"y ya está {prestamo.estado.value.lower()}. La entrega es solo para préstamos interbibliotecarios."
+                )
             if prestamo.estado != EstadoPrestamo.LISTO_PARA_RETIRO:
                 raise OperacionNoPermitida(
-                    f"El préstamo está {prestamo.estado.value.lower()}: solo se entregan préstamos listos para retiro."
+                    f"El préstamo está {prestamo.estado.value.lower()}: solo se entrega cuando la sede de destino "
+                    "recibió el remito de ida y el préstamo quedó listo para retiro."
                 )
             validar_socio_habilitado(prestamo.socio)
             prestamo.registrar_entrega(fecha)
@@ -575,7 +605,7 @@ const B = {
   failRes: `<div class="sec-label">Comprobado después del ROLLBACK</div><div class="check"><div><span>✓</span> NOR-0002 sigue DISPONIBLE</div><div><span>✓</span> prestamos sigue con 5 filas</div><div><span>✓</span> no hay remito huérfano</div></div>`,
   whyNoCommit: `<p class="note">Si <code>PrestamoDAO.crear</code> hiciera su propio commit, el préstamo quedaría guardado <b>sin remito</b> y el ejemplar marcado PRESTADO para siempre. Por eso el DAO hace <code>flush</code> y deja el commit al servicio.</p>`,
   stateSep: `<div class="flow3"><div class="a"><b>State</b>decide si la acción vale y qué cambia</div><div class="b"><b>Sesión</b>nota qué objetos quedaron modificados</div><div class="c"><b>DAO</b>trajo el remito; no sabe de estados</div></div>`,
-  invalid: `<div class="sec-label">Remito R-000005 sigue igual</div><div class="strip"><span class="st now">Generado</span><span class="arrow">→</span><span class="st bad">Despachado ✗</span></div><p class="note">TransicionRemitoInvalida: «No se puede despachar un remito en estado Generado.»</p>`,
+  invalid: `<div class="sec-label">Remito R-000005 sigue igual</div><div class="strip"><span class="st now">Generado</span><span class="arrow">→</span><span class="st bad">Despachado ✗</span></div><p class="note">TransicionRemitoInvalida: «No se puede despachar un remito en estado Generado. Desde Generado se puede: empaquetar o anular (solo remitos de ida).»</p>`,
   uow: `<p class="note">Nadie llamó a <code>EjemplarDAO.actualizar</code> ni a <code>PrestamoDAO.actualizar</code>. La sesión es la <b>unidad de trabajo</b>: registró los tres objetos modificados y el commit manda un UPDATE por cada uno.</p>`,
   lazy: `<p class="note"><code>prestamo.remitos</code> es una relación. Al leerla, la sesión hace el SELECT sola (<b>carga diferida</b>). Antes, por <b>autoflush</b>, manda el UPDATE pendiente del préstamo para que la consulta vea datos coherentes.</p>`,
   formula: `<div class="formula">3 días × $500 = $1.500<small>MultaPorTipoDeMaterial · TipoMaterial.LIBRO</small></div><p class="note">La estrategia es un cálculo puro. No conoce la sesión ni los DAO.</p>`,
@@ -633,25 +663,25 @@ const SCENES = [
      cap: "Resultado: la Central y la Sede Sur tienen un ejemplar cada una; Norte no tiene. María pide el CEN-0003 de la Central para retirarlo en Norte." },
  ]},
  { tag: "dao", focus: true, title: "Paso 2 · Solicitar el préstamo: lecturas y validaciones", what: "cuatro DAO, una sesión", beats: [
-   { sn: "solicitar", hl: [101,101], hi: ["ui-prest","s-prest"], tx: "none", pend: "clear",
+   { sn: "solicitar", hl: [109,109], hi: ["ui-prest","s-prest"], tx: "none", pend: "clear",
      cap: "En la pestaña Préstamos se elige a María, origen Biblioteca Central, destino Sede Norte y el ejemplar CEN-0003. La interfaz solo llama a <code>solicitar_prestamo_interbibliotecario</code>." },
-   { hl: [101,101], hi: ["s-prest","ses"], tx: "open", sql: ["begin"],
+   { hl: [109,109], hi: ["s-prest","ses"], tx: "open", sql: ["begin"],
      cap: "<code>with obtener_sesion()</code> empieza la transacción del caso de uso. Todo lo que sigue, hasta el remito, ocurre adentro." },
-   { hl: [102,105], hi: ["d-socio","d-ej","d-sede","t-socios","t-ej","t-sedes"], sql: ["selSocio","selEj","selSede"],
+   { hl: [110,113], hi: ["d-socio","d-ej","d-sede","t-socios","t-ej","t-sedes"], sql: ["selSocio","selEj","selSede"],
      cap: "<code>SocioDAO</code>, <code>EjemplarDAO</code> y <code>SedeDAO</code> traen socio, ejemplar y sedes. Hay un solo SELECT de sedes: la Central ya vino con el ejemplar, y la sesión no repite lo que ya tiene cargado." },
-   { sn: "validar", hl: [38,41], hi: ["d-prest","t-prest"], sql: ["selVenc"],
+   { sn: "validar", hl: [38,42], hi: ["d-prest","t-prest"], sql: ["selVenc"],
      cap: "Las validaciones también consultan por DAO: <code>PrestamoDAO.socio_tiene_vencidos</code> cuenta los préstamos activos vencidos de María." },
-   { hl: [42,43], hi: ["d-dev","t-dev","p-strat"], sql: ["selMultas"],
+   { hl: [43,47], hi: ["d-dev","t-dev","p-strat"], sql: ["selMultas"],
      cap: "<code>DevolucionDAO</code> busca multas impagas. Esos montos los calculó antes el patrón Strategy y quedaron guardados: los dos patrones se conectan a través de la base." },
  ]},
  { tag: "dao", focus: true, title: "Paso 2 · Solicitar el préstamo: escrituras", what: "memoria → flush", beats: [
-   { sn: "solicitar", hl: [108,116], hi: ["s-prest","m-prest"], tx: "open", fresh: true, sql: ["… sigue abierta la transacción del capítulo anterior …"], pend: [["pr","Prestamo nuevo · SOLICITADO","mem"]],
+   { sn: "solicitar", hl: [116,124], hi: ["s-prest","m-prest"], tx: "open", fresh: true, sql: ["… sigue abierta la transacción del capítulo anterior …"], pend: [["pr","Prestamo nuevo · SOLICITADO","mem"]],
      cap: "Se crea el objeto <code>Prestamo</code> en estado SOLICITADO. Por ahora existe solo en memoria." },
-   { hl: [117,117], hi: ["m-ej","ses"], pend: [["ej","ejemplar.estado = PRESTADO","mem"]],
+   { hl: [125,125], hi: ["m-ej","ses"], pend: [["ej","ejemplar.estado = PRESTADO","mem"]],
      cap: "<code>ejemplar.estado = PRESTADO</code> es una asignación común de Python. No pasa por ningún DAO, pero la sesión anota que ese objeto quedó modificado." },
-   { hl: [120,120], hi: ["d-prest","ses","t-ej","t-prest"], sql: ["updEjPrest","insPrest"], pend: [["ej",null,"flush"],["pr",null,"flush"]],
+   { hl: [128,128], hi: ["d-prest","ses","t-ej","t-prest"], sql: ["updEjPrest","insPrest"], pend: [["ej",null,"flush"],["pr",null,"flush"]],
      cap: "<code>PrestamoDAO.crear</code> hace add y flush. El flush manda <b>todo</b> lo pendiente: el UPDATE del ejemplar y el INSERT del préstamo." },
-   { hl: [120,120], hi: ["ses","t-ej","t-prest"], board: B.noFlush,
+   { hl: [128,128], hi: ["ses","t-ej","t-prest"], board: B.noFlush,
      cap: "Esas filas ya están en SQLite, pero sin confirmar. Si algo falla antes del final del <code>with</code>, se deshacen." },
  ]},
  { tag: "state", focus: true, title: "Paso 2 · Generar el remito de ida", what: "misma sesión, nuevo DAO", beats: [
@@ -667,9 +697,9 @@ const SCENES = [
      cap: "El bloque <code>with</code> termina sin errores: COMMIT. Préstamo, ejemplar, remito y movimiento se confirman juntos, en una sola operación." },
  ]},
  { tag: "dao", focus: true, title: "¿Y si algo falla en el medio?", what: "rollback real, con falla simulada", beats: [
-   { sn: "solicitar", hl: [121,121], hi: ["s-prest"], tx: "none", pend: "clear",
+   { sn: "solicitar", hl: [129,129], hi: ["s-prest"], tx: "none", pend: "clear",
      cap: "El caso malo. Corrimos el mismo servicio con otro pedido (NOR-0002) y simulamos que <code>generar_remito</code> lanza un error justo después de guardar el préstamo." },
-   { hl: [117,120], hi: ["d-prest","ses","t-ej","t-prest"], tx: "open", sql: ["begin","failSel","failUpd","failIns"], pend: [["ej","ejemplar NOR-0002 = PRESTADO","flush"],["pr","Prestamo nuevo","flush"]],
+   { hl: [125,128], hi: ["d-prest","ses","t-ej","t-prest"], tx: "open", sql: ["begin","failSel","failUpd","failIns"], pend: [["ej","ejemplar NOR-0002 = PRESTADO","flush"],["pr","Prestamo nuevo","flush"]],
      cap: "El UPDATE del ejemplar y el INSERT del préstamo ya se enviaron con el flush de <code>PrestamoDAO.crear</code>." },
    { sn: "sesion", hl: [64,66], hi: ["ses"], tx: "rollback", sql: ["rollback"], pend: "undo",
      cap: "La excepción sale del bloque <code>with</code>. <code>obtener_sesion</code> la atrapa, llama a <code>rollback</code> y la vuelve a lanzar para que la interfaz muestre el error." },
@@ -685,7 +715,7 @@ const SCENES = [
      cap: "<code>RemitoDAO.obtener_por_id</code> trae la fila. En la base el estado es solo un texto: <code>nombre_estado = 'Generado'</code>." },
    { sn: "reconstr", hl: [49,52], hi: ["m-rem","p-state"], board: strip("Generado","Remito R-000005"),
      cap: "Al cargarlo, el <code>@reconstructor</code> convierte ese texto en un objeto <code>Generado()</code>. Ese es el puente entre la fila de la base y el patrón State." },
-   { sn: "generado", hl: [69,70], hi: ["p-state","m-rem","m-mov"], board: strip("Empaquetado","Remito R-000005"), pend: [["rm","remito.nombre_estado = Empaquetado","mem"],["mv","Movimiento Generado → Empaquetado","mem"]],
+   { sn: "generado", hl: [102,103], hi: ["p-state","m-rem","m-mov"], board: strip("Empaquetado","Remito R-000005"), pend: [["rm","remito.nombre_estado = Empaquetado","mem"],["mv","Movimiento Generado → Empaquetado","mem"]],
      cap: "<code>remito.empaquetar()</code> delega en el estado actual. <code>Generado</code> sí sabe empaquetar: pasa a <code>Empaquetado</code> y deja un movimiento." },
    { sn: "cambiar", hl: [104,115], hi: ["p-state","m-rem","ses"], board: B.stateSep,
      cap: "El patrón State no importa ningún DAO ni conoce la sesión. Solo cambia atributos del objeto; la sesión se entera sola." },
@@ -695,37 +725,37 @@ const SCENES = [
  { tag: "state", title: "Desvío · Despachar antes de empaquetar", what: "transición inválida", beats: [
    { sn: "ejecutar", hl: [74,75], hi: ["s-rem","d-rem","ses","t-rem"], tx: "open", sql: ["begin","selRem","selMov"], pend: "clear",
      cap: "¿Qué hubiera pasado si alguien intentaba despachar el remito cuando todavía estaba en Generado? El servicio lo carga igual que antes." },
-   { sn: "base", hl: [36,43], hi: ["p-state"], board: B.invalid,
+   { sn: "base", hl: [62,63], hi: ["p-state"], board: B.invalid,
      cap: "<code>Generado</code> no redefine <code>despachar</code>, así que hereda el de <code>EstadoRemito</code>, que lanza <code>TransicionRemitoInvalida</code>. La regla vive en la clase del estado, no en un if del servicio." },
-   { hl: [36,37], hi: ["ses"], tx: "rollback", sql: ["rollback"],
+   { hl: [36,39], hi: ["ses"], tx: "rollback", sql: ["rollback"],
      cap: "La excepción provoca ROLLBACK. En esa sesión no se había escrito nada, así que la base queda igual y la interfaz muestra el mensaje." },
  ]},
  { tag: "state", title: "Paso 4 · Despachar", what: "tres objetos, un commit", beats: [
-   { sn: "despachar", hl: [81,81], hi: ["s-rem","d-rem","ses","t-rem"], tx: "open", sql: ["begin","selRem","selMov"], pend: "clear", board: strip("Empaquetado","Remito R-000005"),
+   { sn: "despachar", hl: [147,147], hi: ["s-rem","d-rem","ses","t-rem"], tx: "open", sql: ["begin","selRem","selMov"], pend: "clear", board: strip("Empaquetado","Remito R-000005"),
      cap: "Ahora sí, Despachar. Se carga el remito y el reconstructor arma un objeto <code>Empaquetado()</code>." },
-   { hl: [83,85], hi: ["p-state"],
+   { hl: [116,118], hi: ["p-state"],
      cap: "<code>Empaquetado.despachar</code> primero valida que las dos sedes sigan activas." },
-   { hl: [86,89], hi: ["p-state","m-ej","m-prest","m-rem","m-mov"], board: strip("Despachado","Remito R-000005"), pend: [["ej","ejemplar = EN_TRANSITO","mem"],["pr","prestamo = EN_ENVIO","mem"],["rm","remito = Despachado","mem"],["mv","Movimiento","mem"]],
+   { hl: [119,122], hi: ["p-state","m-ej","m-prest","m-rem","m-mov"], board: strip("Despachado","Remito R-000005"), pend: [["ej","ejemplar = EN_TRANSITO","mem"],["pr","prestamo = EN_ENVIO","mem"],["rm","remito = Despachado","mem"],["mv","Movimiento","mem"]],
      cap: "Después cambia tres objetos: el ejemplar pasa a EN_TRANSITO, el préstamo a EN_ENVIO y el remito a Despachado." },
-   { hl: [89,89], hi: ["ses","t-ej","t-prest","t-rem","t-mov"], tx: "commit", sql: ["updEjTr","updPrEnv","updRemDes","insMovDes","commit"], pend: "ok", board: B.uow,
+   { hl: [122,122], hi: ["ses","t-ej","t-prest","t-rem","t-mov"], tx: "commit", sql: ["updEjTr","updPrEnv","updRemDes","insMovDes","commit"], pend: "ok", board: B.uow,
      cap: "Nadie llamó a un <code>actualizar</code>. Igual, el commit manda los tres UPDATE y el INSERT: la sesión funciona como <b>unidad de trabajo</b>." },
  ]},
  { tag: "state", title: "Paso 5 · Recibir en la Sede Norte", what: "EnViaje.recibir", beats: [
-   { sn: "recibir", hl: [103,103], hi: ["ui-rem","s-rem","d-rem","ses","t-rem"], tx: "open", sql: ["begin","selRem","selMov"], pend: "clear", board: strip("Despachado","Remito R-000005", true),
+   { sn: "recibir", hl: [136,136], hi: ["ui-rem","s-rem","d-rem","ses","t-rem"], tx: "open", sql: ["begin","selRem","selMov"], pend: "clear", board: strip("Despachado","Remito R-000005", true),
      cap: "El paquete llega a Norte. Se carga el remito como <code>Despachado</code>, que hereda <code>recibir</code> de <code>EnViaje</code>. Acá no se registró ningún punto de control, así que no pasó por En tránsito." },
-   { hl: [108,114], hi: ["p-state","m-ej","m-prest","m-rem"], board: strip("Recibido","Remito R-000005", true), pend: [["ej","ejemplar = PRESTADO, BUENO","mem"],["pr","prestamo = LISTO_PARA_RETIRO","mem"],["rm","remito = Recibido","mem"]],
+   { hl: [141,147], hi: ["p-state","m-ej","m-prest","m-rem"], board: strip("Recibido","Remito R-000005", true), pend: [["ej","ejemplar = PRESTADO, BUENO","mem"],["pr","prestamo = LISTO_PARA_RETIRO","mem"],["rm","remito = Recibido","mem"]],
      cap: "Estado físico BUENO: el remito pasa a Recibido, el ejemplar a PRESTADO y el préstamo a LISTO_PARA_RETIRO." },
    { hl: [114,114], hi: ["ses","t-ej","t-prest","t-rem","t-mov"], tx: "commit", sql: ["updEjRec","updPrLis","updRemRec","insMovRec","commit"], pend: "ok",
      cap: "Otra vez un solo COMMIT para todo lo que cambió en el paso." },
  ]},
  { tag: "dao", focus: true, title: "Paso 6 · Entregar a María", what: "DAO, carga diferida y autoflush", beats: [
-   { sn: "entregar", hl: [130,131], hi: ["ui-prest","s-prest","d-prest","ses","t-prest"], tx: "open", sql: ["begin","selPrest"], pend: "clear",
+   { sn: "entregar", hl: [138,139], hi: ["ui-prest","s-prest","d-prest","ses","t-prest"], tx: "open", sql: ["begin","selPrest"], pend: "clear",
      cap: "María retira el libro. <code>PrestamoDAO.obtener_por_id</code> trae el préstamo, que está LISTO_PARA_RETIRO." },
-   { hl: [137,137], hi: ["m-prest"], pend: [["pr","prestamo = ACTIVO, vence 14/11","mem"]],
+   { hl: [151,151], hi: ["m-prest"], pend: [["pr","prestamo = ACTIVO, vence 14/11","mem"]],
      cap: "<code>registrar_entrega</code> deja el préstamo ACTIVO. Desde hoy corren los 14 días." },
-   { hl: [138,138], hi: ["ses","t-prest","t-rem","t-mov"], sql: ["updPrAct","selRemPr","selMov"], pend: [["pr",null,"flush"]], board: B.lazy,
+   { hl: [152,152], hi: ["ses","t-prest","t-rem","t-mov"], sql: ["updPrAct","selRemPr","selMov"], pend: [["pr",null,"flush"]], board: B.lazy,
      cap: "<code>remito_de_ida(prestamo)</code> recorre <code>prestamo.remitos</code>. Esa lectura no pasa por RemitoDAO: la hace la sesión sola. Antes manda el UPDATE pendiente (autoflush)." },
-   { hl: [138,138], hi: ["p-state","ses","t-rem","t-mov"], tx: "commit", sql: ["updRemCer","insMovCer","commit"], pend: [["rm","remito = Cerrado","ok"],["pr",null,"ok"]], board: strip("Cerrado","Remito R-000005", true),
+   { hl: [152,152], hi: ["p-state","ses","t-rem","t-mov"], tx: "commit", sql: ["updRemCer","insMovCer","commit"], pend: [["rm","remito = Cerrado","ok"],["pr",null,"ok"]], board: strip("Cerrado","Remito R-000005", true),
      cap: "<code>Recibido.cerrar</code> pasa el remito de ida a Cerrado. COMMIT." },
  ]},
  { tag: "strat", title: "Paso 7 · Devolución con atraso", what: "Strategy calcula, DAO guarda", beats: [
