@@ -6,7 +6,7 @@ Característica: Devoluciones y multas
   Escenario: CP-22 Devolución en término
     Dado Ana tiene un préstamo local de hoy
     Cuando el usuario registra la devolución en estado "Bueno"
-    Entonces el sistema muestra "Devolución registrada."
+    Entonces el sistema muestra "Devolución registrada." y que el ejemplar CEN-0001 volvió a estar disponible
     Y la grilla muestra 0 días, "$0.00" y pagada "Sí"
 
   @CP-23 @positivo @R15 @V03 @P01
@@ -29,8 +29,8 @@ Característica: Devoluciones y multas
     Dado dos préstamos con 3 días de atraso
     Cuando el usuario elige "Por días de atraso ($500 por día)" y registra una devolución
     Y el usuario elige "Sin multa (condonación)" y registra la otra
-    Entonces el sistema informa "Política de multas: Por días de atraso ($500 por día)." y la multa es "$1,500.00"
-    Y con la condonación muestra solo "Devolución registrada."
+    Entonces el sistema informa "Política de multas cambiada a: Por días de atraso ($500 por día)." y la multa es "$1,500.00"
+    Y con la condonación muestra "Devolución registrada." sin multa
 
   @CN-39 @negativo @R15
   Escenario: CN-39 Pagar una devolución sin multa

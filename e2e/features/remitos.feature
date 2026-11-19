@@ -14,7 +14,7 @@ Característica: Remitos
   Escenario: CP-14 Recepción con daño genera el remito de retorno
     Dado el remito "R-000001" está despachado
     Cuando el usuario recibe el remito con estado físico "Dañado"
-    Entonces el sistema muestra "Remito recibido. Estado actual: Cerrado."
+    Entonces el sistema muestra "Remito recibido en Sede Centro con daño: el préstamo se canceló. Se generó el remito de retorno R-000002 para devolver el ejemplar a su sede."
     Y el trayecto muestra Recibido → Dañado → Cerrado
     Y aparece "R-000002" (Retorno, Centro → Norte, Generado)
 
@@ -22,20 +22,20 @@ Característica: Remitos
   Escenario: CP-15 Registrar daño antes de entregar al socio
     Dado el remito "R-000001" está "Recibido"
     Cuando el usuario hace click en "Registrar daño" con una descripción
-    Entonces el sistema muestra "Daño registrado; se generó el remito de retorno. Estado actual: Cerrado."
+    Entonces el sistema muestra "Daño registrado: el préstamo se canceló. Se generó el remito de retorno R-000002 para devolver el ejemplar a su sede."
 
   @CP-16 @positivo @R12
   Escenario: CP-16 Reportar extravío
     Dado el remito "R-000001" está despachado
     Cuando el usuario hace click en "Reportar extravío" con una observación
-    Entonces el sistema muestra "Extravío registrado. Estado actual: Cerrado."
+    Entonces el sistema muestra "Extravío registrado: el ejemplar quedó extraviado, el préstamo se canceló y el remito se cerró."
     Y el ejemplar "NOR-0001" queda "Extraviado"
 
   @CP-17 @positivo @R12
   Escenario: CP-17 Anular un remito de ida no despachado
     Dado el remito "R-000001" está "Generado"
     Cuando el usuario hace click en "Anular" con el motivo "El socio desistió"
-    Entonces el sistema muestra "Remito anulado y préstamo cancelado. Estado actual: Anulado."
+    Entonces el sistema muestra "Remito anulado: el préstamo se canceló y el ejemplar NOR-0001 volvió a estar disponible."
     Y el ejemplar "NOR-0001" vuelve a "Disponible"
 
   @CP-18 @positivo @R15 @R12 @V04
@@ -58,14 +58,14 @@ Característica: Remitos
   Escenario: CN-27 Recibir un remito que no salió
     Dado el remito "R-000001" está "Generado"
     Cuando el usuario hace click en "Recibir"
-    Entonces el sistema muestra el mensaje "Operación rechazada": "No se puede recibir un remito en estado Generado."
+    Entonces el sistema muestra el mensaje "Operación rechazada": "No se puede recibir un remito en estado Generado. Desde Generado se puede: empaquetar o anular (solo remitos de ida)."
     Y el remito sigue "Generado" con 1 movimiento
 
   @CN-28 @negativo @R12 @P03
   Escenario: CN-28 Anular un remito despachado
     Dado el remito "R-000001" está "Despachado"
     Cuando el usuario hace click en "Anular"
-    Entonces el sistema muestra el mensaje "Operación rechazada": "No se puede anular un remito en estado Despachado."
+    Entonces el sistema muestra el mensaje "Operación rechazada": "No se puede anular un remito en estado Despachado. Desde Despachado se puede: registrar un punto de control, recibir o reportar extravío."
 
   @CN-29 @negativo @V11
   Escenario: CN-29 Despachar hacia una sede dada de baja

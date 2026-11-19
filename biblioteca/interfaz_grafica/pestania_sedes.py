@@ -56,7 +56,9 @@ class PestaniaSedes(ttk.Frame):
 
     def dar_de_baja(self):
         id_sede = c.id_seleccionado_o_aviso(self.tabla, self, "una sede")
-        if id_sede is not None and c.confirmar("¿Confirma la baja de la sede seleccionada?", self):
+        if id_sede is not None and c.confirmar(
+            "¿Confirma la baja de la sede seleccionada?\n"
+            "Mientras esté dada de baja no podrá iniciar préstamos, reservas ni envíos. Su historial se conserva.", self):
             if c.ejecutar(lambda: self.servicio.dar_de_baja_sede(id_sede), self, "Sede dada de baja."):
                 self.actualizar()
 

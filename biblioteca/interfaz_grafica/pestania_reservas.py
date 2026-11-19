@@ -43,7 +43,8 @@ class PestaniaReservas(ttk.Frame):
         ])
         if datos and c.ejecutar(
             lambda: self.servicio.reservar(**datos), self,
-            "Reserva registrada. Los ejemplares se asignan por orden de llegada.",
+            "Reserva registrada. Cuando se libere un ejemplar en esa sede, se aparta para la reserva más antigua: "
+            "pasa a 'Disponible para retiro' y el socio tiene 3 días para retirarlo.",
         ):
             self.actualizar()
 
@@ -65,5 +66,20 @@ class PestaniaReservas(ttk.Frame):
     def procesar_vencidas(self):
         vencidas = c.ejecutar(lambda: self.servicio.procesar_reservas_vencidas(), self)
         if vencidas is not None:
-            c.informar(f"Reservas vencidas por no retirar: {len(vencidas)}.", self)
+            c.informar(mensaje_vencidas(vencidas), self)
             self.actualizar()
+
+
+def mensaje_vencidas(vencidas):
+    """Detalle de cada reserva vencida y a quién pasó su ejemplar."""
+    if not vencidas:
+        return "No hay reservas con el plazo de retiro vencido."
+    lineas = [f"Reservas vencidas por no retirar: {len(vencidas)}."]
+    for reserva in vencidas:
+        codigo = reserva.ejemplar_liberado.codigo_inventario
+        if reserva.reasignada_a is not None:
+            destino = f"pasó a la reserva de {reserva.reasignada_a.socio.nombre_completo}"
+        else:
+            destino = "volvió a estar disponible"
+        lineas.append(f"- {reserva.socio.nombre_completo} ({reserva.libro.titulo}): el ejemplar {codigo} {destino}.")
+    return "\n".join(lineas)

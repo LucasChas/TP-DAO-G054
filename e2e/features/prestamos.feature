@@ -7,21 +7,21 @@ Característica: Préstamos
     Dado la socia "Pérez, Ana" está habilitada y "CEN-0001" está disponible en "Sede Centro"
     Cuando el usuario hace click en "Préstamo local"
     Y el usuario elige socia, "Sede Centro" y "CEN-0001" y acepta
-    Entonces el sistema muestra el mensaje "Préstamo registrado. Vence el <hoy+14>."
+    Entonces el sistema muestra el mensaje "Préstamo local registrado y entregado al socio. Vence el <hoy+14> (14 días)."
     Y la grilla muestra el préstamo "Local" en estado "Activo"
 
   @CP-11 @positivo @R07 @R11
   Escenario: CP-11 Solicitud interbibliotecaria con remito de ida
     Dado "NOR-0001" pertenece a "Sede Norte" y está disponible
     Cuando el usuario pide "NOR-0001" de "Sede Norte" para retirar en "Sede Centro"
-    Entonces el sistema muestra el mensaje "Solicitud registrada. Se generó el remito de ida."
+    Entonces el sistema muestra el mensaje "Solicitud registrada. Se generó el remito de ida R-000001. Siguiente paso: en Remitos, empaquetarlo y despacharlo."
     Y el préstamo queda "Solicitado" y aparece el remito "R-000001" (Ida, Generado)
 
   @CP-12 @positivo @R07
   Escenario: CP-12 Cancelar una solicitud no despachada
     Dado existe una solicitud interbibliotecaria de "NOR-0001" sin despachar
-    Cuando el usuario selecciona la solicitud, hace click en "Cancelar solicitud" y confirma
-    Entonces el sistema muestra "Solicitud cancelada."
+    Cuando el usuario selecciona la solicitud, hace click en "Cancelar solicitud (interbibliotecario)" y confirma
+    Entonces el sistema muestra "Solicitud cancelada: se anuló el remito de ida R-000001 y el ejemplar ..."
     Y el préstamo queda "Cancelado", el remito "Anulado" y el ejemplar "Disponible"
 
   @CN-18 @negativo @V02
@@ -40,7 +40,7 @@ Característica: Préstamos
   Escenario: CN-44 Prestar un ejemplar en reparación
     Dado "CEN-0001" está en reparación
     Cuando el usuario presta "CEN-0001" a "Pérez, Ana"
-    Entonces el sistema muestra el mensaje "Operación rechazada": "El ejemplar CEN-0001 no está disponible (en reparación)."
+    Entonces el sistema muestra el mensaje "Operación rechazada": "El ejemplar CEN-0001 no está disponible (en reparación). Cuando esté reparado, use 'Finalizar reparación' en Catálogo."
 
   @CN-20 @negativo @V08
   Escenario: CN-20 Solo se ofrecen ejemplares de la sede de origen
@@ -58,13 +58,13 @@ Característica: Préstamos
   Escenario: CN-22 Socio con préstamos vencidos
     Dado "Gómez, Juan" tiene un préstamo vencido hace 6 días
     Cuando el usuario le registra un nuevo préstamo
-    Entonces el sistema muestra el mensaje "Operación rechazada": "El socio Gómez, Juan tiene préstamos vencidos sin devolver."
+    Entonces el sistema muestra el mensaje "Operación rechazada": "El socio Gómez, Juan tiene préstamos vencidos sin devolver. Debe devolverlos antes de recibir un préstamo nuevo."
 
   @CN-23 @negativo @V03
   Escenario: CN-23 Socio con multas impagas
     Dado "Gómez, Juan" devolvió con atraso y no pagó la multa
     Cuando el usuario le registra un nuevo préstamo
-    Entonces el sistema muestra el mensaje "Operación rechazada": "El socio Gómez, Juan tiene multas sin pagar."
+    Entonces el sistema muestra el mensaje "Operación rechazada": "El socio Gómez, Juan tiene multas sin pagar. Registre el pago en 'Devoluciones y multas' para poder prestarle."
 
   @CN-24 @negativo @R07
   Escenario: CN-24 Misma sede de origen y destino
@@ -75,11 +75,11 @@ Característica: Préstamos
   @CN-25 @negativo @R07 @R12
   Escenario: CN-25 Entregar un préstamo que no llegó
     Dado existe una solicitud interbibliotecaria sin despachar
-    Cuando el usuario hace click en "Entregar al socio"
-    Entonces el sistema muestra el mensaje "Operación rechazada": "El préstamo está solicitado: solo se entregan préstamos listos para retiro."
+    Cuando el usuario hace click en "Entregar (interbibliotecario)"
+    Entonces el sistema muestra el mensaje "Operación rechazada": "El préstamo está solicitado: solo se entrega cuando la sede de destino recibió el remito de ida y el préstamo quedó listo para retiro."
 
   @CN-26 @negativo @R07 @R12
   Escenario: CN-26 Cancelar una solicitud ya despachada
     Dado el remito de la solicitud ya fue despachado
-    Cuando el usuario hace click en "Cancelar solicitud" y confirma
+    Cuando el usuario hace click en "Cancelar solicitud (interbibliotecario)" y confirma
     Entonces el sistema muestra el mensaje "Operación rechazada": "El préstamo está en envío: solo se cancelan solicitudes no despachadas."
