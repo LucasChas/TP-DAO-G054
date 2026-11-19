@@ -19,7 +19,7 @@ class PestaniaPrestamos(ttk.Frame):
         barra = c.barra_de_botones(self, [
             ("Préstamo local", self.prestamo_local),
             ("Préstamo interbibliotecario", self.prestamo_interbibliotecario),
-            ("Entregar al socio", self.entregar),
+            ("Entregar (interbibliotecario)", self.entregar),
             ("Cancelar solicitud", self.cancelar),
         ])
         barra.pack(fill="x")

@@ -129,9 +129,15 @@ class ServicioPrestamos:
         fecha = fecha or date.today()
         with obtener_sesion() as sesion:
             prestamo = obtener_prestamo_o_error(PrestamoDAO(sesion), id_prestamo)
+            if not prestamo.es_interbibliotecario:
+                raise OperacionNoPermitida(
+                    "Es un préstamo local: se entrega al socio en el momento de registrarlo "
+                    f"y ya está {prestamo.estado.value.lower()}. La entrega es solo para préstamos interbibliotecarios."
+                )
             if prestamo.estado != EstadoPrestamo.LISTO_PARA_RETIRO:
                 raise OperacionNoPermitida(
-                    f"El préstamo está {prestamo.estado.value.lower()}: solo se entregan préstamos listos para retiro."
+                    f"El préstamo está {prestamo.estado.value.lower()}: solo se entrega cuando la sede de destino "
+                    "recibió el remito de ida y el préstamo quedó listo para retiro."
                 )
             validar_socio_habilitado(prestamo.socio)
             prestamo.registrar_entrega(fecha)

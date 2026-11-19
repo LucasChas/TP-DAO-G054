@@ -51,7 +51,7 @@ def test_cp13_ciclo_completo_del_remito_de_ida_con_trazabilidad(gui, red):
     prestamos = gui.ir_a("Préstamos")
     assert gui.filas(prestamos.tabla)[0]["Estado"] == "Listo para retiro"
     gui.seleccionar(prestamos.tabla, "Ejemplar", "NOR-0001")
-    mensajes = gui.clic("Entregar al socio", Mensaje(captura="06_entrega_al_socio"))
+    mensajes = gui.clic("Entregar (interbibliotecario)", Mensaje(captura="06_entrega_al_socio"))
     assert mensajes[0][1].startswith("Préstamo entregado. Vence el ")
     pestania = gui.ir_a("Remitos")
     gui.seleccionar(pestania.tabla, "Número", "R-000001")

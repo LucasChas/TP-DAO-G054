@@ -75,8 +75,8 @@ Característica: Préstamos
   @CN-25 @negativo @R07 @R12
   Escenario: CN-25 Entregar un préstamo que no llegó
     Dado existe una solicitud interbibliotecaria sin despachar
-    Cuando el usuario hace click en "Entregar al socio"
-    Entonces el sistema muestra el mensaje "Operación rechazada": "El préstamo está solicitado: solo se entregan préstamos listos para retiro."
+    Cuando el usuario hace click en "Entregar (interbibliotecario)"
+    Entonces el sistema muestra el mensaje "Operación rechazada": "El préstamo está solicitado: solo se entrega cuando la sede de destino recibió el remito de ida y el préstamo quedó listo para retiro."
 
   @CN-26 @negativo @R07 @R12
   Escenario: CN-26 Cancelar una solicitud ya despachada

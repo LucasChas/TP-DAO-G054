@@ -144,9 +144,10 @@ def test_cn25_entregar_un_prestamo_que_no_llego(gui, red):
     ServicioPrestamos().solicitar_prestamo_interbibliotecario(red.ana.id, red.ej["NOR-0001"].id, red.norte.id, red.centro.id)
     pestania = gui.ir_a("Préstamos")
     gui.seleccionar(pestania.tabla, "Ejemplar", "NOR-0001")
-    mensajes = gui.clic("Entregar al socio", Mensaje(titulo="Operación rechazada", captura="01_no_listo"))
+    mensajes = gui.clic("Entregar (interbibliotecario)", Mensaje(titulo="Operación rechazada", captura="01_no_listo"))
     assert mensajes == [("Operación rechazada",
-                         "El préstamo está solicitado: solo se entregan préstamos listos para retiro.")]
+                         "El préstamo está solicitado: solo se entrega cuando la sede de destino "
+                         "recibió el remito de ida y el préstamo quedó listo para retiro.")]
 
 
 def test_cn26_cancelar_una_solicitud_ya_despachada(gui, red):
