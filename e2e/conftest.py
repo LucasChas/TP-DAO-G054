@@ -8,7 +8,7 @@ aplican las mismas validaciones que la interfaz.
 Ejecutar con una pantalla virtual:
     xvfb-run -a -s "-screen 0 1320x780x24" python -m pytest e2e -v
 Para guardar capturas:
-    E2E_CAPTURAS=docs/capturas xvfb-run -a -s "-screen 0 1320x780x24" python -m pytest e2e -v
+    E2E_CAPTURAS=capturas xvfb-run -a -s "-screen 0 1320x780x24" python -m pytest e2e -v
 """
 import os
 import re

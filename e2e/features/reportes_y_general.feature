@@ -33,16 +33,3 @@ Característica: Reportes y general
     Dado ya se cargaron los datos de ejemplo
     Cuando el usuario elige "Archivo" > "Cargar datos de ejemplo"
     Entonces el sistema muestra el aviso "La base ya tiene datos; no se cargó nada."
-
-  @CP-29 @positivo @R01 @P04
-  Escenario: CP-29 Interfaz de consola: cargar datos y listar sedes
-    Dado se ejecuta "python main.py" sobre una base vacía
-    Cuando el usuario elige 10 (datos de ejemplo), 1 > 1 (listar sedes) y 0 para salir
-    Entonces la salida muestra "Se cargaron los datos de ejemplo.", la tabla "Sedes de la red" y "¡Hasta luego!"
-
-  @CN-43 @negativo @R03
-  Escenario: CN-43 Consola: opción inválida y DNI inválido
-    Dado se ejecuta "python main.py"
-    Cuando el usuario elige 99 y después registra un socio con DNI "12ab"
-    Entonces la salida muestra "Opción inválida." y "El DNI '12ab' no es válido: debe tener 7 u 8 dígitos."
-    Y el programa termina normalmente con "¡Hasta luego!"

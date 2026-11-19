@@ -1,4 +1,4 @@
-"""Datos de ejemplo para probar el sistema desde la consola."""
+"""Datos de ejemplo para probar el sistema desde la interfaz gráfica (menú Archivo)."""
 from datetime import date, datetime, timedelta
 
 from biblioteca.configuracion.base_de_datos import obtener_sesion
