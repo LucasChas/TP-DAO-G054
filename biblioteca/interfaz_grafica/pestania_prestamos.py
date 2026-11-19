@@ -2,8 +2,10 @@
 from tkinter import ttk
 
 from biblioteca.interfaz_grafica import componentes as c
-from biblioteca.interfaz_grafica.opciones import opciones_ejemplares, opciones_sedes, opciones_socios
-from biblioteca.modelos.enumeraciones import EstadoPrestamo
+from biblioteca.interfaz_grafica.opciones import (
+    destino_del_ejemplar, numero_de_remito, opciones_ejemplares, opciones_sedes, opciones_socios,
+)
+from biblioteca.modelos.enumeraciones import EstadoPrestamo, SentidoRemito
 from biblioteca.servicios import ServicioPrestamos
 
 EN_CURSO = [EstadoPrestamo.SOLICITADO, EstadoPrestamo.EN_ENVIO, EstadoPrestamo.LISTO_PARA_RETIRO, EstadoPrestamo.ACTIVO]
@@ -14,22 +16,25 @@ class PestaniaPrestamos(ttk.Frame):
     FILTROS = ("En curso", "Vencidos", "Todos")
 
     def __init__(self, padre):
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = ServicioPrestamos()
         barra = c.barra_de_botones(self, [
-            ("Préstamo local", self.prestamo_local),
-            ("Préstamo interbibliotecario", self.prestamo_interbibliotecario),
-            ("Entregar al socio", self.entregar),
-            ("Cancelar solicitud", self.cancelar),
+            ("Préstamo local", self.prestamo_local, c.PRIMARIO),
+            ("Préstamo interbibliotecario", self.prestamo_interbibliotecario, c.PRIMARIO),
+            ("Entregar (interbibliotecario)", self.entregar),
+            ("Cancelar solicitud (interbibliotecario)", self.cancelar, c.PELIGRO),
         ])
         barra.pack(fill="x")
-        ttk.Label(barra, text="Mostrar:").pack(side="left", padx=(20, 4))
+        c.separador_vertical(barra)
+        ttk.Label(barra, text="Mostrar:").pack(side="left", padx=(0, 4))
         self.filtro = ttk.Combobox(barra, values=self.FILTROS, state="readonly", width=12)
         self.filtro.set(self.FILTROS[0])
         self.filtro.pack(side="left")
         self.filtro.bind("<<ComboboxSelected>>", lambda evento: self.actualizar())
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Tipo": 130, "Socio": 150, "Libro": 190, "Origen": 140, "Destino": 140})
+        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Tipo": 130, "Socio": 150, "Libro": 190, "Origen": 140, "Destino": 140},
+                             mensaje_vacio="No hay préstamos para el filtro elegido.")
         self.tabla.pack(fill="both", expand=True, pady=(10, 0))
+        self.tabla.mostrar_cantidad(barra, "préstamo", "préstamos")
 
     def actualizar(self):
         filtro = self.filtro.get()
@@ -53,7 +58,7 @@ class PestaniaPrestamos(ttk.Frame):
         ])
         if datos and c.ejecutar(
             lambda: self.servicio.registrar_prestamo_local(**datos), self,
-            lambda p: f"Préstamo registrado. Vence el {c.formatear_fecha(p.fecha_vencimiento)}.",
+            lambda p: f"Préstamo local registrado y entregado al socio. Vence el {c.formatear_fecha(p.fecha_vencimiento)} (14 días).",
         ):
             self.actualizar()
 
@@ -67,7 +72,8 @@ class PestaniaPrestamos(ttk.Frame):
         ])
         if datos and c.ejecutar(
             lambda: self.servicio.solicitar_prestamo_interbibliotecario(**datos), self,
-            "Solicitud registrada. Se generó el remito de ida.",
+            lambda p: f"Solicitud registrada. Se generó el remito de ida {numero_de_remito(p.id, SentidoRemito.IDA)}.\n"
+                      "Siguiente paso: en Remitos, empaquetarlo y despacharlo.",
         ):
             self.actualizar()
 
@@ -82,5 +88,9 @@ class PestaniaPrestamos(ttk.Frame):
     def cancelar(self):
         id_prestamo = c.id_seleccionado_o_aviso(self.tabla, self, "un préstamo")
         if id_prestamo is not None and c.confirmar("¿Cancelar la solicitud seleccionada?", self):
-            if c.ejecutar(lambda: self.servicio.cancelar_prestamo(id_prestamo), self, "Solicitud cancelada."):
+            if c.ejecutar(
+                lambda: self.servicio.cancelar_prestamo(id_prestamo), self,
+                lambda p: f"Solicitud cancelada: se anuló el remito de ida {numero_de_remito(p.id, SentidoRemito.IDA)} "
+                          f"y el ejemplar {p.ejemplar.codigo_inventario} {destino_del_ejemplar(p.ejemplar)}.",
+            ):
                 self.actualizar()

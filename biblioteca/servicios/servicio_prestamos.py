@@ -37,10 +37,14 @@ class ServicioPrestamos:
         validar_socio_habilitado(socio)
         if PrestamoDAO(sesion).socio_tiene_vencidos(socio.id, fecha):
             raise SocioConPrestamosVencidos(
-                f"El socio {socio.nombre_completo} tiene préstamos vencidos sin devolver."
+                f"El socio {socio.nombre_completo} tiene préstamos vencidos sin devolver. "
+                "Debe devolverlos antes de recibir un préstamo nuevo."
             )
         if DevolucionDAO(sesion).socio_tiene_multas_impagas(socio.id):
-            raise SocioConMultasImpagas(f"El socio {socio.nombre_completo} tiene multas sin pagar.")
+            raise SocioConMultasImpagas(
+                f"El socio {socio.nombre_completo} tiene multas sin pagar. "
+                "Registre el pago en 'Devoluciones y multas' para poder prestarle."
+            )
         validar_sede_activa(sede_origen, "origen")
         validar_sede_activa(sede_destino, "destino")
         if ejemplar.sede_id != sede_origen.id:
@@ -57,8 +61,12 @@ class ServicioPrestamos:
             raise EjemplarNoDisponible(
                 f"El ejemplar {ejemplar.codigo_inventario} está apartado para la reserva de otro socio."
             )
+        sugerencia = (
+            " Cuando esté reparado, use 'Finalizar reparación' en Catálogo."
+            if ejemplar.estado == EstadoEjemplar.EN_REPARACION else ""
+        )
         raise EjemplarNoDisponible(
-            f"El ejemplar {ejemplar.codigo_inventario} no está disponible ({ejemplar.estado.value.lower()})."
+            f"El ejemplar {ejemplar.codigo_inventario} no está disponible ({ejemplar.estado.value.lower()}).{sugerencia}"
         )
 
     def registrar_prestamo_local(self, id_socio, id_ejemplar, id_sede, fecha=None):
@@ -129,9 +137,15 @@ class ServicioPrestamos:
         fecha = fecha or date.today()
         with obtener_sesion() as sesion:
             prestamo = obtener_prestamo_o_error(PrestamoDAO(sesion), id_prestamo)
+            if not prestamo.es_interbibliotecario:
+                raise OperacionNoPermitida(
+                    "Es un préstamo local: se entrega al socio en el momento de registrarlo "
+                    f"y ya está {prestamo.estado.value.lower()}. La entrega es solo para préstamos interbibliotecarios."
+                )
             if prestamo.estado != EstadoPrestamo.LISTO_PARA_RETIRO:
                 raise OperacionNoPermitida(
-                    f"El préstamo está {prestamo.estado.value.lower()}: solo se entregan préstamos listos para retiro."
+                    f"El préstamo está {prestamo.estado.value.lower()}: solo se entrega cuando la sede de destino "
+                    "recibió el remito de ida y el préstamo quedó listo para retiro."
                 )
             validar_socio_habilitado(prestamo.socio)
             prestamo.registrar_entrega(fecha)
@@ -147,6 +161,11 @@ class ServicioPrestamos:
         fecha_hora = datetime.combine(fecha or date.today(), datetime.now().time())
         with obtener_sesion() as sesion:
             prestamo = obtener_prestamo_o_error(PrestamoDAO(sesion), id_prestamo)
+            if not prestamo.es_interbibliotecario:
+                raise OperacionNoPermitida(
+                    "Es un préstamo local y ya se entregó al socio: no se cancela. "
+                    "Para cerrarlo, registre la devolución."
+                )
             if prestamo.estado != EstadoPrestamo.SOLICITADO:
                 raise OperacionNoPermitida(
                     f"El préstamo está {prestamo.estado.value.lower()}: solo se cancelan solicitudes no despachadas."

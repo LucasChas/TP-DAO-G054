@@ -11,19 +11,22 @@ class PestaniaReservas(ttk.Frame):
     COLUMNAS = ("Id", "Socio", "Libro", "Sede de retiro", "Fecha", "Ejemplar apartado", "Retirar hasta", "Estado")
 
     def __init__(self, padre):
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = ServicioReservas()
         barra = c.barra_de_botones(self, [
-            ("Reservar", self.reservar),
+            ("Reservar", self.reservar, c.PRIMARIO),
             ("Registrar retiro", self.registrar_retiro),
-            ("Cancelar reserva", self.cancelar),
+            ("Cancelar reserva", self.cancelar, c.PELIGRO),
             ("Procesar reservas no retiradas", self.procesar_vencidas),
         ])
         barra.pack(fill="x")
+        c.separador_vertical(barra)
         self.solo_activas = tk.BooleanVar(value=True)
-        ttk.Checkbutton(barra, text="Solo activas", variable=self.solo_activas, command=self.actualizar).pack(side="left", padx=20)
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Socio": 160, "Libro": 200, "Sede de retiro": 160})
+        ttk.Checkbutton(barra, text="Solo activas", variable=self.solo_activas, command=self.actualizar).pack(side="left")
+        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Socio": 160, "Libro": 200, "Sede de retiro": 160},
+                             mensaje_vacio="No hay reservas para mostrar.")
         self.tabla.pack(fill="both", expand=True, pady=(10, 0))
+        self.tabla.mostrar_cantidad(barra, "reserva", "reservas")
 
     def actualizar(self):
         self.tabla.cargar([
@@ -40,7 +43,8 @@ class PestaniaReservas(ttk.Frame):
         ])
         if datos and c.ejecutar(
             lambda: self.servicio.reservar(**datos), self,
-            "Reserva registrada. Los ejemplares se asignan por orden de llegada.",
+            "Reserva registrada. Cuando se libere un ejemplar en esa sede, se aparta para la reserva más antigua: "
+            "pasa a 'Disponible para retiro' y el socio tiene 3 días para retirarlo.",
         ):
             self.actualizar()
 
@@ -62,5 +66,20 @@ class PestaniaReservas(ttk.Frame):
     def procesar_vencidas(self):
         vencidas = c.ejecutar(lambda: self.servicio.procesar_reservas_vencidas(), self)
         if vencidas is not None:
-            c.informar(f"Reservas vencidas por no retirar: {len(vencidas)}.", self)
+            c.informar(mensaje_vencidas(vencidas), self)
             self.actualizar()
+
+
+def mensaje_vencidas(vencidas):
+    """Detalle de cada reserva vencida y a quién pasó su ejemplar."""
+    if not vencidas:
+        return "No hay reservas con el plazo de retiro vencido."
+    lineas = [f"Reservas vencidas por no retirar: {len(vencidas)}."]
+    for reserva in vencidas:
+        codigo = reserva.ejemplar_liberado.codigo_inventario
+        if reserva.reasignada_a is not None:
+            destino = f"pasó a la reserva de {reserva.reasignada_a.socio.nombre_completo}"
+        else:
+            destino = "volvió a estar disponible"
+        lineas.append(f"- {reserva.socio.nombre_completo} ({reserva.libro.titulo}): el ejemplar {codigo} {destino}.")
+    return "\n".join(lineas)

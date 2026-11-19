@@ -46,7 +46,7 @@ class ServicioReservas:
                 )
             if list(catalogo.disponibles()):
                 raise OperacionNoPermitida(
-                    f"Hay ejemplares de '{libro.titulo}' disponibles en '{sede.nombre}'. Solicite el préstamo."
+                    f"Hay ejemplares de '{libro.titulo}' disponibles en '{sede.nombre}'. Registre un préstamo local."
                 )
 
             dao = ReservaDAO(sesion)
@@ -75,6 +75,10 @@ class ServicioReservas:
         y la reserva queda cumplida. Solo se retira una reserva disponible para retiro."""
         with obtener_sesion() as sesion:
             reserva = obtener_reserva_o_error(ReservaDAO(sesion), id_reserva)
+            if reserva.estado == EstadoReserva.PENDIENTE:
+                raise OperacionNoPermitida(
+                    "La reserva está pendiente: todavía no hay un ejemplar apartado para retirar."
+                )
             if reserva.estado != EstadoReserva.DISPONIBLE:
                 raise OperacionNoPermitida(
                     f"La reserva está {reserva.estado.value.lower()}: solo se retiran reservas disponibles para retiro."
@@ -86,7 +90,9 @@ class ServicioReservas:
     def procesar_reservas_vencidas(self, fecha=None):
         """Vence las reservas cuyo plazo de retiro pasó y reasigna sus ejemplares.
 
-        Devuelve la lista de reservas vencidas.
+        Devuelve la lista de reservas vencidas. Cada una informa, para mostrarlo al
+        usuario, qué ejemplar se liberó (ejemplar_liberado) y a qué reserva pasó
+        (reasignada_a, None si quedó disponible).
         """
         fecha = fecha or date.today()
         with obtener_sesion() as sesion:
@@ -96,7 +102,8 @@ class ServicioReservas:
                 reserva.estado = EstadoReserva.VENCIDA
                 reserva.ejemplar = None
                 sesion.flush()
-                liberar_ejemplar(sesion, ejemplar, fecha)
+                reserva.ejemplar_liberado = ejemplar
+                reserva.reasignada_a = liberar_ejemplar(sesion, ejemplar, fecha)
         return vencidas
 
     def obtener_reserva(self, id_reserva):

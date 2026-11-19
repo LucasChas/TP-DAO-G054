@@ -8,7 +8,7 @@ Característica: Reservas
     Cuando "Pérez, Ana" reserva "Rayuela" en "Sede Centro"
     Y Juan devuelve el ejemplar
     Y el usuario presta "CEN-0001" a Ana
-    Entonces el sistema muestra "Reserva registrada. Los ejemplares se asignan por orden de llegada."
+    Entonces el sistema muestra "Reserva registrada. Cuando se libere un ejemplar en esa sede, se aparta para la reserva más antigua: pasa a 'Disponible para retiro' y el socio tiene 3 días para retirarlo."
     Y la reserva pasa a "Disponible para retiro" con "CEN-0001" hasta <hoy+3>
     Y la reserva queda "Cumplida"
 
@@ -23,7 +23,7 @@ Característica: Reservas
   Escenario: CP-21 Vencer reservas no retiradas
     Dado una reserva tiene el ejemplar apartado y el plazo de retiro venció
     Cuando el usuario hace click en "Procesar reservas no retiradas"
-    Entonces el sistema muestra "Reservas vencidas por no retirar: 1."
+    Entonces el sistema muestra "Reservas vencidas por no retirar: 1." y que el ejemplar CEN-0001 volvió a estar disponible
     Y la reserva queda "Vencida"
 
   @CP-34 @positivo @R14 @R06
@@ -37,13 +37,13 @@ Característica: Reservas
   Escenario: CN-48 Registrar el retiro de una reserva pendiente
     Dado la reserva de "Pérez, Ana" está pendiente (no hay ejemplar apartado)
     Cuando el usuario selecciona la reserva y hace click en "Registrar retiro"
-    Entonces el sistema muestra el mensaje "Operación rechazada": "La reserva está pendiente: solo se retiran reservas disponibles para retiro."
+    Entonces el sistema muestra el mensaje "Operación rechazada": "La reserva está pendiente: todavía no hay un ejemplar apartado para retirar."
 
   @CN-33 @negativo @R14
   Escenario: CN-33 Reservar con ejemplares disponibles
     Dado "CEN-0001" está disponible
     Cuando "Pérez, Ana" reserva "Rayuela" en "Sede Centro"
-    Entonces el sistema muestra el mensaje "Operación rechazada": "Hay ejemplares de 'Rayuela' disponibles en 'Sede Centro'. Solicite el préstamo."
+    Entonces el sistema muestra el mensaje "Operación rechazada": "Hay ejemplares de 'Rayuela' disponibles en 'Sede Centro'. Registre un préstamo local."
 
   @CN-34 @negativo @R14
   Escenario: CN-34 Reservar en una sede sin ejemplares

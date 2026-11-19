@@ -17,7 +17,7 @@ def test_cp10_prestamo_local(gui, red):
     mensajes = gui.clic("Préstamo local", Formulario({
         "Socio": "Pérez, Ana", "Sede": "Sede Centro", "Ejemplar de la sede": "CEN-0001",
     }, captura="01_formulario_prestamo_local"), Mensaje(captura="02_confirmacion"))
-    assert mensajes == [("Listo", f"Préstamo registrado. Vence el {_vence()}.")]
+    assert mensajes == [("Listo", f"Préstamo local registrado y entregado al socio. Vence el {_vence()} (14 días).")]
     fila = gui.filas(pestania.tabla)[0]
     gui.capturar("03_prestamo_activo")
     assert (fila["Tipo"], fila["Socio"], fila["Ejemplar"], fila["Origen"], fila["Destino"], fila["Vence"], fila["Estado"]) == (
@@ -30,7 +30,8 @@ def test_cp11_solicitud_interbibliotecaria_genera_remito_de_ida(gui, red):
         "Socio": "Pérez, Ana", "Sede de origen (dueña del ejemplar)": "Sede Norte",
         "Sede de destino (retiro)": "Sede Centro", "Ejemplar de la sede de origen": "NOR-0001",
     }, captura="01_formulario_interbibliotecario"), Mensaje(captura="02_confirmacion"))
-    assert mensajes == [("Listo", "Solicitud registrada. Se generó el remito de ida.")]
+    assert mensajes == [("Listo", "Solicitud registrada. Se generó el remito de ida R-000001.\n"
+                                  "Siguiente paso: en Remitos, empaquetarlo y despacharlo.")]
     fila = gui.filas(pestania.tabla)[0]
     gui.capturar("03_prestamo_solicitado")
     assert (fila["Tipo"], fila["Origen"], fila["Destino"], fila["Vence"], fila["Estado"]) == (
@@ -46,8 +47,8 @@ def test_cp12_cancelar_solicitud_interbibliotecaria(gui, red):
     ServicioPrestamos().solicitar_prestamo_interbibliotecario(red.ana.id, red.ej["NOR-0001"].id, red.norte.id, red.centro.id)
     pestania = gui.ir_a("Préstamos")
     gui.seleccionar(pestania.tabla, "Ejemplar", "NOR-0001")
-    gui.clic("Cancelar solicitud", Mensaje(titulo="Confirmar", responder="yes", captura="01_confirmar"),
-             Mensaje(contiene="Solicitud cancelada."))
+    gui.clic("Cancelar solicitud (interbibliotecario)", Mensaje(titulo="Confirmar", responder="yes", captura="01_confirmar"),
+             Mensaje(contiene="Solicitud cancelada: se anuló el remito de ida R-000001"))
     pestania.filtro.set("Todos")
     pestania.actualizar()
     gui.capturar("02_prestamo_cancelado")
@@ -117,7 +118,8 @@ def test_cn22_prestamo_a_socio_con_prestamos_vencidos(gui, red):
     mensajes = gui.clic("Préstamo local", Formulario({
         "Socio": "Gómez, Juan", "Sede": "Sede Norte", "Ejemplar de la sede": "NOR-0001",
     }), Mensaje(titulo="Operación rechazada", captura="02_rechazo"))
-    assert mensajes == [("Operación rechazada", "El socio Gómez, Juan tiene préstamos vencidos sin devolver.")]
+    assert mensajes == [("Operación rechazada", "El socio Gómez, Juan tiene préstamos vencidos sin devolver. "
+                                                "Debe devolverlos antes de recibir un préstamo nuevo.")]
 
 
 def test_cn23_prestamo_a_socio_con_multas_impagas(gui, red):
@@ -127,7 +129,8 @@ def test_cn23_prestamo_a_socio_con_multas_impagas(gui, red):
     mensajes = gui.clic("Préstamo local", Formulario({
         "Socio": "Gómez, Juan", "Sede": "Sede Norte", "Ejemplar de la sede": "NOR-0001",
     }), Mensaje(titulo="Operación rechazada", captura="01_rechazo"))
-    assert mensajes == [("Operación rechazada", "El socio Gómez, Juan tiene multas sin pagar.")]
+    assert mensajes == [("Operación rechazada", "El socio Gómez, Juan tiene multas sin pagar. "
+                                                "Registre el pago en 'Devoluciones y multas' para poder prestarle.")]
 
 
 def test_cn24_interbibliotecario_con_la_misma_sede_de_origen_y_destino(gui, red):
@@ -144,9 +147,10 @@ def test_cn25_entregar_un_prestamo_que_no_llego(gui, red):
     ServicioPrestamos().solicitar_prestamo_interbibliotecario(red.ana.id, red.ej["NOR-0001"].id, red.norte.id, red.centro.id)
     pestania = gui.ir_a("Préstamos")
     gui.seleccionar(pestania.tabla, "Ejemplar", "NOR-0001")
-    mensajes = gui.clic("Entregar al socio", Mensaje(titulo="Operación rechazada", captura="01_no_listo"))
+    mensajes = gui.clic("Entregar (interbibliotecario)", Mensaje(titulo="Operación rechazada", captura="01_no_listo"))
     assert mensajes == [("Operación rechazada",
-                         "El préstamo está solicitado: solo se entregan préstamos listos para retiro.")]
+                         "El préstamo está solicitado: solo se entrega cuando la sede de destino "
+                         "recibió el remito de ida y el préstamo quedó listo para retiro.")]
 
 
 def test_cn26_cancelar_una_solicitud_ya_despachada(gui, red):
@@ -157,7 +161,7 @@ def test_cn26_cancelar_una_solicitud_ya_despachada(gui, red):
     ServicioRemitos().despachar(remito.id)
     pestania = gui.ir_a("Préstamos")
     gui.seleccionar(pestania.tabla, "Ejemplar", "NOR-0001")
-    mensajes = gui.clic("Cancelar solicitud", Mensaje(responder="yes"), Mensaje(titulo="Operación rechazada", captura="01_rechazo"))
+    mensajes = gui.clic("Cancelar solicitud (interbibliotecario)", Mensaje(responder="yes"), Mensaje(titulo="Operación rechazada", captura="01_rechazo"))
     assert mensajes[-1] == ("Operación rechazada",
                             "El préstamo está en envío: solo se cancelan solicitudes no despachadas.")
 
@@ -169,4 +173,5 @@ def test_cn44_prestamo_de_ejemplar_en_reparacion(gui, red):
     mensajes = gui.clic("Préstamo local", Formulario({
         "Socio": "Pérez, Ana", "Sede": "Sede Centro", "Ejemplar de la sede": "CEN-0001",
     }, captura="01_ejemplar_en_reparacion_en_la_lista"), Mensaje(titulo="Operación rechazada", captura="02_rechazo"))
-    assert mensajes == [("Operación rechazada", "El ejemplar CEN-0001 no está disponible (en reparación).")]
+    assert mensajes == [("Operación rechazada", "El ejemplar CEN-0001 no está disponible (en reparación). "
+                                                "Cuando esté reparado, use 'Finalizar reparación' en Catálogo.")]

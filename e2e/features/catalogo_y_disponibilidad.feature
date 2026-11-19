@@ -23,7 +23,7 @@ Característica: Catálogo y disponibilidad
     Dado el ejemplar "CEN-0001" está "En reparación" por una devolución dañada
     Cuando el usuario hace click en "Finalizar reparación"
     Y el usuario hace click en "Dar de baja ejemplar" y confirma
-    Entonces el sistema muestra "El ejemplar vuelve a circular." y el ejemplar queda "Disponible" / "Regular"
+    Entonces el sistema muestra "Reparación finalizada: el ejemplar CEN-0001 queda con estado físico Regular y volvió a estar disponible." y el ejemplar queda "Disponible" / "Regular"
     Y el sistema muestra "Ejemplar dado de baja." y el ejemplar queda "Dado de baja"
 
   @CN-10 @negativo @R04

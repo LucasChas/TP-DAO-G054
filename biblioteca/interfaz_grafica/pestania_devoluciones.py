@@ -3,8 +3,8 @@ import tkinter as tk
 from tkinter import ttk
 
 from biblioteca.interfaz_grafica import componentes as c
-from biblioteca.interfaz_grafica.opciones import opciones_enum
-from biblioteca.modelos.enumeraciones import EstadoFisico, EstadoPrestamo
+from biblioteca.interfaz_grafica.opciones import destino_del_ejemplar, numero_de_remito, opciones_enum
+from biblioteca.modelos.enumeraciones import EstadoFisico, EstadoPrestamo, SentidoRemito
 from biblioteca.patrones.estrategias_multa import ESTRATEGIAS_DISPONIBLES
 from biblioteca.servicios import ServicioPrestamos
 
@@ -15,27 +15,33 @@ class PestaniaDevoluciones(ttk.Frame):
     def __init__(self, padre, servicio):
         """servicio es el ServicioDevoluciones compartido con la pestaña de reportes,
         así ambos usan la misma política de multas."""
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = servicio
         barra = c.barra_de_botones(self, [
-            ("Registrar devolución", self.registrar_devolucion),
+            ("Registrar devolución", self.registrar_devolucion, c.PRIMARIO),
             ("Registrar pago de multa", self.registrar_pago),
         ])
         barra.pack(fill="x")
+        c.separador_vertical(barra)
         self.solo_impagas = tk.BooleanVar(value=False)
-        ttk.Checkbutton(barra, text="Solo multas impagas", variable=self.solo_impagas, command=self.actualizar).pack(side="left", padx=20)
+        ttk.Checkbutton(barra, text="Solo multas impagas", variable=self.solo_impagas, command=self.actualizar).pack(side="left")
 
-        politica = ttk.Frame(self)
+        politica = ttk.LabelFrame(self, text="Política de multas (patrón Strategy)", padding=8)
         politica.pack(fill="x", pady=(10, 0))
-        ttk.Label(politica, text="Política de multas vigente:").pack(side="left")
+        ttk.Label(politica, text="Vigente:").pack(side="left")
         self.estrategias = {clase().descripcion: clase for clase in ESTRATEGIAS_DISPONIBLES}
-        self.selector_politica = ttk.Combobox(politica, values=list(self.estrategias), state="readonly", width=80)
+        self.selector_politica = ttk.Combobox(politica, values=list(self.estrategias), state="readonly", width=70)
         self.selector_politica.set(self.servicio.calculadora.estrategia.descripcion)
         self.selector_politica.pack(side="left", padx=6)
         self.selector_politica.bind("<<ComboboxSelected>>", lambda evento: self.cambiar_politica())
 
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Préstamo": 80, "Socio": 160, "Libro": 200})
+        ttk.Label(politica, text="Se aplica a las devoluciones que se registren desde ahora.",
+                  style="Suave.TLabel").pack(side="left", padx=(6, 0))
+
+        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Préstamo": 80, "Socio": 160, "Libro": 200},
+                             mensaje_vacio="No hay devoluciones para mostrar.")
         self.tabla.pack(fill="both", expand=True, pady=(10, 0))
+        self.tabla.mostrar_cantidad(barra, "devolución", "devoluciones")
 
     def actualizar(self):
         if self.solo_impagas.get():
@@ -51,7 +57,8 @@ class PestaniaDevoluciones(ttk.Frame):
 
     def cambiar_politica(self):
         self.servicio.cambiar_estrategia_de_multa(self.estrategias[self.selector_politica.get()]())
-        c.informar(f"Política de multas: {self.servicio.calculadora.estrategia.descripcion}.", self)
+        c.informar(f"Política de multas cambiada a: {self.servicio.calculadora.estrategia.descripcion}.\n"
+                  "Se aplica a las próximas devoluciones; las ya registradas no cambian.", self)
 
     def registrar_devolucion(self):
         activos = [
@@ -76,8 +83,14 @@ class PestaniaDevoluciones(ttk.Frame):
             mensaje += f"\nMaterial devuelto dañado: cargo de {c.formatear_pesos(devolucion.cargo_por_danio)}."
         if devolucion.monto_multa > 0:
             mensaje += f"\nTotal a pagar: {c.formatear_pesos(devolucion.monto_multa)}."
-        if devolucion.prestamo.es_interbibliotecario:
-            mensaje += "\nSe generó el remito de retorno a la sede propietaria."
+        prestamo = devolucion.prestamo
+        if prestamo.es_interbibliotecario:
+            numero = numero_de_remito(prestamo.id, SentidoRemito.RETORNO)
+            mensaje += (f"\nSe generó el remito de retorno {numero} a la sede propietaria."
+                        "\nSiguiente paso: en Remitos, empaquetarlo y despacharlo.")
+        else:
+            ejemplar = prestamo.ejemplar
+            mensaje += f"\nEl ejemplar {ejemplar.codigo_inventario} {destino_del_ejemplar(ejemplar)}."
         return mensaje
 
     def registrar_pago(self):

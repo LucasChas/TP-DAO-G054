@@ -9,16 +9,20 @@ class PestaniaSedes(ttk.Frame):
     COLUMNAS = ("Id", "Nombre", "Dirección", "Teléfono", "Email", "Horario", "Estado")
 
     def __init__(self, padre):
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = ServicioSedes()
-        c.barra_de_botones(self, [
-            ("Nueva sede", self.nueva),
+        barra = c.barra_de_botones(self, [
+            ("Nueva sede", self.nueva, c.PRIMARIO),
             ("Modificar", self.modificar),
-            ("Dar de baja", self.dar_de_baja),
+            ("Dar de baja", self.dar_de_baja, c.PELIGRO),
             ("Reactivar", self.reactivar),
-        ]).pack(fill="x")
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Nombre": 170, "Dirección": 280, "Email": 200})
+        ])
+        barra.pack(fill="x")
+        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Nombre": 170, "Dirección": 280, "Email": 200},
+                             mensaje_vacio="No hay sedes registradas. Use \"Nueva sede\" o cargue los datos de ejemplo.")
         self.tabla.pack(fill="both", expand=True, pady=(10, 0))
+        self.tabla.mostrar_cantidad(barra, "sede", "sedes")
+        self.tabla.al_doble_clic(self.modificar)
 
     def actualizar(self):
         self.tabla.cargar([
@@ -52,7 +56,9 @@ class PestaniaSedes(ttk.Frame):
 
     def dar_de_baja(self):
         id_sede = c.id_seleccionado_o_aviso(self.tabla, self, "una sede")
-        if id_sede is not None and c.confirmar("¿Confirma la baja de la sede seleccionada?", self):
+        if id_sede is not None and c.confirmar(
+            "¿Confirma la baja de la sede seleccionada?\n"
+            "Mientras esté dada de baja no podrá iniciar préstamos, reservas ni envíos. Su historial se conserva.", self):
             if c.ejecutar(lambda: self.servicio.dar_de_baja_sede(id_sede), self, "Sede dada de baja."):
                 self.actualizar()
 

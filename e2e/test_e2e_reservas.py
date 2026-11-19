@@ -17,7 +17,8 @@ def test_cp19_reserva_asignacion_por_devolucion_y_retiro_del_titular(gui, red):
     pestania = gui.ir_a("Reservas")
     mensajes = gui.clic("Reservar", Formulario({"Socio": "Pérez, Ana", "Libro": "Rayuela", "Sede de retiro": "Sede Centro"},
                                                captura="01_formulario_reserva"), Mensaje(captura="02_confirmacion"))
-    assert mensajes == [("Listo", "Reserva registrada. Los ejemplares se asignan por orden de llegada.")]
+    assert mensajes == [("Listo", "Reserva registrada. Cuando se libere un ejemplar en esa sede, se aparta para la reserva "
+                                  "más antigua: pasa a 'Disponible para retiro' y el socio tiene 3 días para retirarlo.")]
     assert gui.filas(pestania.tabla)[0]["Estado"] == "Pendiente"
 
     gui.ir_a("Devoluciones y multas")
@@ -32,7 +33,7 @@ def test_cp19_reserva_asignacion_por_devolucion_y_retiro_del_titular(gui, red):
     mensajes = gui.clic("Préstamo local", Formulario({"Socio": "Pérez, Ana", "Sede": "Sede Centro",
                                                        "Ejemplar de la sede": "CEN-0001"},
                                                       captura="04_retiro_del_titular"), Mensaje())
-    assert mensajes[0][1].startswith("Préstamo registrado.")
+    assert mensajes[0][1].startswith("Préstamo local registrado y entregado al socio.")
     pestania = gui.ir_a("Reservas")
     pestania.solo_activas.set(False)
     pestania.actualizar()
@@ -56,7 +57,8 @@ def test_cp21_procesar_reservas_no_retiradas(gui, red):
     pestania = gui.ir_a("Reservas")
     gui.capturar("01_plazo_de_retiro_vencido")
     mensajes = gui.clic("Procesar reservas no retiradas", Mensaje(captura="02_resultado"))
-    assert mensajes == [("Listo", "Reservas vencidas por no retirar: 1.")]
+    assert mensajes == [("Listo", "Reservas vencidas por no retirar: 1.\n"
+                                  "- Pérez, Ana (Rayuela): el ejemplar CEN-0001 volvió a estar disponible.")]
     pestania.solo_activas.set(False)
     pestania.actualizar()
     assert gui.filas(pestania.tabla)[0]["Estado"] == "Vencida"
@@ -66,7 +68,7 @@ def test_cn33_reservar_cuando_hay_ejemplares_disponibles(gui, red):
     gui.ir_a("Reservas")
     mensajes = gui.clic("Reservar", Formulario({"Socio": "Pérez, Ana", "Libro": "Rayuela", "Sede de retiro": "Sede Centro"}),
                         Mensaje(titulo="Operación rechazada", captura="01_hay_disponibles"))
-    assert mensajes == [("Operación rechazada", "Hay ejemplares de 'Rayuela' disponibles en 'Sede Centro'. Solicite el préstamo.")]
+    assert mensajes == [("Operación rechazada", "Hay ejemplares de 'Rayuela' disponibles en 'Sede Centro'. Registre un préstamo local.")]
 
 
 def test_cn34_reservar_en_una_sede_sin_ejemplares_del_libro(gui, red):
@@ -138,4 +140,4 @@ def test_cn48_registrar_retiro_de_una_reserva_pendiente(gui, red):
     gui.seleccionar(pestania.tabla, "Socio", "Pérez, Ana")
     mensajes = gui.clic("Registrar retiro", Mensaje(titulo="Operación rechazada", captura="01_reserva_pendiente"))
     assert mensajes == [("Operación rechazada",
-                         "La reserva está pendiente: solo se retiran reservas disponibles para retiro.")]
+                         "La reserva está pendiente: todavía no hay un ejemplar apartado para retirar.")]

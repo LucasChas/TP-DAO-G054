@@ -291,6 +291,11 @@ class TestEntrega:
         with pytest.raises(OperacionNoPermitida):
             prestamos.entregar_prestamo(solicitud.id)
 
+    def test_un_prestamo_local_no_se_vuelve_a_entregar(self, prestamos, red):
+        local = prestamos.registrar_prestamo_local(red.ana.id, red.ejemplar_centro.id, red.centro.id)
+        with pytest.raises(OperacionNoPermitida, match="Es un préstamo local: se entrega al socio en el momento"):
+            prestamos.entregar_prestamo(local.id)
+
     def test_no_se_entrega_a_un_socio_inhabilitado(self, remitos, prestamos, solicitud, remito_ida, red):
         despachado(remitos, remito_ida)
         remitos.recibir(remito_ida.id, EstadoFisico.BUENO)

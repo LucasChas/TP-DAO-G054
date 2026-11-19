@@ -123,6 +123,18 @@ class TestCancelacionYVencimiento:
         assert [r.id for r in vencidas] == [reserva.id]
         assert servicio.obtener_reserva(reserva.id).estado == EstadoReserva.VENCIDA
         assert estado_del_ejemplar(red.centro.id) == EstadoEjemplar.DISPONIBLE
+        assert vencidas[0].ejemplar_liberado.codigo_inventario == "CEN-0001"
+        assert vencidas[0].reasignada_a is None
+
+    def test_al_vencer_una_reserva_se_informa_a_que_reserva_paso_el_ejemplar(
+        self, servicio, prestamos, red, ejemplar_centro_ocupado
+    ):
+        primera = servicio.reservar(red.ana.id, red.rayuela.id, red.centro.id, fecha=HOY)
+        segunda = servicio.reservar(red.juan.id, red.rayuela.id, red.centro.id, fecha=HOY)
+        prestamos.cancelar_prestamo(ejemplar_centro_ocupado.id, fecha=HOY)
+        vencidas = servicio.procesar_reservas_vencidas(fecha=HOY + timedelta(days=4))
+        assert [r.id for r in vencidas] == [primera.id]
+        assert vencidas[0].reasignada_a.id == segunda.id
 
     def test_no_vence_una_reserva_dentro_del_plazo_de_retiro(self, servicio, prestamos, red, ejemplar_centro_ocupado):
         reserva = servicio.reservar(red.ana.id, red.rayuela.id, red.centro.id, fecha=HOY)
@@ -154,7 +166,7 @@ class TestRegistrarRetiro:
 
     def test_no_se_retira_una_reserva_pendiente(self, servicio, red, ejemplar_centro_ocupado):
         reserva = servicio.reservar(red.ana.id, red.rayuela.id, red.centro.id, fecha=HOY)
-        with pytest.raises(OperacionNoPermitida, match="pendiente: solo se retiran reservas disponibles"):
+        with pytest.raises(OperacionNoPermitida, match="pendiente: todavía no hay un ejemplar apartado para retirar"):
             servicio.registrar_retiro(reserva.id, fecha=HOY)
 
     def test_no_se_retira_dos_veces(self, servicio, prestamos, red, ejemplar_centro_ocupado):

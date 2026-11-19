@@ -32,8 +32,8 @@ class ServicioDevoluciones:
     def __init__(self, calculadora=None):
         """La calculadora de multas se puede recibir ya configurada; si no, usa la política guardada.
 
-        La política guardada se lee recién cuando se necesita, porque la consola crea este
-        servicio al importar sus menús, antes de configurar la base de datos.
+        La política guardada se lee recién cuando se necesita, así el servicio se puede crear
+        aunque la base de datos todavía no esté configurada.
         """
         self._calculadora = calculadora
 

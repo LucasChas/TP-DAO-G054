@@ -47,7 +47,7 @@ def test_cp09_finalizar_reparacion_y_dar_de_baja_un_ejemplar(gui, red):
     gui.seleccionar(pestania.tabla_libros, "Título", "Rayuela")
     gui.seleccionar(pestania.tabla_ejemplares, "Código", "CEN-0001")
     gui.capturar("01_ejemplar_en_reparacion")
-    gui.clic("Finalizar reparación", Mensaje(contiene="El ejemplar vuelve a circular."))
+    gui.clic("Finalizar reparación", Mensaje(contiene="Reparación finalizada: el ejemplar CEN-0001 queda con estado físico Regular"))
     fila = next(f for f in gui.filas(pestania.tabla_ejemplares) if f["Código"] == "CEN-0001")
     assert (fila["Estado"], fila["Estado físico"]) == ("Disponible", "Regular")
     gui.seleccionar(pestania.tabla_ejemplares, "Código", "CEN-0001")

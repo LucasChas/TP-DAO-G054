@@ -104,7 +104,7 @@ La multa por devolución tardía se puede calcular de varias formas: un monto fi
 El cargo fijo por devolver un material dañado ($1000) no es una estrategia: lo calcula `CalculadoraDeMultas.cargo_por_danio()` con cualquier política vigente, porque es el costo de una reparación y no una sanción por atraso que se pueda condonar.
 
 ### Diferencia con State
-Como marca la cátedra, en Strategy la estrategia **se elige desde afuera**: la elige quien configura la calculadora, por ejemplo desde el menú "Cambiar política de multas". En State, en cambio, es el propio estado el que decide la transición.
+Como marca la cátedra, en Strategy la estrategia **se elige desde afuera**: la elige quien configura la calculadora, por ejemplo desde el selector "Política de multas vigente" de la pestaña "Devoluciones y multas". En State, en cambio, es el propio estado el que decide la transición.
 
 ```python
 class EstrategiaMulta(ABC):
@@ -192,7 +192,7 @@ Uso en el servicio de reservas:
 ```python
 catalogo = CatalogoEjemplares(EjemplarDAO(sesion).listar(id_libro=libro.id, id_sede=sede.id))
 if list(catalogo.disponibles()):
-    raise OperacionNoPermitida("Hay ejemplares disponibles. Solicite el préstamo.")
+    raise OperacionNoPermitida("Hay ejemplares disponibles. Registre un préstamo local.")
 ```
 
 ---

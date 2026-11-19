@@ -176,7 +176,7 @@ El cierre de un préstamo. Registra:
 
 La multa es un **monto en pesos** calculado con el patrón **Strategy**. Se eligió un monto, y no días de suspensión, porque la consigna pide un reporte de "multas acumuladas", y lo que se acumula es un importe sumable por socio.
 
-- Hay tres políticas de multa, y se puede cambiar la vigente desde el menú:
+- Hay tres políticas de multa, y se puede cambiar la vigente desde la pestaña "Devoluciones y multas":
   - **Por tipo de material** (la que se usa por defecto): $500 por día para libros, $300 para revistas y $1000 para material de consulta. El de consulta es el más caro porque es el más demandado y el que tiene menos copias.
   - **Por días de atraso:** $500 por día para cualquier material.
   - **Sin multa:** para condonaciones.
