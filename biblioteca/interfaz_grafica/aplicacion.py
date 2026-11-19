@@ -39,8 +39,9 @@ class Aplicacion(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title(TITULO)
-        self.geometry("1320x780")
-        self.minsize(1050, 620)
+        self._descripciones = []
+        self._compacta = False
+        self._ajustar_a_la_pantalla()
         tema.aplicar(self)
 
         self._crear_menu()
@@ -134,6 +135,47 @@ class Aplicacion(tk.Tk):
             self.bind_all(f"<Control-Key-{numero}>", lambda evento, pestania=pestania: self.mostrar_pestania(pestania))
         self.bind_all("<F5>", lambda evento: self.actualizar_todo())
         self.bind_all("<Control-q>", lambda evento: self.destroy())
+
+    # --- Tamaño adaptable --------------------------------------------------------------
+
+    ANCHO_IDEAL, ALTO_IDEAL = 1320, 780
+
+    def _ajustar_a_la_pantalla(self):
+        """Usa 1320 × 780 si la pantalla lo permite; si no, ocupa la pantalla (maximizada)."""
+        pantalla_ancho, pantalla_alto = self.winfo_screenwidth(), self.winfo_screenheight()
+        ancho = min(self.ANCHO_IDEAL, pantalla_ancho - 40)
+        alto = min(self.ALTO_IDEAL, pantalla_alto - 100)
+        x, y = max((pantalla_ancho - ancho) // 2, 0), max((pantalla_alto - alto) // 3, 0)
+        self.geometry(f"{ancho}x{alto}+{x}+{y}")
+        self.minsize(min(960, pantalla_ancho - 40), min(560, pantalla_alto - 100))
+        if pantalla_ancho < self.ANCHO_IDEAL + 40 or pantalla_alto < self.ALTO_IDEAL + 100:
+            try:
+                self.state("zoomed")  # Windows
+            except tk.TclError:
+                try:
+                    self.attributes("-zoomed", True)  # Linux
+                except tk.TclError:
+                    pass
+        self.bind("<Configure>", self._al_cambiar_tamanio, add="+")
+
+    def registrar_descripcion(self, etiqueta):
+        """Las descripciones de las pestañas se ocultan cuando la ventana es baja, para dar lugar a las tablas."""
+        self._descripciones.append(etiqueta)
+        if self._compacta:
+            etiqueta.pack_forget()
+
+    def _al_cambiar_tamanio(self, evento):
+        if evento.widget is not self:
+            return
+        compacta = evento.height < 700
+        if compacta == self._compacta:
+            return
+        self._compacta = compacta
+        for etiqueta in self._descripciones:
+            if compacta:
+                etiqueta.pack_forget()
+            else:
+                etiqueta.pack(anchor="w", pady=(2, 0))
 
     # --- Navegación y estado -----------------------------------------------------------
 

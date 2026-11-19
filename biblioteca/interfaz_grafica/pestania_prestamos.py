@@ -29,15 +29,14 @@ class PestaniaPrestamos(ttk.Frame):
 
         barra = c.barra_de_filtros(self)
         barra.pack(fill="x", pady=(14, 10))
-        self.busqueda = c.CampoDeBusqueda(barra, "Buscar por socio, libro o ejemplar", self.actualizar, ancho=26)
+        self.busqueda = c.CampoDeBusqueda(barra.izquierda, "Buscar por socio, libro o ejemplar", self.actualizar, ancho=26)
         self.busqueda.pack(side="left")
-        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self.actualizar)
+        self.filtro = c.FiltroSegmentado(barra.izquierda, self.FILTROS, self.actualizar)
         self.filtro.pack(side="left", padx=(12, 0))
-        acciones = c.barra_de_botones(barra, [
+        c.acciones_de_seleccion(barra, [
             ("Entregar (interbibliotecario)", self.entregar),
             ("Cancelar solicitud (interbibliotecario)", self.cancelar, c.PELIGRO),
-        ])
-        acciones.pack(side="right")
+        ], rotulo=False)
         self.tabla = c.Tabla(self, self.COLUMNAS, columna_estado="Estado",
                              anchos={"Tipo": 130, "Socio": 150, "Libro": 190, "Origen": 140, "Destino": 140},
                              mensaje_vacio="No hay préstamos para el filtro elegido.")

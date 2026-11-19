@@ -225,11 +225,11 @@ class PestaniaRemitos(ttk.Frame):
 
         barra = c.barra_de_filtros(self)
         barra.pack(fill="x", pady=(14, 10))
-        self.busqueda = c.CampoDeBusqueda(barra, "Buscar por número, libro, ejemplar o socio", self.actualizar, ancho=38)
+        self.busqueda = c.CampoDeBusqueda(barra.izquierda, "Buscar por número, libro, ejemplar o socio", self.actualizar, ancho=38)
         self.busqueda.pack(side="left")
         # solo_en_curso se mantiene como variable: equivale a elegir el filtro "En curso".
         self.solo_en_curso = tk.BooleanVar(value=False)
-        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self._al_elegir_filtro)
+        self.filtro = c.FiltroSegmentado(barra.izquierda, self.FILTROS, self._al_elegir_filtro)
         self.filtro.pack(side="left", padx=(12, 0))
 
         division, self.tabla, self.marco_trayecto = c.division_vertical(
@@ -244,16 +244,16 @@ class PestaniaRemitos(ttk.Frame):
         division.pack(fill="both", expand=True)
         self.tabla.al_seleccionar(self.actualizar_trayecto)
 
+        self.resumen = ttk.Label(self.marco_trayecto, text="", style="PanelSuave.TLabel")
+        self.resumen.pack(anchor="w")
         cabecera = ttk.Frame(self.marco_trayecto, style="Panel.TFrame")
-        cabecera.pack(fill="x")
-        self.resumen = ttk.Label(cabecera, text="", style="PanelSuave.TLabel")
-        self.resumen.pack(side="left")
-        self.vista = c.FiltroSegmentado(cabecera, self.VISTAS, self._mostrar_vista)
-        self.vista.pack(side="right")
+        cabecera.pack(fill="x", pady=(8, 0))
         self.botones = c.barra_de_botones(cabecera, [
             (texto, getattr(self, metodo), estilo) for texto, _, metodo, estilo in ACCIONES
         ])
-        self.botones.pack(side="right", padx=(0, 16))
+        self.botones.pack(side="left")
+        self.vista = c.FiltroSegmentado(cabecera, self.VISTAS, self._mostrar_vista)
+        self.vista.pack(side="right")
         self.recorrido = Recorrido(self.marco_trayecto)
         self.tabla_trayecto = c.Tabla(self.marco_trayecto, self.COLUMNAS_TRAYECTO, alto=5, ocultas=(),
                                       anchos={"Fecha y hora": 150, "Observación": 420},

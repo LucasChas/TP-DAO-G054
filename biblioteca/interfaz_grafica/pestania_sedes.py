@@ -18,9 +18,9 @@ class PestaniaSedes(ttk.Frame):
 
         barra = c.barra_de_filtros(self)
         barra.pack(fill="x", pady=(14, 10))
-        self.busqueda = c.CampoDeBusqueda(barra, "Buscar por nombre o dirección", self.actualizar)
+        self.busqueda = c.CampoDeBusqueda(barra.izquierda, "Buscar por nombre o dirección", self.actualizar)
         self.busqueda.pack(side="left")
-        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self.actualizar, inicial="Todas")
+        self.filtro = c.FiltroSegmentado(barra.izquierda, self.FILTROS, self.actualizar, inicial="Todas")
         self.filtro.pack(side="left", padx=(12, 0))
         self.acciones = c.acciones_de_seleccion(barra, [
             ("Modificar", self.modificar),

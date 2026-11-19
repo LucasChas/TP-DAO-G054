@@ -88,13 +88,14 @@ Además:
 - **Barra de estado:** muestra el resultado de la última operación (o el motivo del rechazo) y la base de datos en uso.
 - **Botones:** la acción principal va rellena en azul; las que dan de baja, cancelan o anulan, con borde rojo; las que no aplican a la fila elegida se ven atenuadas.
 - **Formularios:** listas desplegables en lugar de ids, datos obligatorios marcados con `*` y, si falta uno o tiene un formato inválido, el campo queda marcado en rojo.
+- **Tamaño de pantalla:** la ventana se abre en 1320 × 780 si la pantalla lo permite; en pantallas más chicas (por ejemplo, una notebook de 1366 × 768) se abre maximizada. Si no entran en una línea, las acciones de la barra de filtros y los botones de los reportes pasan a la línea siguiente. Cuando la ventana es baja, se ocultan las descripciones de las pestañas para dejar más lugar a las tablas.
 - **Contraste:** todo el texto cumple el nivel AA de WCAG 2.2 (al menos 4,5:1) y los bordes de botones y campos, al menos 3:1. Los colores, las fuentes y los estilos están centralizados en `biblioteca/interfaz_grafica/tema.py`.
 
 Atajos de teclado (también en **Ayuda > Atajos de teclado**): `Ctrl+1` … `Ctrl+8` para cambiar de pestaña, `F5` para actualizar, doble clic o `Enter` sobre una fila para modificarla (Sedes, Socios y Catálogo), `Enter`/`Esc` para aceptar o cancelar un formulario y `Ctrl+Q` para salir.
 
 Detalles por pestaña:
 - **Sedes:** filtros Activas, Dadas de baja y Todas.
-- **Socios:** la columna "Situación" resume préstamos vencidos, multas impagas, reservas activas o el motivo de la inhabilitación. Al elegir un socio, el detalle muestra sus préstamos en curso, vencidos, multas, reservas y todos sus préstamos. El filtro "Con deuda" lista a quienes tienen vencidos o multas impagas.
+- **Socios:** la columna "Situación" resume préstamos vencidos, multas impagas, reservas activas o el motivo de la inhabilitación. Al elegir un socio, debajo se listan todos sus préstamos, con las acciones Modificar, Habilitar e Inhabilitar. El filtro "Con deuda" lista a quienes tienen vencidos o multas impagas.
 - **Catálogo:** la columna "Disponibles" indica cuántos ejemplares libres hay sobre el total ("2 de 3"). Al elegir un libro se ven sus ejemplares, y "Ver disponibilidad" muestra el detalle por sede y por estado.
 - **Préstamos:** filtros En curso, Por vencer (vencen en 3 días o menos), Vencidos y Todos. Al elegir la sede (o la sede de origen, en el interbibliotecario), la lista de ejemplares muestra solo los que pertenecen a esa sede.
 - **Reservas:** muestra el lugar de cada reserva pendiente en la cola de su libro y sede ("1.º de 2") y su situación (qué espera, o hasta cuándo puede retirarse el ejemplar apartado). Cuando una reserva queda "Disponible para retiro", "Registrar retiro" presta el ejemplar apartado al socio (préstamo local de 14 días) y la reserva pasa a "Cumplida".

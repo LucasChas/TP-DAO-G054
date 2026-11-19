@@ -24,7 +24,8 @@ def dibujar(grafico, ancho_pulgadas=7.0, alto_pulgadas=3.4):
 
 def crear_figura(grafico, ancho_pulgadas=7.0, alto_pulgadas=3.4, dpi=100):
     """Arma la figura de matplotlib del gráfico (barras, barras horizontales o torta)."""
-    figura = Figure(figsize=(ancho_pulgadas, alto_pulgadas), dpi=dpi)
+    # layout="tight" recalcula los márgenes cada vez que la figura cambia de tamaño (también en pantalla).
+    figura = Figure(figsize=(ancho_pulgadas, alto_pulgadas), dpi=dpi, layout="tight")
     figura.patch.set_facecolor("white")
     ejes = figura.add_subplot()
     if grafico.tipo == "torta":
@@ -54,7 +55,6 @@ def crear_figura(grafico, ancho_pulgadas=7.0, alto_pulgadas=3.4, dpi=100):
         if grafico.enteros:
             ejes.yaxis.set_major_locator(MaxNLocator(integer=True))
         _sin_bordes_superiores(ejes)
-    figura.tight_layout()
     return figura
 
 

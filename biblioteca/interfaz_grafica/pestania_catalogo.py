@@ -23,12 +23,12 @@ class PestaniaCatalogo(ttk.Frame):
 
         barra = c.barra_de_filtros(self)
         barra.pack(fill="x", pady=(14, 10))
-        self.campo_busqueda = c.CampoDeBusqueda(barra, "Buscar por título o autor", self._al_escribir)
+        self.campo_busqueda = c.CampoDeBusqueda(barra.izquierda, "Buscar por título o autor", self._al_escribir)
         self.campo_busqueda.pack(side="left")
         self.busqueda = self.campo_busqueda.entrada
         self.busqueda.bind("<Return>", lambda evento: self.buscar())
         self.texto_buscado = None
-        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self.actualizar)
+        self.filtro = c.FiltroSegmentado(barra.izquierda, self.FILTROS, self.actualizar)
         self.filtro.pack(side="left", padx=(12, 0))
         c.acciones_de_seleccion(barra, [
             ("Modificar libro", self.modificar_libro),

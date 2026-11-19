@@ -299,7 +299,11 @@ def encabezado_de_pestania(padre, titulo, descripcion, acciones=()):
     textos = ttk.Frame(marco, style="Panel.TFrame")
     textos.pack(side="left", fill="x", expand=True)
     ttk.Label(textos, text=titulo, style="PanelTitulo.TLabel").pack(anchor="w")
-    ttk.Label(textos, text=descripcion, style="PanelSuave.TLabel").pack(anchor="w", pady=(2, 0))
+    marco.descripcion = ttk.Label(textos, text=descripcion, style="PanelSuave.TLabel")
+    marco.descripcion.pack(anchor="w", pady=(2, 0))
+    registrar = getattr(padre.winfo_toplevel(), "registrar_descripcion", None)
+    if registrar:
+        registrar(marco.descripcion)
     marco.botones = {}
     for boton in acciones:
         texto, comando = boton[0], boton[1]
@@ -310,11 +314,12 @@ def encabezado_de_pestania(padre, titulo, descripcion, acciones=()):
     return marco
 
 
-def acciones_de_seleccion(barra, botones):
-    """Agrega a la derecha de una barra las acciones que se aplican a la fila elegida."""
-    marco = barra_de_botones(barra, botones)
-    marco.pack(side="right")
-    ttk.Label(barra, text="Selección:", style="PanelSuave.TLabel").pack(side="right", padx=(0, 8))
+def acciones_de_seleccion(barra, botones, rotulo=True):
+    """Agrega en el lado derecho de una BarraDeFiltros las acciones que se aplican a la fila elegida."""
+    if rotulo:
+        ttk.Label(barra.derecha, text="Selección:", style="PanelSuave.TLabel").pack(side="left", padx=(0, 8))
+    marco = barra_de_botones(barra.derecha, botones)
+    marco.pack(side="left")
     return marco
 
 
@@ -325,18 +330,36 @@ class FiltroSegmentado(ttk.Frame):
     pruebas pueden elegir una opción por su nombre.
     """
 
-    def __init__(self, padre, opciones, al_cambiar=None, inicial=None):
+    def __init__(self, padre, opciones, al_cambiar=None, inicial=None, ajustable_a=None):
+        """ajustable_a es un widget cuyo ancho se respeta: si los botones no entran, pasan a otra fila."""
         super().__init__(padre, style="Panel.TFrame")
         self._opciones = list(opciones)
         self._al_cambiar = al_cambiar
         self._valor = inicial or self._opciones[0]
         self._cantidades = {}
+        self._por_fila = len(self._opciones)
         self.botones = {}
         for opcion in self._opciones:
-            boton = ttk.Button(self, text=opcion, command=lambda opcion=opcion: self.elegir(opcion))
-            boton.pack(side="left", padx=(0, 1))
-            self.botones[opcion] = boton
+            self.botones[opcion] = ttk.Button(self, text=opcion, command=lambda opcion=opcion: self.elegir(opcion))
+        self._ubicar()
         self._pintar()
+        if ajustable_a is not None:
+            ajustable_a.bind("<Configure>", lambda evento: self._ajustar(evento.width), add="+")
+
+    def _ubicar(self):
+        for indice, opcion in enumerate(self._opciones):
+            fila, columna = divmod(indice, self._por_fila)
+            self.botones[opcion].grid(row=fila, column=columna, sticky="ew", padx=(0, 1), pady=(0, 1))
+
+    def _ajustar(self, ancho):
+        """Reparte los botones en tantas filas como hagan falta para no pasarse del ancho."""
+        anchos = [boton.winfo_reqwidth() + 1 for boton in self.botones.values()]
+        por_fila = len(anchos)
+        while por_fila > 1 and max(sum(anchos[i:i + por_fila]) for i in range(0, len(anchos), por_fila)) > ancho:
+            por_fila -= 1
+        if por_fila != self._por_fila:
+            self._por_fila = por_fila
+            self._ubicar()
 
     def get(self):
         return self._valor
@@ -404,9 +427,36 @@ def coincide(busqueda, *textos):
     return any(buscado in str(texto or "").casefold().replace(".", "") for texto in textos)
 
 
+class BarraDeFiltros(ttk.Frame):
+    """Fila con la búsqueda y los filtros a la izquierda (self.izquierda) y las acciones a la derecha
+    (self.derecha). Si la ventana es angosta y no entran en una línea, las acciones pasan abajo."""
+
+    def __init__(self, padre):
+        super().__init__(padre, style="Panel.TFrame")
+        self.izquierda = ttk.Frame(self, style="Panel.TFrame")
+        self.derecha = ttk.Frame(self, style="Panel.TFrame")
+        self.izquierda.grid(row=0, column=0, sticky="w")
+        self.derecha.grid(row=0, column=1, sticky="e")
+        self.columnconfigure(1, weight=1)
+        self._en_dos_lineas = False
+        self.bind("<Configure>", self._reacomodar, add="+")
+
+    def _reacomodar(self, evento=None):
+        ancho = evento.width if evento else self.winfo_width()
+        necesita = self.izquierda.winfo_reqwidth() + self.derecha.winfo_reqwidth() + 24
+        dos_lineas = bool(self.derecha.winfo_children()) and necesita > ancho
+        if dos_lineas == self._en_dos_lineas:
+            return
+        self._en_dos_lineas = dos_lineas
+        if dos_lineas:
+            self.derecha.grid(row=1, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        else:
+            self.derecha.grid(row=0, column=1, columnspan=1, sticky="e", pady=0)
+
+
 def barra_de_filtros(padre):
     """Fila con la búsqueda y los filtros a la izquierda y las acciones de la selección a la derecha."""
-    return ttk.Frame(padre, style="Panel.TFrame")
+    return BarraDeFiltros(padre)
 
 
 def tarjeta(padre, valor, texto, detalle=None, alerta=False):

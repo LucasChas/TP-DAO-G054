@@ -1,11 +1,8 @@
-"""Pestaña de administración de socios, con la situación de cada uno y su detalle debajo."""
+"""Pestaña de administración de socios, con la situación de cada uno y sus préstamos debajo."""
 from tkinter import ttk
 
 from biblioteca.interfaz_grafica import componentes as c
-from biblioteca.modelos.enumeraciones import EstadoPrestamo
 from biblioteca.servicios import ServicioDevoluciones, ServicioPrestamos, ServicioReservas, ServicioSocios
-
-EN_CURSO = (EstadoPrestamo.SOLICITADO, EstadoPrestamo.EN_ENVIO, EstadoPrestamo.LISTO_PARA_RETIRO, EstadoPrestamo.ACTIVO)
 
 
 class PestaniaSocios(ttk.Frame):
@@ -23,13 +20,13 @@ class PestaniaSocios(ttk.Frame):
 
         barra = c.barra_de_filtros(self)
         barra.pack(fill="x", pady=(14, 10))
-        busqueda = c.CampoDeBusqueda(barra, "Buscar por nombre o DNI", self.actualizar, ancho=30)
+        busqueda = c.CampoDeBusqueda(barra.izquierda, "Buscar por nombre o DNI", self.actualizar, ancho=30)
         busqueda.pack(side="left")
         self.busqueda = busqueda
         self.busqueda_dni = busqueda.entrada
         self.busqueda_dni.bind("<Return>", lambda evento: self.buscar_por_dni())
-        ttk.Button(barra, text="Buscar por DNI", command=self.buscar_por_dni).pack(side="left", padx=(8, 0))
-        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self.actualizar)
+        ttk.Button(barra.izquierda, text="Buscar por DNI", command=self.buscar_por_dni).pack(side="left", padx=(8, 0))
+        self.filtro = c.FiltroSegmentado(barra.izquierda, self.FILTROS, self.actualizar)
         self.filtro.pack(side="left", padx=(12, 0))
 
         division, self.tabla, self.detalle = c.division_vertical(
@@ -38,7 +35,7 @@ class PestaniaSocios(ttk.Frame):
                                   anchos={"Apellido y nombre": 170, "Email": 200, "Situación": 260},
                                   mensaje_vacio="No hay socios para mostrar."),
             lambda padre: c.PanelDeDetalle(padre, "Elija un socio para ver sus préstamos"),
-            proporcion=0.42,
+            proporcion=0.5,
         )
         division.pack(fill="both", expand=True)
         self.tabla.al_seleccionar(self.actualizar_detalle)
@@ -122,29 +119,13 @@ class PestaniaSocios(ttk.Frame):
         self.acciones.botones["Inhabilitar"].configure(style=c.PELIGRO if socio.esta_habilitado else c.ATENUADO)
         prestamos = ServicioPrestamos().listar_prestamos_de_socio(id_socio)
         datos = self._situacion.get(id_socio, {"vencidos": [], "deuda": 0.0, "reservas": 0})
-        self.detalle.mostrar(socio.nombre_completo, f"DNI {socio.dni}  ·  socio desde el {c.formatear_fecha(socio.fecha_alta)}")
+        self.detalle.mostrar(f"Préstamos de {socio.nombre_completo}",
+                             f"DNI {socio.dni}  ·  socio desde el {c.formatear_fecha(socio.fecha_alta)}")
 
-        cuerpo = self.detalle.cuerpo
-        tarjetas = ttk.Frame(cuerpo, style="Panel.TFrame")
-        tarjetas.pack(fill="x")
-        en_curso = [p for p in prestamos if p.estado in EN_CURSO]
-        vencidos = datos["vencidos"]
-        ids_vencidos = {p.id for p in vencidos}
-        for valor, texto, detalle, alerta in (
-            (len(en_curso), "Préstamos en curso", ", ".join(p.ejemplar.libro.titulo for p in en_curso) or "-", False),
-            (len(vencidos), "Vencidos", ", ".join(p.ejemplar.libro.titulo for p in vencidos) or "-", bool(vencidos)),
-            (c.formatear_pesos(datos["deuda"]), "Multas impagas", "Se cobran en Devoluciones y multas" if datos["deuda"] else "Sin deuda", bool(datos["deuda"])),
-            (datos["reservas"], "Reservas activas", "-", False),
-        ):
-            c.tarjeta(tarjetas, valor, texto, detalle, alerta).pack(side="left", fill="x", expand=True, padx=(0, 10))
-        if not socio.esta_habilitado:
-            ttk.Label(cuerpo, text=f"Inhabilitado: {socio.motivo_inhabilitacion}", style="PanelNegrita.TLabel",
-                      foreground="#a4161a").pack(anchor="w", pady=(10, 0))
-
-        ttk.Label(cuerpo, text="Préstamos del socio", style="PanelNegrita.TLabel").pack(anchor="w", pady=(12, 6))
-        historial = c.Tabla(cuerpo, self.COLUMNAS_PRESTAMOS, alto=3, columna_estado="Estado",
+        historial = c.Tabla(self.detalle.cuerpo, self.COLUMNAS_PRESTAMOS, alto=3, columna_estado="Estado",
                             mensaje_vacio="El socio todavía no tuvo préstamos.")
         historial.pack(fill="both", expand=True)
+        ids_vencidos = {p.id for p in datos["vencidos"]}
         historial.cargar([
             (p.id, p.ejemplar.libro.titulo, p.ejemplar.codigo_inventario, p.tipo.value,
              c.formatear_fecha(p.fecha_solicitud), c.formatear_fecha(p.fecha_vencimiento),

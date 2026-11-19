@@ -40,11 +40,11 @@ class PestaniaDevoluciones(ttk.Frame):
 
         barra = c.barra_de_filtros(self)
         barra.pack(fill="x", pady=(12, 10))
-        self.busqueda = c.CampoDeBusqueda(barra, "Buscar por socio o libro", self.actualizar, ancho=30)
+        self.busqueda = c.CampoDeBusqueda(barra.izquierda, "Buscar por socio o libro", self.actualizar, ancho=30)
         self.busqueda.pack(side="left")
         # solo_impagas se mantiene como variable: equivale a elegir el filtro "Impagas".
         self.solo_impagas = tk.BooleanVar(value=False)
-        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self._al_elegir_filtro)
+        self.filtro = c.FiltroSegmentado(barra.izquierda, self.FILTROS, self._al_elegir_filtro)
         self.filtro.pack(side="left", padx=(12, 0))
         self.acciones = c.acciones_de_seleccion(barra, [("Registrar pago de multa", self.registrar_pago)])
         self.tabla = c.Tabla(self, self.COLUMNAS, columna_estado="Pago", ocultas=("Id", "Préstamo", "Pagada"),

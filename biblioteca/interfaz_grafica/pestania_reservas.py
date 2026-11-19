@@ -25,11 +25,11 @@ class PestaniaReservas(ttk.Frame):
 
         barra = c.barra_de_filtros(self)
         barra.pack(fill="x", pady=(14, 10))
-        self.busqueda = c.CampoDeBusqueda(barra, "Buscar por socio o libro", self.actualizar, ancho=30)
+        self.busqueda = c.CampoDeBusqueda(barra.izquierda, "Buscar por socio o libro", self.actualizar, ancho=30)
         self.busqueda.pack(side="left")
         # solo_activas se mantiene como variable: el filtro "Todas" la apaga y los otros dos la encienden.
         self.solo_activas = tk.BooleanVar(value=True)
-        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self._al_elegir_filtro)
+        self.filtro = c.FiltroSegmentado(barra.izquierda, self.FILTROS, self._al_elegir_filtro)
         self.filtro.pack(side="left", padx=(12, 0))
         self.acciones = c.acciones_de_seleccion(barra, [
             ("Registrar retiro", self.registrar_retiro),
