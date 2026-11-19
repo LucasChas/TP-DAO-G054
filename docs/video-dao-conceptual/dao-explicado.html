@@ -1,0 +1,467 @@
+<title>El DAO explicado</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: reproductor 16:9. Mapa de la biblioteca a la izquierda (siempre el mismo, para ubicarse), primer plano a la derecha, subtítulos abajo. */
+:root {
+  --bg: #e9ede8; --stage: #f8faf6; --card: #ffffff; --ink: #1c2822; --muted: #5d6b63; --line: #d3dbd4;
+  --accent: #2c6a4b; --dao: #b57a06; --dao-soft: #fbefd2; --state: #0f7f6c; --state-soft: #d8f1eb;
+  --strat: #6e45c4; --strat-soft: #ebe3fa; --iter: #1a73a8; --iter-soft: #dceefa;
+  --ok: #217a45; --ok-soft: #dcf2e3; --bad: #b8352c; --bad-soft: #f9e0dd; --draft: #8a6a00; --draft-soft: #f8eec4;
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0d1411; --stage: #131c18; --card: #1a2520; --ink: #e5ece7; --muted: #9db0a5; --line: #2b3a33;
+  --accent: #6cc59a; --dao: #f0b33c; --dao-soft: #3a2d0e; --state: #3fc7ac; --state-soft: #10332c;
+  --strat: #ad8df2; --strat-soft: #2a2045; --iter: #62bdf0; --iter-soft: #0f2b3b;
+  --ok: #5ccb8a; --ok-soft: #133222; --bad: #f06e64; --bad-soft: #3d1715; --draft: #e8c650; --draft-soft: #33290c; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0d1411; --stage: #131c18; --card: #1a2520; --ink: #e5ece7; --muted: #9db0a5; --line: #2b3a33;
+  --accent: #6cc59a; --dao: #f0b33c; --dao-soft: #3a2d0e; --state: #3fc7ac; --state-soft: #10332c;
+  --strat: #ad8df2; --strat-soft: #2a2045; --iter: #62bdf0; --iter-soft: #0f2b3b;
+  --ok: #5ccb8a; --ok-soft: #133222; --bad: #f06e64; --bad-soft: #3d1715; --draft: #e8c650; --draft-soft: #33290c; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-block: 16px 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 12px; }
+.intro h1 { font-family: var(--f-display); font-size: clamp(22px, 3vw, 30px); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.intro p { margin: 4px 0 0; color: var(--muted); max-width: 72ch; }
+
+/* escenario fijo 1280x720 escalado */
+.frame { position: relative; width: 100%; aspect-ratio: 16 / 9; max-width: 100%; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--stage); }
+.stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; background: var(--stage); }
+.topbar { position: absolute; left: 0; right: 0; top: 0; height: 58px; display: flex; align-items: center; gap: 14px; padding: 0 28px; border-bottom: 1px solid var(--line); }
+.topbar .cn { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.topbar h2 { font-family: var(--f-display); font-size: 25px; margin: 0; flex: 1; letter-spacing: -.01em; }
+.ptag { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 4px 10px; border-radius: 5px; }
+.ptag.dao { color: var(--dao); background: var(--dao-soft); } .ptag.state { color: var(--state); background: var(--state-soft); }
+.ptag.strat { color: var(--strat); background: var(--strat-soft); } .ptag.iter { color: var(--iter); background: var(--iter-soft); }
+.ptag.none { color: var(--muted); background: var(--bg); }
+
+.map { position: absolute; left: 24px; top: 72px; width: 776px; height: 528px; }
+.el { position: absolute; border: 2px solid var(--line); background: var(--card); border-radius: 10px; padding: 10px 12px; transition: opacity .5s, border-color .4s, box-shadow .4s, transform .4s; display: grid; align-content: center; gap: 2px; }
+.el b { font-size: 16px; font-weight: 600; line-height: 1.15; }
+.el small { font-size: 12.5px; color: var(--muted); }
+.el .ico { position: absolute; right: 10px; top: 10px; width: 30px; height: 30px; color: var(--muted); }
+.map.focus .el:not(.on) { opacity: .32; }
+.el.on { border-color: var(--accent); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); transform: translateY(-2px); }
+.el.dao.on, .el.drawer.on { border-color: var(--dao); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dao) 28%, transparent); }
+.el.iter.on { border-color: var(--iter); box-shadow: 0 0 0 4px color-mix(in srgb, var(--iter) 25%, transparent); }
+.el.state.on { border-color: var(--state); box-shadow: 0 0 0 4px color-mix(in srgb, var(--state) 25%, transparent); }
+.el.strat.on { border-color: var(--strat); box-shadow: 0 0 0 4px color-mix(in srgb, var(--strat) 25%, transparent); }
+.el.dao { background: color-mix(in srgb, var(--dao) 7%, var(--card)); text-align: center; justify-items: center; padding: 8px 6px; }
+.el.dao b { font-size: 14.5px; }
+.el.folder-el.abierta { border-color: var(--draft); }
+.el.folder-el.ok { border-color: var(--ok); background: var(--ok-soft); }
+.el.folder-el.roto { border-color: var(--bad); background: var(--bad-soft); }
+.fstat { font-size: 12px; font-weight: 600; }
+.divider { position: absolute; left: 0; width: 776px; top: 268px; display: flex; align-items: center; gap: 10px; color: var(--dao); font-size: 13px; font-weight: 600; transition: opacity .5s; }
+.divider::before, .divider::after { content: ""; flex: 1; border-top: 2px dashed color-mix(in srgb, var(--dao) 55%, transparent); }
+.map.focus .divider { opacity: .45; }
+.archive { position: absolute; left: 0; top: 418px; width: 776px; height: 108px; border: 2px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--muted) 10%, var(--card)); padding: 8px; transition: opacity .5s, border-color .4s, box-shadow .4s; }
+.archive.on { border-color: var(--dao); box-shadow: 0 0 0 4px color-mix(in srgb, var(--dao) 28%, transparent); }
+.map.focus .archive:not(.on) { opacity: .32; }
+.archive .t { position: absolute; left: 12px; bottom: 6px; font-size: 12.5px; color: var(--muted); }
+.archive .t b { color: var(--ink); font-size: 14px; }
+.drawers { display: grid; grid-template-columns: repeat(6, 1fr); gap: 13px; height: 64px; }
+.drw { border: 1.5px solid var(--line); border-radius: 6px; background: var(--card); display: grid; place-items: center; font-size: 12px; color: var(--muted); position: relative; }
+.drw::after { content: ""; position: absolute; bottom: 9px; width: 26px; height: 5px; border-radius: 3px; background: var(--line); }
+.mover { position: absolute; z-index: 5; font-size: 13px; font-weight: 600; padding: 5px 10px; border-radius: 6px; background: var(--card); border: 1.5px solid var(--dao); color: var(--ink); box-shadow: 0 4px 12px rgba(0,0,0,.14); white-space: nowrap; transition: left .95s cubic-bezier(.5,0,.3,1), top .95s cubic-bezier(.5,0,.3,1), opacity .4s; transform: translate(-50%, -50%); }
+
+/* primer plano */
+.panel { position: absolute; left: 820px; top: 72px; width: 436px; height: 528px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); padding: 22px; display: grid; align-content: start; gap: 14px; overflow: hidden; }
+.panel > * { animation: fade .45s ease both; }
+@keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.plabel { font-size: 12.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.big { font-family: var(--f-display); font-size: 34px; line-height: 1.12; font-weight: 700; text-wrap: balance; }
+.big em { font-style: normal; color: var(--dao); }
+.big.state em { color: var(--state); } .big.strat em { color: var(--strat); } .big.iter em { color: var(--iter); }
+.ptext { font-size: 18px; line-height: 1.45; color: var(--muted); }
+.ptext b { color: var(--ink); }
+.sedes { display: grid; gap: 10px; }
+.sede { display: flex; justify-content: space-between; align-items: center; border: 1.5px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 17px; }
+.sede.hl { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--card)); }
+.books { display: flex; gap: 5px; }
+.bk { width: 14px; height: 34px; border-radius: 2px; background: var(--accent); }
+.bk.none { background: transparent; border: 1.5px dashed var(--line); }
+.who { display: flex; align-items: center; gap: 10px; font-size: 17px; }
+/* carpeta */
+.folder { border: 2px solid var(--draft); border-radius: 4px 12px 12px 12px; padding: 16px; display: grid; gap: 8px; position: relative; background: color-mix(in srgb, var(--draft) 6%, var(--card)); min-height: 220px; }
+.folder::before { content: ""; position: absolute; left: -2px; top: -16px; width: 120px; height: 16px; border: 2px solid var(--draft); border-bottom: 0; border-radius: 6px 6px 0 0; background: inherit; }
+.folder.ok { border-color: var(--ok); } .folder.ok::before { border-color: var(--ok); }
+.folder.roto { border-color: var(--bad); } .folder.roto::before { border-color: var(--bad); }
+.fi { display: flex; justify-content: space-between; gap: 10px; align-items: center; border: 1.5px dashed var(--draft); border-radius: 6px; padding: 8px 10px; font-size: 15.5px; background: var(--card); animation: fade .4s ease both; }
+.fi i { font-style: normal; font-size: 12.5px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+.fi.consulta { border-style: solid; border-color: var(--line); } .fi.consulta i { color: var(--muted); background: var(--bg); }
+.fi.borrador i { color: var(--draft); background: var(--draft-soft); }
+.fi.archivado { border-style: solid; border-color: var(--ok); } .fi.archivado i { color: var(--ok); background: var(--ok-soft); }
+.fi.roto { border-style: solid; border-color: var(--bad); text-decoration: line-through; color: var(--muted); } .fi.roto i { color: var(--bad); background: var(--bad-soft); text-decoration: none; }
+.fi.error { border-style: solid; border-color: var(--bad); color: var(--bad); font-weight: 600; } .fi.error i { color: var(--bad); background: var(--bad-soft); }
+.stamp { position: absolute; right: 14px; bottom: 12px; font-family: var(--f-display); font-weight: 700; font-size: 26px; padding: 4px 14px; border: 3px solid; border-radius: 8px; transform: rotate(-8deg); animation: stamp .45s cubic-bezier(.2,1.6,.4,1) both; }
+.stamp.ok { color: var(--ok); } .stamp.roto { color: var(--bad); }
+@keyframes stamp { from { transform: rotate(-8deg) scale(2.2); opacity: 0; } to { transform: rotate(-8deg) scale(1); opacity: 1; } }
+.empty { color: var(--muted); font-style: italic; font-size: 15px; }
+/* remito */
+.remito { border: 2px solid var(--line); border-radius: 8px; padding: 16px; display: grid; gap: 12px; }
+.rhead { display: flex; justify-content: space-between; font-size: 15px; }
+.rhead b { font-family: var(--f-display); font-size: 22px; }
+.stamps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.sp { border: 2px dashed var(--line); border-radius: 8px; height: 64px; display: grid; place-items: center; font-size: 14.5px; color: var(--muted); text-align: center; }
+.sp.done { border: 2.5px solid var(--state); color: var(--state); font-weight: 700; transform: rotate(-3deg); background: var(--state-soft); }
+.sp.now { animation: stamp .45s cubic-bezier(.2,1.6,.4,1) both; }
+.sp.no { border: 2.5px solid var(--bad); color: var(--bad); font-weight: 700; background: var(--bad-soft); }
+.route { font-size: 15px; color: var(--muted); }
+/* estante */
+.shelf { display: grid; gap: 8px; }
+.cp { display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 16px; transition: all .3s; }
+.cp .ar { color: var(--iter); font-weight: 700; font-size: 20px; opacity: 0; }
+.cp.cur { border-color: var(--iter); background: var(--iter-soft); } .cp.cur .ar { opacity: 1; }
+.cp.skip { color: var(--muted); text-decoration: line-through; }
+.cp.pick { border-color: var(--ok); background: var(--ok-soft); }
+.cp small { font-size: 13px; color: var(--muted); text-decoration: none; }
+/* tarifario */
+.opts { display: grid; gap: 8px; }
+.op { border: 1.5px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 16px; display: flex; justify-content: space-between; gap: 8px; }
+.op.sel { border-color: var(--strat); background: var(--strat-soft); font-weight: 600; }
+.op span { color: var(--muted); font-size: 14px; }
+.calc { font-family: var(--f-display); font-size: 30px; font-weight: 700; color: var(--strat); font-variant-numeric: tabular-nums; }
+.gl { display: grid; gap: 7px; }
+.gr { display: grid; grid-template-columns: 1fr 22px 1fr; align-items: center; gap: 6px; font-size: 15.5px; border-bottom: 1px solid var(--line); padding-bottom: 7px; }
+.gr span:nth-child(2) { color: var(--muted); text-align: center; }
+.gr span:last-child { font-weight: 600; }
+.gr.dao span:last-child { color: var(--dao); }
+
+/* subtítulos */
+.sub { position: absolute; left: 0; right: 0; bottom: 0; height: 108px; border-top: 1px solid var(--line); display: flex; align-items: center; padding: 0 40px; background: var(--card); }
+.sub p { margin: 0; font-size: 23px; line-height: 1.38; text-wrap: pretty; }
+.prog { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); width: 0; }
+.curtain { position: absolute; inset: 0; background: #000; z-index: 50; display: none; }
+.rec .curtain.show { display: block; }
+
+/* controles */
+.controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.btn { font: 600 14px var(--f-body); color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 7px; padding: 8px 14px; cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; min-width: 120px; }
+.btn:focus-visible, .chap:focus-visible, .track:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.timeline { flex: 1 1 240px; display: grid; gap: 4px; min-width: 0; }
+.track { position: relative; height: 8px; border-radius: 99px; background: var(--line); cursor: pointer; }
+.track .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: var(--accent); border-radius: 99px; }
+.track .tick { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--bg); }
+.time { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.mcap { display: none; font-size: 16px; line-height: 1.45; background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
+.chap { text-align: left; font: 14px var(--f-body); color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 7px; padding: 8px 10px; cursor: pointer; display: grid; gap: 2px; }
+.chap small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.chap.cur { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+@media (max-width: 760px) { .mcap { display: block; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+body.rec { margin: 0; }
+.rec .wrap { padding: 0; max-width: none; display: block; }
+.rec .intro, .rec .controls, .rec .chapters, .rec .mcap, .rec .foot { display: none; }
+.rec .frame { width: 1280px; height: 720px; border: 0; border-radius: 0; }
+.foot { font-size: 12.5px; color: var(--muted); margin: 0; }
+</style>
+
+<div class="wrap">
+  <div class="intro">
+    <h1>El patrón DAO, explicado con una biblioteca</h1>
+    <p>Para alguien que nunca vio patrones de diseño: seguimos el préstamo de un libro entre dos sedes y vemos quién hace cada cosa. Con narración; tocá Reproducir.</p>
+  </div>
+
+  <div class="frame" id="frame">
+    <div class="stage" id="stage">
+      <div class="topbar"><span class="cn" id="cn"></span><h2 id="ctitle"></h2><span class="ptag none" id="ptag"></span></div>
+
+      <div class="map" id="map">
+        <div class="el" data-n="ventanilla" style="left:0;top:0;width:220px;height:112px"><b>Ventanilla</b><small>la pantalla del programa</small>
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></div>
+        <div class="el" data-n="encargado" style="left:270px;top:0;width:236px;height:112px"><b>Encargado del trámite</b><small>organiza el pedido de punta a punta</small>
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg></div>
+        <div class="el folder-el" id="folderEl" data-n="carpeta" style="left:556px;top:0;width:220px;height:112px"><b>Carpeta del trámite</b><small class="fstat" id="fstat">cerrada</small>
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+
+        <div class="el iter" data-n="guia" style="left:0;top:146px;width:240px;height:96px"><b>Guía de estantes</b><small>recorre las copias · Iterator</small></div>
+        <div class="el state" data-n="remito" style="left:268px;top:146px;width:240px;height:96px"><b>Remito con sellos</b><small>sabe en qué etapa está · State</small></div>
+        <div class="el strat" data-n="tarifario" style="left:536px;top:146px;width:240px;height:96px"><b>Tarifario</b><small>calcula la multa · Strategy</small></div>
+
+        <div class="divider" id="divider">solo los archiveros entran al archivo</div>
+
+        <div class="el dao" data-n="a-socios" style="left:0;top:298px;width:118px;height:96px"><b>Archivero de socios</b></div>
+        <div class="el dao" data-n="a-libros" style="left:131px;top:298px;width:118px;height:96px"><b>Archivero de libros</b></div>
+        <div class="el dao" data-n="a-sedes" style="left:262px;top:298px;width:118px;height:96px"><b>Archivero de sedes</b></div>
+        <div class="el dao" data-n="a-prestamos" style="left:393px;top:298px;width:118px;height:96px"><b>Archivero de préstamos</b></div>
+        <div class="el dao" data-n="a-remitos" style="left:524px;top:298px;width:118px;height:96px"><b>Archivero de remitos</b></div>
+        <div class="el dao" data-n="a-devol" style="left:655px;top:298px;width:121px;height:96px"><b>Archivero de multas</b></div>
+
+        <div class="archive" id="archive" data-n="archivo">
+          <div class="drawers"><div class="drw">socios</div><div class="drw">libros</div><div class="drw">sedes</div><div class="drw">préstamos</div><div class="drw">remitos</div><div class="drw">multas</div></div>
+          <div class="t"><b>Archivo</b> · la base de datos, donde todo queda guardado</div>
+        </div>
+      </div>
+
+      <div class="panel" id="panel"></div>
+      <div class="sub"><p id="cap"></p><div class="prog" id="prog"></div></div>
+      <div class="curtain" id="curtain"></div>
+    </div>
+  </div>
+
+  <p class="mcap" id="mcap"></p>
+
+  <div class="controls">
+    <button class="btn primary" id="play" type="button">▶ Reproducir</button>
+    <button class="btn" id="back" type="button">◀ Frase anterior</button>
+    <button class="btn" id="fwd" type="button">Frase siguiente ▶</button>
+    <div class="timeline">
+      <div class="track" id="track" tabindex="0" role="slider" aria-label="Línea de tiempo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="fill"></div></div>
+      <div class="time"><span id="tcur">0:00</span><span id="ttot">0:00</span></div>
+    </div>
+  </div>
+  <div class="chapters" id="chapters"></div>
+  <p class="foot">La voz es sintética (Piper, voz es_AR «daniela»). Espacio reproduce o pausa; las flechas saltan de frase.</p>
+  <audio id="audio" src="narracion.mp3" preload="auto"></audio>
+</div>
+
+<script type="application/json" id="guion">
+[
+ {"t": "Una biblioteca con tres sedes", "tag": "none", "beats": [
+  {"say": "Imaginá una red de bibliotecas con tres sedes: la Central, la Sede Norte y la Sede Sur. María es socia y le queda cerca la Sede Norte.", "panel": {"k": "sedes", "hl": ""}},
+  {"say": "María quiere leer Ficciones, de Borges. En la Sede Norte no hay ninguna copia, pero la Central tiene una. Entonces la Central se la manda a Norte, y María la retira ahí. Eso es un préstamo interbibliotecario.", "panel": {"k": "sedes", "hl": "Central"}},
+  {"say": "Para que este trámite funcione, adentro del sistema trabajan varios personajes, y cada uno tiene una sola tarea. Vamos a conocerlos.", "hi": ["ventanilla", "encargado", "carpeta", "guia", "remito", "tarifario", "a-socios", "a-libros", "a-sedes", "a-prestamos", "a-remitos", "a-devol", "archivo"], "panel": {"k": "idea", "big": "Cada personaje hace <em>una sola cosa</em>.", "txt": "Ese es el truco de todos los patrones de este video: repartir bien las tareas."}}
+ ]},
+ {"t": "Los personajes", "tag": "dao", "beats": [
+  {"say": "En la ventanilla está la pantalla del programa. Solo toma el pedido de María y se lo pasa al encargado.", "hi": ["ventanilla"], "panel": {"k": "idea", "big": "La ventanilla <em>escucha</em> el pedido.", "txt": "No decide nada y no guarda nada."}},
+  {"say": "El encargado del trámite organiza todo de principio a fin. Sabe qué pasos hay que dar, pero nunca entra al archivo.", "hi": ["encargado"], "panel": {"k": "idea", "big": "El encargado <em>organiza</em>.", "txt": "Sabe el orden de los pasos. Para buscar o guardar algo, le pide ayuda a otro."}},
+  {"say": "El archivo es la base de datos: el lugar donde todo queda guardado, aunque se apague la computadora.", "hi": ["archivo"], "panel": {"k": "idea", "big": "El archivo <em>recuerda</em>.", "txt": "Socios, libros, préstamos, remitos y multas, cada cosa en su cajón."}},
+  {"say": "Y acá aparece el protagonista de este video: los archiveros. Hay uno por cada cajón: uno para socios, otro para libros, otro para préstamos, otro para remitos. Esto es el patrón dao.", "cap": "Y acá aparece el protagonista de este video: los archiveros. Hay uno por cada cajón: uno para socios, otro para libros, otro para préstamos, otro para remitos. Esto es el patrón DAO.", "hi": ["a-socios", "a-libros", "a-sedes", "a-prestamos", "a-remitos", "a-devol"], "panel": {"k": "idea", "label": "patrón DAO", "big": "Un <em>archivero</em> por cada cajón.", "txt": "DAO quiere decir <b>objeto de acceso a datos</b>: el que sabe entrar al archivo."}},
+  {"say": "La regla es simple: nadie más toca el archivo. Si el encargado necesita algo, se lo pide al archivero del cajón que corresponde. El archivero sabe dónde está cada ficha y cómo guardarla. El encargado no necesita saberlo.", "hi": ["encargado", "a-prestamos", "archivo"], "move": [["«traeme el préstamo»", "encargado", "a-prestamos"], ["ficha", "archivo", "a-prestamos", 1200], ["ficha", "a-prestamos", "encargado", 2400]], "panel": {"k": "idea", "label": "patrón DAO", "big": "Nadie más <em>toca el archivo</em>.", "txt": "El encargado pide. El archivero busca y guarda. Cada uno sabe lo suyo."}},
+  {"say": "¿Por qué conviene? Porque si mañana el archivo cambia, por ejemplo a otra base de datos, solo hay que reentrenar a los archiveros. El resto del equipo sigue trabajando igual.", "hi": ["a-socios", "a-libros", "a-sedes", "a-prestamos", "a-remitos", "a-devol", "archivo"], "panel": {"k": "idea", "label": "para qué sirve", "big": "Si cambia el archivo, <em>solo cambian los archiveros</em>.", "txt": "La ventanilla, el encargado y los demás ayudantes no se enteran."}}
+ ]},
+ {"t": "La carpeta del trámite", "tag": "dao", "beats": [
+  {"say": "Falta una pieza clave: la carpeta del trámite. Cuando el encargado empieza un pedido, abre una sola carpeta. Todos los archiveros que trabajan en ese pedido usan esa misma carpeta.", "hi": ["encargado", "carpeta", "a-socios", "a-libros", "a-prestamos", "a-remitos"], "folder": {"st": "abierta", "items": []}, "panel": {"k": "folder"}},
+  {"say": "Ojo con esto: no hay una carpeta por archivero. Hay una carpeta por trámite. Varios archiveros, una sola carpeta.", "hi": ["carpeta", "a-socios", "a-libros", "a-prestamos", "a-remitos"], "panel": {"k": "idea", "label": "la idea más importante", "big": "Una carpeta <em>por trámite</em>, no por archivero.", "txt": "En el sistema, esa carpeta se llama <b>sesión</b>, y lo que pasa adentro es una <b>transacción</b>."}},
+  {"say": "Los archiveros van dejando fichas en la carpeta, pero el archivo todavía no las toma como definitivas. Son un borrador.", "hi": ["carpeta", "a-prestamos", "a-remitos"], "move": [["ficha", "a-prestamos", "carpeta"], ["ficha", "a-remitos", "carpeta", 500]], "folder": {"st": "abierta", "items": [["Préstamo de María", "borrador"], ["Remito del viaje", "borrador"]]}, "panel": {"k": "folder"}},
+  {"say": "Al final, si todo salió bien, el encargado sella la carpeta y todas las fichas se archivan juntas, de una sola vez. Eso se llama confirmar.", "cap": "Al final, si todo salió bien, el encargado sella la carpeta y todas las fichas se archivan juntas, de una sola vez. Eso se llama confirmar (commit).", "hi": ["carpeta", "archivo"], "move": [["fichas", "carpeta", "archivo"]], "folder": {"st": "ok", "items": [["Préstamo de María", "archivado"], ["Remito del viaje", "archivado"]]}, "panel": {"k": "folder"}},
+  {"say": "Si algo sale mal en el medio, la carpeta entera se rompe y el archivo queda exactamente como estaba. Eso se llama deshacer. Así nunca queda un trámite por la mitad.", "cap": "Si algo sale mal en el medio, la carpeta entera se rompe y el archivo queda exactamente como estaba. Eso se llama deshacer (rollback). Así nunca queda un trámite por la mitad.", "hi": ["carpeta"], "folder": {"st": "roto", "items": [["Préstamo de María", "roto"], ["Remito del viaje", "roto"]]}, "panel": {"k": "folder"}}
+ ]},
+ {"t": "Paso 1 · Buscar el libro", "tag": "iter", "beats": [
+  {"say": "Empecemos. María se acerca a la ventanilla de la Sede Norte. Primero hay que averiguar qué sedes tienen Ficciones. El encargado le pide al archivero de libros todas las copias.", "hi": ["ventanilla", "encargado", "a-libros", "archivo"], "folder": {"st": "cerrada", "items": []}, "move": [["«¿quién tiene Ficciones?»", "ventanilla", "encargado"], ["pedido", "encargado", "a-libros", 1300], ["lista de copias", "archivo", "a-libros", 2400], ["lista de copias", "a-libros", "encargado", 3500]], "panel": {"k": "idea", "big": "El archivero de libros <em>trae la lista</em>.", "txt": "Es una consulta rápida: entra, busca y sale."}},
+  {"say": "Con esa lista en la mano, entra en juego otro ayudante: el guía de estantes. Es el patrón iteréitor.", "cap": "Con esa lista en la mano, entra en juego otro ayudante: el guía de estantes. Es el patrón Iterator.", "hi": ["guia", "encargado"], "panel": {"k": "shelf", "cur": -1}},
+  {"say": "El guía recorre las copias una por una y te muestra solo las que sirven, salteando las que se perdieron o se dieron de baja. Vos no necesitás saber cómo está ordenado el estante: solo le pedís la siguiente.", "hi": ["guia"], "panel": {"k": "shelf", "cur": 2}},
+  {"say": "Fijate que el guía no entra al archivo. Trabaja con la lista que ya trajo el archivero. Resultado: hay una copia disponible en la Central, y María la pide para retirarla en Norte.", "hi": ["guia", "a-libros"], "panel": {"k": "shelf", "cur": 9}}
+ ]},
+ {"t": "Paso 2 · Pedir el préstamo", "tag": "dao", "beats": [
+  {"say": "María confirma el pedido. El encargado abre la carpeta del trámite.", "hi": ["ventanilla", "encargado", "carpeta"], "folder": {"st": "abierta", "items": []}, "panel": {"k": "folder"}},
+  {"say": "Antes de prestar, hay que revisar. El archivero de socios trae la ficha de María, el de libros trae la copia, y el de sedes trae las dos sedes.", "hi": ["a-socios", "a-libros", "a-sedes", "archivo", "carpeta"], "move": [["María", "archivo", "a-socios"], ["copia", "archivo", "a-libros", 300], ["sedes", "archivo", "a-sedes", 600]], "folder": {"st": "abierta", "items": [["Ficha de María", "consulta"], ["Copia de Ficciones", "consulta"], ["Sedes Central y Norte", "consulta"]]}, "panel": {"k": "folder"}},
+  {"say": "El archivero de préstamos se fija si María tiene libros vencidos, y el de multas, si debe algo. Todo en orden.", "hi": ["a-prestamos", "a-devol", "archivo"], "folder": {"st": "abierta", "items": [["Ficha de María", "consulta"], ["Copia de Ficciones", "consulta"], ["Sedes Central y Norte", "consulta"], ["Sin libros vencidos", "consulta"], ["Sin multas pendientes", "consulta"]]}, "panel": {"k": "folder"}},
+  {"say": "Ahora se escribe. Se arma la ficha del préstamo nuevo y la copia se marca como prestada. El archivero de préstamos deja todo en la carpeta. Todavía es borrador.", "hi": ["encargado", "a-prestamos", "carpeta"], "move": [["préstamo nuevo", "a-prestamos", "carpeta"], ["copia: prestada", "a-prestamos", "carpeta", 400]], "folder": {"st": "abierta", "items": [["Revisiones", "consulta"], ["Préstamo nuevo de María", "borrador"], ["Copia marcada como prestada", "borrador"]]}, "panel": {"k": "folder"}},
+  {"say": "Después se arma el remito: el papel que acompaña al libro en el viaje de la Central a Norte. El archivero de remitos le pone número y lo deja en la misma carpeta.", "hi": ["remito", "a-remitos", "carpeta"], "move": [["remito", "a-remitos", "carpeta"]], "folder": {"st": "abierta", "items": [["Revisiones", "consulta"], ["Préstamo nuevo de María", "borrador"], ["Copia marcada como prestada", "borrador"], ["Remito número cinco", "borrador"]]}, "panel": {"k": "folder"}},
+  {"say": "Todo salió bien, así que se sella la carpeta. El préstamo, la copia marcada y el remito quedan archivados juntos.", "hi": ["carpeta", "archivo"], "move": [["fichas", "carpeta", "archivo"]], "folder": {"st": "ok", "items": [["Revisiones", "consulta"], ["Préstamo nuevo de María", "archivado"], ["Copia marcada como prestada", "archivado"], ["Remito número cinco", "archivado"]]}, "panel": {"k": "folder"}}
+ ]},
+ {"t": "¿Y si algo falla en el medio?", "tag": "dao", "beats": [
+  {"say": "Ahora imaginá que, justo al armar el remito, algo falla. El préstamo ya estaba en la carpeta, pero el remito no llegó a armarse.", "hi": ["carpeta", "a-prestamos", "a-remitos"], "folder": {"st": "abierta", "items": [["Préstamo nuevo", "borrador"], ["Copia marcada como prestada", "borrador"], ["Remito: ¡error!", "error"]]}, "panel": {"k": "folder"}},
+  {"say": "Como todo estaba en una sola carpeta, se rompe la carpeta entera. El préstamo no se guarda, la copia sigue disponible y no queda nada a medias.", "hi": ["carpeta", "archivo"], "folder": {"st": "roto", "items": [["Préstamo nuevo", "roto"], ["Copia marcada como prestada", "roto"], ["Remito: ¡error!", "error"]]}, "panel": {"k": "folder"}},
+  {"say": "Por eso los archiveros nunca sellan nada por su cuenta. Si cada uno archivara lo suyo, podría quedar un préstamo sin remito, y el libro marcado como prestado para siempre.", "hi": ["a-prestamos", "a-remitos", "encargado"], "panel": {"k": "idea", "label": "patrón DAO", "big": "Los archiveros <em>no sellan</em>.", "txt": "Buscan y dejan fichas en la carpeta. Sellar o romper la carpeta le toca al encargado, al final del trámite."}}
+ ]},
+ {"t": "El viaje del libro", "tag": "state", "beats": [
+  {"say": "El remito tiene vida propia. Pasa por etapas: generado, empaquetado, despachado, recibido y cerrado. Esto es el patrón esteit.", "cap": "El remito tiene vida propia. Pasa por etapas: generado, empaquetado, despachado, recibido y cerrado. Esto es el patrón State.", "hi": ["remito"], "folder": {"st": "cerrada", "items": []}, "panel": {"k": "remito", "n": 1}},
+  {"say": "La idea del patrón esteit es que el remito sabe en qué etapa está, y cada etapa sabe qué se puede hacer. Si está generado, se puede empaquetar. Pero no se puede despachar algo que todavía no se empaquetó.", "cap": "La idea del patrón State es que el remito sabe en qué etapa está, y cada etapa sabe qué se puede hacer. Si está generado, se puede empaquetar. Pero no se puede despachar algo que todavía no se empaquetó.", "hi": ["remito"], "panel": {"k": "idea", "label": "patrón State", "cls": "state", "big": "Cada etapa sabe <em>qué se puede hacer</em>.", "txt": "Las reglas no están en un cartel gigante de «si pasa esto, hacé aquello»: cada etapa conoce las suyas."}},
+  {"say": "Cada vez que alguien en la Central aprieta un botón, el archivero de remitos trae el remito, el remito decide si el paso vale, y se sella la carpeta. Empaquetado. Despachado.", "hi": ["ventanilla", "encargado", "a-remitos", "remito", "carpeta"], "move": [["remito", "archivo", "a-remitos"], ["remito", "a-remitos", "remito", 1100]], "folder": {"st": "ok", "items": [["Remito: despachado", "archivado"]]}, "panel": {"k": "remito", "n": 3}},
+  {"say": "Si alguien intenta saltarse un paso, el remito lo rechaza, la carpeta se rompe y no cambia nada.", "hi": ["remito", "carpeta"], "folder": {"st": "roto", "items": [["Saltar a «cerrado»", "error"]]}, "panel": {"k": "remito", "n": 3, "no": true}},
+  {"say": "Cuando el libro llega a Norte, se marca recibido. Y cuando María lo retira, el remito se cierra. Desde ese día corren sus catorce días de préstamo.", "hi": ["remito", "ventanilla"], "folder": {"st": "ok", "items": [["Remito: cerrado", "archivado"], ["Préstamo: activo, catorce días", "archivado"]]}, "panel": {"k": "remito", "n": 5}},
+  {"say": "Notá la división de tareas: el remito decide las reglas, y el archivero solo trae y guarda. Ninguno hace el trabajo del otro.", "hi": ["remito", "a-remitos"], "panel": {"k": "idea", "big": "El remito <em>decide</em>. El archivero <em>guarda</em>.", "txt": "State piensa sobre el papel que tiene en la mano; el DAO es quien lo lleva y lo trae del archivo."}}
+ ]},
+ {"t": "La devolución y la multa", "tag": "strat", "beats": [
+  {"say": "María devuelve el libro tres días tarde. Hay que cobrarle una multa. ¿Cuánto?", "hi": ["ventanilla", "encargado"], "folder": {"st": "abierta", "items": []}, "panel": {"k": "idea", "big": "Tres días <em>tarde</em>.", "txt": "¿Cuánto hay que cobrar?"}},
+  {"say": "Para eso está el tarifario, que es el patrón estrátegi. La biblioteca puede elegir distintas formas de calcular la multa: según el tipo de material, un monto fijo por día, o una condonación sin multa.", "cap": "Para eso está el tarifario, que es el patrón Strategy. La biblioteca puede elegir distintas formas de calcular la multa: según el tipo de material, un monto fijo por día, o una condonación sin multa.", "hi": ["tarifario"], "panel": {"k": "tarifa", "calc": false}},
+  {"say": "El encargado no sabe cuál está vigente. Solo le pide al tarifario que calcule. Hoy la regla es por tipo de material: un libro cuesta quinientos pesos por día. Tres días, mil quinientos pesos.", "hi": ["encargado", "tarifario"], "move": [["«¿cuánto es?»", "encargado", "tarifario"], ["$1.500", "tarifario", "encargado", 1600]], "panel": {"k": "tarifa", "calc": true}},
+  {"say": "Si mañana la biblioteca cambia de regla, se cambia el tarifario y nadie más se entera.", "hi": ["tarifario"], "panel": {"k": "idea", "label": "patrón Strategy", "cls": "strat", "big": "Se cambia la regla, <em>no el encargado</em>.", "txt": "Las distintas formas de calcular son intercambiables, como enchufar otra calculadora."}},
+  {"say": "El archivero de multas guarda la multa. Y como el libro tiene que volver a la Central, se arma un remito de vuelta, que empieza otra vez en generado. Se sella la carpeta.", "hi": ["a-devol", "a-remitos", "remito", "carpeta", "archivo"], "move": [["multa $1.500", "a-devol", "carpeta"], ["remito de vuelta", "a-remitos", "carpeta", 500], ["fichas", "carpeta", "archivo", 1800]], "folder": {"st": "ok", "items": [["Multa de $1.500", "archivado"], ["Préstamo: devuelto", "archivado"], ["Remito de vuelta: generado", "archivado"]]}, "panel": {"k": "folder"}},
+  {"say": "Y acá se cierra el círculo: si María pide otro libro sin pagar, el archivero de multas va a encontrar esa multa, y el préstamo no va a salir.", "hi": ["a-devol", "archivo", "encargado"], "move": [["multa pendiente", "archivo", "a-devol"], ["multa pendiente", "a-devol", "encargado", 1100]], "panel": {"k": "idea", "big": "El tarifario <em>calcula</em>. El archivero <em>recuerda</em>.", "txt": "Strategy hace la cuenta; el DAO la guarda y la vuelve a encontrar cuando hace falta."}}
+ ]},
+ {"t": "Resumen", "tag": "dao", "beats": [
+  {"say": "Repasemos. La ventanilla toma el pedido. El encargado organiza el trámite y abre una carpeta.", "hi": ["ventanilla", "encargado", "carpeta"], "folder": {"st": "cerrada", "items": []}, "panel": {"k": "gloss", "upto": 2}},
+  {"say": "El guía, el remito y el tarifario piensan: recorren, deciden etapas y calculan. Ninguno toca el archivo.", "hi": ["guia", "remito", "tarifario"], "panel": {"k": "gloss", "upto": 5}},
+  {"say": "Los archiveros, el patrón dao, son los únicos que entran al archivo: uno por cajón, y todos con la misma carpeta.", "cap": "Los archiveros, el patrón DAO, son los únicos que entran al archivo: uno por cajón, y todos con la misma carpeta.", "hi": ["a-socios", "a-libros", "a-sedes", "a-prestamos", "a-remitos", "a-devol", "archivo"], "panel": {"k": "gloss", "upto": 6}},
+  {"say": "Y la carpeta garantiza que todo el trámite se guarde junto, o que no se guarde nada.", "hi": ["carpeta", "archivo"], "panel": {"k": "gloss", "upto": 8}},
+  {"say": "En el sistema, cada archivero es una clase dao, como préstamo dao o remito dao. La carpeta es la sesión. Y sellar o romper la carpeta es confirmar o deshacer la transacción.", "cap": "En el sistema, cada archivero es una clase DAO, como PrestamoDAO o RemitoDAO. La carpeta es la sesión. Y sellar o romper la carpeta es confirmar o deshacer la transacción.", "hi": ["a-prestamos", "a-remitos", "carpeta"], "panel": {"k": "gloss", "upto": 8}}
+ ]}
+]
+</script>
+<script>
+const TIEMPOS = /*TIEMPOS*/[[0, 8.024], [8.024, 19.313], [19.313, 26.574], [26.574, 31.988], [31.988, 38.471], [38.471, 44.025], [44.025, 54.618], [54.618, 65.872], [65.872, 74.758], [74.758, 84.399], [84.399, 91.404], [91.404, 97.933], [97.933, 105.832], [105.832, 114.613], [114.613, 123.581], [123.581, 129.007], [129.007, 139.333], [139.333, 148.486], [148.486, 152.623], [152.623, 160.151], [160.151, 166.343], [166.343, 174.857], [174.857, 182.896], [182.896, 189.03], [189.03, 195.873], [195.873, 203.47], [203.47, 212.31], [212.31, 219.768], [219.768, 229.861], [229.861, 239.188], [239.188, 244.661], [244.661, 252.49], [252.49, 259.263], [259.263, 263.83], [263.83, 274.69], [274.69, 285.004], [285.004, 289.652], [289.652, 298.352], [298.352, 305.845], [305.845, 311.457], [311.457, 317.789], [317.789, 324.179], [324.179, 328.769], [328.769, 338.188]]/*FIN*/;
+const CH = JSON.parse(document.getElementById("guion").textContent);
+const $ = (id) => document.getElementById(id);
+const FLAT = [];
+CH.forEach((c, ci) => c.beats.forEach((b, bi) => FLAT.push({ ci, bi, b })));
+// tiempos: [inicio, fin] por frase, en segundos; sin audio se estiman por largo del texto
+let t = 0;
+FLAT.forEach((f, i) => {
+  if (TIEMPOS) { f.t0 = TIEMPOS[i][0]; f.t1 = TIEMPOS[i][1]; }
+  else { f.t0 = t; t += Math.max(4, f.b.say.length / 14) + 0.6; f.t1 = t; }
+});
+const TOTAL = TIEMPOS ? TIEMPOS[TIEMPOS.length - 1][1] + 1.5 : t;
+
+/* ---------- escala del escenario ---------- */
+const frame = $("frame"), stage = $("stage");
+function fit() { if (document.body.classList.contains("rec")) { stage.style.transform = ""; return; } stage.style.transform = `scale(${frame.clientWidth / 1280})`; }
+new ResizeObserver(fit).observe(frame); fit();
+
+/* ---------- primer plano ---------- */
+const SHELF = [["CEN-0003", "Biblioteca Central", "disponible", ""], ["SUR-0001", "Sede Sur", "disponible", ""], ["NOR-0007", "Sede Norte", "extraviada", "skip"], ["SUR-0009", "Sede Sur", "dada de baja", "skip"]];
+const ETAPAS = ["Generado", "Empaquetado", "Despachado", "Recibido", "Cerrado"];
+const GL = [["Ventanilla", "pantalla (interfaz)"], ["Encargado", "servicio"], ["Guía de estantes", "Iterator"], ["Remito con sellos", "State"], ["Tarifario", "Strategy"], ["Archiveros", "DAO, una clase por entidad", "dao"], ["Carpeta del trámite", "sesión y transacción"], ["Sellar · romper", "confirmar · deshacer (commit · rollback)"]];
+let folderState = { st: "cerrada", items: [] };
+function panelHTML(p, b) {
+  if (!p) return "";
+  if (p.k === "idea") return (p.label ? `<div class="plabel">${p.label}</div>` : "") + `<div class="big ${p.cls || ""}">${p.big}</div><div class="ptext">${p.txt || ""}</div>`;
+  if (p.k === "sedes") {
+    const s = [["Biblioteca Central", 1], ["Sede Norte", 0], ["Sede Sur", 1]];
+    return `<div class="plabel">copias de Ficciones</div><div class="sedes">` + s.map(([n, c]) =>
+      `<div class="sede ${p.hl && n.includes(p.hl) ? "hl" : ""}"><span>${n}${n === "Sede Norte" ? " · acá está María" : ""}</span><span class="books">${c ? '<span class="bk"></span>' : '<span class="bk none"></span>'}</span></div>`).join("") + `</div>` +
+      (p.hl ? `<div class="ptext">La copia viaja de la <b>Central</b> a <b>Norte</b> y María la retira ahí.</div>` : `<div class="ptext">María quiere leer <b>Ficciones</b>.</div>`);
+  }
+  if (p.k === "folder") {
+    const f = folderState;
+    const lbl = { cerrada: "sin trámite en curso", abierta: "abierta · todavía es borrador", ok: "sellada · todo archivado junto", roto: "rota · el archivo queda como estaba" }[f.st];
+    return `<div class="plabel">carpeta del trámite · ${lbl}</div><div class="folder ${f.st}">` +
+      (f.items.length ? f.items.map(([x, s]) => `<div class="fi ${s}"><span>${x}</span><i>${{ consulta: "consulta", borrador: "borrador", archivado: "archivado", roto: "descartado", error: "error" }[s]}</i></div>`).join("") : `<div class="empty">vacía</div>`) +
+      (f.st === "ok" ? `<span class="stamp ok">SELLADO</span>` : f.st === "roto" ? `<span class="stamp roto">ROTA</span>` : "") + `</div>`;
+  }
+  if (p.k === "shelf") {
+    const pos = p.cur;
+    return `<div class="plabel">el guía recorre la lista · patrón Iterator</div><div class="shelf">` + SHELF.map(([c, s, e, sk], i) => {
+      let cls = "cp"; if (sk && pos >= i) cls += " skip"; else if (pos === 9 && i === 0) cls += " pick"; else if (i === Math.min(pos, 1) && pos >= 0 && pos !== 9) cls += " cur";
+      return `<div class="${cls}"><span class="ar">→</span><span>${c} · ${s}</span><small>${e}</small></div>`;
+    }).join("") + `</div><div class="ptext">${pos < 0 ? "Vos solo le pedís: <b>«la siguiente»</b>." : pos === 9 ? "Elegida: <b>CEN-0003</b>, de la Central." : "Las perdidas y las dadas de baja <b>se saltean</b>."}</div>`;
+  }
+  if (p.k === "remito") {
+    return `<div class="plabel">patrón State · cada etapa es un sello</div><div class="remito"><div class="rhead"><b>Remito Nº 5</b><span>Ficciones · CEN-0003</span></div><div class="route">Biblioteca Central → Sede Norte</div><div class="stamps">` +
+      ETAPAS.map((e, i) => `<div class="sp ${i < p.n ? "done" : ""} ${i === p.n - 1 ? "now" : ""}">${e}</div>`).join("") +
+      (p.no ? `<div class="sp no">¿Cerrado? No.</div>` : `<div class="sp" style="border:0"></div>`) + `</div></div>` +
+      `<div class="ptext">${p.no ? "Desde <b>Despachado</b> no se puede cerrar: primero tiene que llegar." : p.n === 5 ? "Llegó, María lo retiró y el remito <b>se cerró</b>." : "Etapa actual: <b>" + ETAPAS[p.n - 1] + "</b>."}</div>`;
+  }
+  if (p.k === "tarifa") {
+    return `<div class="plabel">patrón Strategy · formas de calcular la multa</div><div class="opts">
+      <div class="op sel">Según el tipo de material<span>libro $500 por día</span></div>
+      <div class="op">Monto fijo por día<span>$500 por día</span></div>
+      <div class="op">Condonación<span>sin multa</span></div></div>` +
+      (p.calc ? `<div class="calc">3 días × $500 = $1.500</div>` : `<div class="ptext">La biblioteca elige <b>una</b>, y la puede cambiar cuando quiera.</div>`);
+  }
+  if (p.k === "gloss") {
+    return `<div class="plabel">en la historia · en el sistema</div><div class="gl">` + GL.slice(0, p.upto).map(([a, z, c]) => `<div class="gr ${c || ""}"><span>${a}</span><span>=</span><span>${z}</span></div>`).join("") + `</div>`;
+  }
+  return "";
+}
+
+/* ---------- movimiento de fichas ---------- */
+const map = $("map");
+function anchor(n) {
+  const el = map.querySelector(`[data-n="${n}"]`);
+  return { x: el.offsetLeft + el.offsetWidth / 2, y: el.offsetTop + el.offsetHeight / 2 };
+}
+let timers = [];
+function moves(list) {
+  timers.forEach(clearTimeout); timers = [];
+  map.querySelectorAll(".mover").forEach((m) => m.remove());
+  (list || []).forEach(([txt, a, z, delay]) => {
+    timers.push(setTimeout(() => {
+      const m = document.createElement("div"); m.className = "mover"; m.textContent = txt;
+      const A = anchor(a), Z = anchor(z);
+      m.style.left = A.x + "px"; m.style.top = A.y + "px"; map.appendChild(m);
+      requestAnimationFrame(() => requestAnimationFrame(() => { m.style.left = Z.x + "px"; m.style.top = Z.y + "px"; }));
+      timers.push(setTimeout(() => { m.style.opacity = "0"; }, 1500));
+      timers.push(setTimeout(() => m.remove(), 2000));
+    }, delay || 0));
+  });
+}
+
+/* ---------- render por frase ---------- */
+let cur = -1;
+function stateFor(i) {
+  let folder = { st: "cerrada", items: [] }, panel = null;
+  for (let k = 0; k <= i; k++) { const b = FLAT[k].b; if (b.folder) folder = b.folder; if (b.panel) panel = b.panel; }
+  return { folder, panel };
+}
+function show(i, animate) {
+  if (i === cur) return; cur = i;
+  const { ci, b } = FLAT[i], c = CH[ci];
+  $("cn").textContent = `${ci + 1} / ${CH.length}`;
+  $("ctitle").textContent = c.t;
+  const tg = $("ptag"); tg.className = "ptag " + c.tag; tg.textContent = { none: "la historia", dao: "DAO", state: "State", strat: "Strategy", iter: "Iterator" }[c.tag];
+  const st = stateFor(i); folderState = st.folder;
+  const hi = new Set(b.hi || []);
+  map.classList.toggle("focus", hi.size > 0);
+  map.querySelectorAll("[data-n]").forEach((e) => e.classList.toggle("on", hi.has(e.dataset.n)));
+  const fe = $("folderEl"); fe.classList.remove("abierta", "ok", "roto"); if (st.folder.st !== "cerrada") fe.classList.add(st.folder.st);
+  $("fstat").textContent = { cerrada: "sin trámite en curso", abierta: "abierta", ok: "sellada", roto: "rota" }[st.folder.st];
+  $("panel").innerHTML = panelHTML(st.panel, b);
+  const cap = b.cap || b.say; $("cap").textContent = cap; $("mcap").textContent = cap;
+  moves(animate ? b.move : null);
+  document.querySelectorAll(".chap").forEach((e, k) => e.classList.toggle("cur", k === ci));
+}
+function idxAt(sec) { let i = FLAT.findIndex((f) => sec < f.t1 + 0.0001 && sec >= f.t0 - 0.0001); if (i < 0) i = sec >= FLAT[FLAT.length - 1].t0 ? FLAT.length - 1 : FLAT.findIndex((f) => f.t0 > sec) ; return Math.max(0, i); }
+function fmt(s) { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+
+/* ---------- reloj: el audio manda; sin audio, un reloj propio ---------- */
+const audio = $("audio");
+let hasAudio = !!TIEMPOS, playing = false, clock0 = 0, clockAt = 0;
+audio.addEventListener("error", () => { hasAudio = false; });
+function now() { return hasAudio ? audio.currentTime : (playing ? clockAt + (performance.now() - clock0) / 1000 : clockAt); }
+function seek(sec) {
+  sec = Math.max(0, Math.min(TOTAL, sec));
+  if (hasAudio) { try { audio.currentTime = sec; } catch (e) {} } clockAt = sec; clock0 = performance.now();
+  cur = -1; show(idxAt(sec), false); tick(true);
+}
+function setPlaying(p) {
+  playing = p; $("play").textContent = p ? "❚❚ Pausa" : "▶ Reproducir";
+  if (p) {
+    if (now() >= TOTAL - 0.2) seek(0);
+    clockAt = now(); clock0 = performance.now();
+    if (hasAudio) audio.play().catch(() => { hasAudio = false; clock0 = performance.now(); });
+    requestAnimationFrame(loop);
+  } else { clockAt = now(); if (hasAudio) audio.pause(); }
+}
+function tick(force) {
+  const s = now();
+  const i = idxAt(s);
+  if (i !== cur) show(i, true);
+  const f = FLAT[cur];
+  $("prog").style.width = Math.min(100, Math.max(0, (s - f.t0) / (f.t1 - f.t0) * 100)) + "%";
+  $("fill").style.width = (s / TOTAL * 100) + "%";
+  $("track").setAttribute("aria-valuenow", Math.round(s / TOTAL * 100));
+  $("tcur").textContent = fmt(s); $("ttot").textContent = fmt(TOTAL);
+  if (s >= TOTAL && playing) setPlaying(false);
+}
+function loop() { if (!playing) return; tick(); requestAnimationFrame(loop); }
+audio.addEventListener("ended", () => setPlaying(false));
+
+$("play").onclick = () => setPlaying(!playing);
+$("fwd").onclick = () => { seek(FLAT[Math.min(FLAT.length - 1, cur + 1)].t0); if (playing) show(cur, true); };
+$("back").onclick = () => { seek(FLAT[Math.max(0, cur - 1)].t0); };
+$("track").addEventListener("pointerdown", (e) => { const r = e.currentTarget.getBoundingClientRect(); seek((e.clientX - r.left) / r.width * TOTAL); });
+$("track").addEventListener("keydown", (e) => { if (e.key === "ArrowRight") { e.preventDefault(); $("fwd").click(); } if (e.key === "ArrowLeft") { e.preventDefault(); $("back").click(); } });
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("button, [role=slider]")) return;
+  if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+  if (e.key === "ArrowRight") $("fwd").click();
+  if (e.key === "ArrowLeft") $("back").click();
+});
+const chEl = $("chapters"), track = $("track");
+CH.forEach((c, ci) => {
+  const f = FLAT.find((x) => x.ci === ci);
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "chap";
+  btn.innerHTML = `<small>${fmt(f.t0)}</small><span></span>`; btn.querySelector("span").textContent = c.t;
+  btn.onclick = () => seek(f.t0);
+  chEl.appendChild(btn);
+  if (ci > 0) { const tk = document.createElement("span"); tk.className = "tick"; tk.style.left = (f.t0 / TOTAL * 100) + "%"; track.appendChild(tk); }
+});
+
+/* ---------- modo grabación (solo para generar el MP4) ---------- */
+window.__rec = {
+  prepare() { document.body.classList.add("rec"); fit(); hasAudio = false; $("curtain").classList.add("show"); },
+  start() { $("curtain").classList.remove("show"); seek(0); setPlaying(true); },
+  total: TOTAL,
+};
+show(0, false); tick(true);
+</script>
