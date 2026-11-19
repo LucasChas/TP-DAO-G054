@@ -60,7 +60,7 @@ La opción **Cargar datos de ejemplo** agrega un historial de operaciones con fe
 
 ## Exportación
 
-Siguiendo el apunte de la cátedra "Reportes en Python", cada reporte se puede exportar desde el menú **Reportes** (opciones 6 y 7) a:
+Siguiendo el apunte de la cátedra "Reportes en Python", el reporte que se está viendo en la pestaña **Reportes** se puede exportar con los botones "Exportar a PDF (con gráfico)" y "Exportar a CSV":
 
 - **PDF con ReportLab:**
   - título, fecha de generación y una descripción de qué muestra el reporte y con qué criterio;

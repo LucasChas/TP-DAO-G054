@@ -1,1 +1,1 @@
-"""Interfaz gráfica con Tkinter. Usa los mismos servicios y reportes que la consola."""
+"""Interfaz gráfica con Tkinter. Solo llama a los servicios y a los reportes; no accede a la base."""

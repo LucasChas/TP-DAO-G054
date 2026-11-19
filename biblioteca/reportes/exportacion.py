@@ -1,4 +1,4 @@
-"""Punto de entrada para exportar un reporte a PDF o CSV. Lo usan la consola y la interfaz gráfica."""
+"""Punto de entrada para exportar un reporte a PDF o CSV. Lo usa la pestaña Reportes de la interfaz gráfica."""
 from pathlib import Path
 
 from biblioteca.reportes import armado, exportar_csv, exportar_pdf
