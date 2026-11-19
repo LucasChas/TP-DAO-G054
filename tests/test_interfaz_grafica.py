@@ -127,7 +127,10 @@ def test_el_remito_muestra_su_trayecto_y_la_transicion_invalida_se_informa(aplic
     ]
     responder.append({"observacion": None})
     pestania.despachar()
-    assert mensajes["errores"] == ["No se puede despachar un remito en estado En tránsito."]
+    assert mensajes["errores"] == [
+        "No se puede despachar un remito en estado En tránsito. "
+        "Desde En tránsito se puede: registrar un punto de control, recibir o reportar extravío."
+    ]
 
 
 def test_la_devolucion_usa_la_politica_de_multas_elegida(aplicacion, responder, mensajes):

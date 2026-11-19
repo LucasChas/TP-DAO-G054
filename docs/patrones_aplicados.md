@@ -192,7 +192,7 @@ Uso en el servicio de reservas:
 ```python
 catalogo = CatalogoEjemplares(EjemplarDAO(sesion).listar(id_libro=libro.id, id_sede=sede.id))
 if list(catalogo.disponibles()):
-    raise OperacionNoPermitida("Hay ejemplares disponibles. Solicite el préstamo.")
+    raise OperacionNoPermitida("Hay ejemplares disponibles. Registre un préstamo local.")
 ```
 
 ---

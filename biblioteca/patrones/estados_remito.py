@@ -34,7 +34,27 @@ class EstadoRemito(ABC):
         return False
 
     def _no_permitida(self, accion):
-        raise TransicionRemitoInvalida(f"No se puede {accion} un remito en estado {texto_estado(self.nombre)}.")
+        raise TransicionRemitoInvalida(
+            f"No se puede {accion} un remito en estado {texto_estado(self.nombre)}. {self._acciones_posibles()}"
+        )
+
+    def _acciones_posibles(self):
+        """Texto con las acciones que este estado sí admite, para orientar al usuario."""
+        if self.es_final:
+            return "Es un estado final: el remito ya no admite acciones."
+        acciones = [
+            texto for metodo, texto in ACCIONES_VISIBLES
+            if getattr(type(self), metodo) is not getattr(EstadoRemito, metodo)
+        ]
+        if isinstance(self, Recibido):
+            acciones.append("entregar el préstamo desde la pestaña Préstamos")
+        if not acciones:
+            return "El sistema cierra el remito en la misma operación."
+        if len(acciones) > 1:
+            lista = ", ".join(acciones[:-1]) + " o " + acciones[-1]
+        else:
+            lista = acciones[0]
+        return f"Desde {texto_estado(self.nombre)} se puede: {lista}."
 
     def empaquetar(self, remito, fecha_hora, observacion):
         self._no_permitida("empaquetar")
@@ -59,6 +79,19 @@ class EstadoRemito(ABC):
 
     def cerrar(self, remito, fecha_hora, observacion):
         self._no_permitida("cerrar")
+
+
+# Acciones que el usuario ve como botones, con el texto que se le muestra.
+# "cerrar" no está porque el sistema la aplica solo.
+ACCIONES_VISIBLES = [
+    ("empaquetar", "empaquetar"),
+    ("despachar", "despachar"),
+    ("registrar_punto_de_control", "registrar un punto de control"),
+    ("recibir", "recibir"),
+    ("registrar_danio", "registrar daño"),
+    ("reportar_extravio", "reportar extravío"),
+    ("anular", "anular (solo remitos de ida)"),
+]
 
 
 class Generado(EstadoRemito):

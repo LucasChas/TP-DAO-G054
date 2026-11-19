@@ -133,9 +133,9 @@ class TestCancelacionYConsultas:
         assert servicio.cancelar_prestamo(prestamo.id).estado == EstadoPrestamo.CANCELADO
         assert estado_del_ejemplar(red.ejemplar_norte) == EstadoEjemplar.DISPONIBLE
 
-    def test_no_se_cancela_un_prestamo_activo(self, servicio, red):
+    def test_no_se_cancela_un_prestamo_local(self, servicio, red):
         prestamo = servicio.registrar_prestamo_local(red.ana.id, red.ejemplar_centro.id, red.centro.id, fecha=HOY)
-        with pytest.raises(OperacionNoPermitida):
+        with pytest.raises(OperacionNoPermitida, match="Es un préstamo local y ya se entregó al socio"):
             servicio.cancelar_prestamo(prestamo.id)
 
     def test_se_listan_los_prestamos_vencidos(self, servicio, red):

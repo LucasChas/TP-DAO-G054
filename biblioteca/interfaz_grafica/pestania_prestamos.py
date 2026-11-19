@@ -2,8 +2,10 @@
 from tkinter import ttk
 
 from biblioteca.interfaz_grafica import componentes as c
-from biblioteca.interfaz_grafica.opciones import opciones_ejemplares, opciones_sedes, opciones_socios
-from biblioteca.modelos.enumeraciones import EstadoPrestamo
+from biblioteca.interfaz_grafica.opciones import (
+    destino_del_ejemplar, numero_de_remito, opciones_ejemplares, opciones_sedes, opciones_socios,
+)
+from biblioteca.modelos.enumeraciones import EstadoPrestamo, SentidoRemito
 from biblioteca.servicios import ServicioPrestamos
 
 EN_CURSO = [EstadoPrestamo.SOLICITADO, EstadoPrestamo.EN_ENVIO, EstadoPrestamo.LISTO_PARA_RETIRO, EstadoPrestamo.ACTIVO]
@@ -20,7 +22,7 @@ class PestaniaPrestamos(ttk.Frame):
             ("Préstamo local", self.prestamo_local),
             ("Préstamo interbibliotecario", self.prestamo_interbibliotecario),
             ("Entregar (interbibliotecario)", self.entregar),
-            ("Cancelar solicitud", self.cancelar),
+            ("Cancelar solicitud (interbibliotecario)", self.cancelar),
         ])
         barra.pack(fill="x")
         ttk.Label(barra, text="Mostrar:").pack(side="left", padx=(20, 4))
@@ -53,7 +55,7 @@ class PestaniaPrestamos(ttk.Frame):
         ])
         if datos and c.ejecutar(
             lambda: self.servicio.registrar_prestamo_local(**datos), self,
-            lambda p: f"Préstamo registrado. Vence el {c.formatear_fecha(p.fecha_vencimiento)}.",
+            lambda p: f"Préstamo local registrado y entregado al socio. Vence el {c.formatear_fecha(p.fecha_vencimiento)} (14 días).",
         ):
             self.actualizar()
 
@@ -67,7 +69,8 @@ class PestaniaPrestamos(ttk.Frame):
         ])
         if datos and c.ejecutar(
             lambda: self.servicio.solicitar_prestamo_interbibliotecario(**datos), self,
-            "Solicitud registrada. Se generó el remito de ida.",
+            lambda p: f"Solicitud registrada. Se generó el remito de ida {numero_de_remito(p.id, SentidoRemito.IDA)}.\n"
+                      "Siguiente paso: en Remitos, empaquetarlo y despacharlo.",
         ):
             self.actualizar()
 
@@ -82,5 +85,9 @@ class PestaniaPrestamos(ttk.Frame):
     def cancelar(self):
         id_prestamo = c.id_seleccionado_o_aviso(self.tabla, self, "un préstamo")
         if id_prestamo is not None and c.confirmar("¿Cancelar la solicitud seleccionada?", self):
-            if c.ejecutar(lambda: self.servicio.cancelar_prestamo(id_prestamo), self, "Solicitud cancelada."):
+            if c.ejecutar(
+                lambda: self.servicio.cancelar_prestamo(id_prestamo), self,
+                lambda p: f"Solicitud cancelada: se anuló el remito de ida {numero_de_remito(p.id, SentidoRemito.IDA)} "
+                          f"y el ejemplar {p.ejemplar.codigo_inventario} {destino_del_ejemplar(p.ejemplar)}.",
+            ):
                 self.actualizar()

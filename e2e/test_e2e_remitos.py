@@ -35,12 +35,15 @@ def test_cp13_ciclo_completo_del_remito_de_ida_con_trazabilidad(gui, red):
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     gui.capturar("01_remito_generado")
     pasos = [
-        ("Empaquetar", {"Observación": "Caja 12, sellada"}, "Remito empaquetado. Estado actual: Empaquetado."),
-        ("Despachar", {"Observación": "Transporte interno, móvil 3"}, "Remito despachado. Estado actual: Despachado."),
+        ("Empaquetar", {"Observación": "Caja 12, sellada"}, "Remito empaquetado. Siguiente paso: despacharlo."),
+        ("Despachar", {"Observación": "Transporte interno, móvil 3"}, "Remito despachado: el ejemplar quedó en tránsito y el préstamo en envío.\n"
+         "Siguiente paso: registrar puntos de control (opcional) o recibirlo en Sede Centro."),
         ("Punto de control", {"Ubicación": "Centro de distribución Alta Córdoba"},
-         "Punto de control registrado. Estado actual: En tránsito."),
+         "Punto de control registrado: Centro de distribución Alta Córdoba.\n"
+         "Siguiente paso: otro punto de control o recibirlo en Sede Centro."),
         ("Recibir", {"Estado físico del ejemplar": "Bueno", "Observación": "Llegó en condiciones"},
-         "Remito recibido. Estado actual: Recibido."),
+         "Remito recibido en Sede Centro: el préstamo quedó listo para retiro.\n"
+         "Siguiente paso: en Préstamos, 'Entregar (interbibliotecario)'."),
     ]
     for numero, (boton, valores, esperado) in enumerate(pasos, start=2):
         gui.seleccionar(pestania.tabla, "Número", "R-000001")
@@ -74,7 +77,8 @@ def test_cp14_recepcion_con_danio_genera_remito_de_retorno(gui, red):
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     mensajes = gui.clic("Recibir", Formulario({"Estado físico del ejemplar": "Dañado", "Observación": "Tapa rota"},
                                               captura="01_recibir_daniado"), Mensaje(captura="02_resultado"))
-    assert mensajes == [("Listo", "Remito recibido. Estado actual: Cerrado.")]
+    assert mensajes == [("Listo", "Remito recibido en Sede Centro con daño: el préstamo se canceló. "
+                                  "Se generó el remito de retorno R-000002 para devolver el ejemplar a su sede.")]
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     gui.capturar("03_trayecto_con_incidente")
     estados = [f["Estado nuevo"] for f in gui.filas(pestania.tabla_trayecto)]
@@ -95,7 +99,8 @@ def test_cp15_registrar_danio_despues_de_recibir(gui, red):
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     mensajes = gui.clic("Registrar daño", Formulario({"Descripción del daño": "Hojas manchadas al abrir el paquete"},
                                                      captura="01_formulario_danio"), Mensaje(captura="02_resultado"))
-    assert mensajes == [("Listo", "Daño registrado; se generó el remito de retorno. Estado actual: Cerrado.")]
+    assert mensajes == [("Listo", "Daño registrado: el préstamo se canceló. "
+                                  "Se generó el remito de retorno R-000002 para devolver el ejemplar a su sede.")]
     assert _fila(gui, "R-000002")["Sentido"] == "Retorno"
 
 
@@ -105,7 +110,7 @@ def test_cp16_reportar_extravio(gui, red):
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     mensajes = gui.clic("Reportar extravío", Formulario({"Observación": "El paquete no llegó a destino"}, captura="01_formulario"),
                         Mensaje(captura="02_resultado"))
-    assert mensajes == [("Listo", "Extravío registrado. Estado actual: Cerrado.")]
+    assert mensajes == [("Listo", "Extravío registrado: el ejemplar quedó extraviado, el préstamo se canceló y el remito se cerró.")]
     assert _estado_ejemplar(gui, "NOR-0001")["Estado"] == "Extraviado"
     gui.capturar("03_ejemplar_extraviado")
 
@@ -115,7 +120,7 @@ def test_cp17_anular_remito_de_ida_antes_del_despacho(gui, red):
     pestania = gui.ir_a("Remitos")
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     mensajes = gui.clic("Anular", Formulario({"Motivo": "El socio desistió"}, captura="01_motivo"), Mensaje(captura="02_resultado"))
-    assert mensajes == [("Listo", "Remito anulado y préstamo cancelado. Estado actual: Anulado.")]
+    assert mensajes == [("Listo", "Remito anulado: el préstamo se canceló y el ejemplar NOR-0001 volvió a estar disponible.")]
     assert _estado_ejemplar(gui, "NOR-0001")["Estado"] == "Disponible"
 
 
@@ -126,7 +131,8 @@ def test_cp18_remito_de_retorno_reintegra_el_ejemplar_a_su_sede(gui, red):
     devoluciones = gui.ir_a("Devoluciones y multas")
     mensajes = gui.clic("Registrar devolución", Formulario({"Préstamo": f"{prestamo.id} - Pérez, Ana", "Estado físico": "Bueno"},
                                                            captura="01_devolucion"), Mensaje(captura="02_resultado"))
-    assert mensajes == [("Listo", "Devolución registrada.\nSe generó el remito de retorno a la sede propietaria.")]
+    assert mensajes == [("Listo", "Devolución registrada.\nSe generó el remito de retorno R-000002 a la sede propietaria."
+                                  "\nSiguiente paso: en Remitos, empaquetarlo y despacharlo.")]
     assert devoluciones.tabla.filas()
     pestania = gui.ir_a("Remitos")
     for boton, valores in [("Empaquetar", {}), ("Despachar", {}), ("Recibir", {"Estado físico del ejemplar": "Bueno"})]:
@@ -145,7 +151,8 @@ def test_cn27_recibir_un_remito_que_no_salio(gui, red):
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     mensajes = gui.clic("Recibir", Formulario({"Estado físico del ejemplar": "Bueno"}),
                         Mensaje(titulo="Operación rechazada", captura="01_transicion_invalida"))
-    assert mensajes == [("Operación rechazada", "No se puede recibir un remito en estado Generado.")]
+    assert mensajes == [("Operación rechazada", "No se puede recibir un remito en estado Generado. "
+                                                "Desde Generado se puede: empaquetar o anular (solo remitos de ida).")]
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     assert _fila(gui, "R-000001")["Estado"] == "Generado"
     assert len(gui.filas(pestania.tabla_trayecto)) == 1
@@ -156,7 +163,8 @@ def test_cn28_anular_un_remito_ya_despachado(gui, red):
     pestania = gui.ir_a("Remitos")
     gui.seleccionar(pestania.tabla, "Número", "R-000001")
     mensajes = gui.clic("Anular", Formulario({"Motivo": "Error"}), Mensaje(titulo="Operación rechazada", captura="01_rechazo"))
-    assert mensajes == [("Operación rechazada", "No se puede anular un remito en estado Despachado.")]
+    assert mensajes == [("Operación rechazada", "No se puede anular un remito en estado Despachado. Desde Despachado se puede: "
+                                                "registrar un punto de control, recibir o reportar extravío.")]
 
 
 def test_cn29_despachar_hacia_una_sede_dada_de_baja(gui, red):

@@ -1,11 +1,12 @@
-"""Opciones para las listas desplegables de los formularios, armadas a partir de los servicios.
+"""Opciones para las listas desplegables de los formularios y textos de apoyo para los
+mensajes, armados a partir de los servicios.
 
 Se muestran también los registros que no cumplen las reglas (socios inhabilitados,
 sedes dadas de baja, ejemplares no disponibles) para que sea el servicio el que
 rechace la operación y explique el motivo.
 """
 from biblioteca.modelos.enumeraciones import EstadoEjemplar
-from biblioteca.servicios import ServicioCatalogo, ServicioSedes, ServicioSocios
+from biblioteca.servicios import ServicioCatalogo, ServicioRemitos, ServicioReservas, ServicioSedes, ServicioSocios
 
 
 def opciones_socios():
@@ -34,3 +35,24 @@ def opciones_ejemplares(id_sede=None):
 
 def opciones_enum(tipo_enum):
     return [(valor.value, valor) for valor in tipo_enum]
+
+
+def destino_del_ejemplar(ejemplar):
+    """Qué pasó con un ejemplar que se liberó: disponible, apartado para una reserva o en reparación."""
+    if ejemplar.estado == EstadoEjemplar.DISPONIBLE:
+        return "volvió a estar disponible"
+    if ejemplar.estado == EstadoEjemplar.RESERVADO:
+        for reserva in ServicioReservas().listar_reservas(solo_activas=True):
+            if reserva.ejemplar_id == ejemplar.id:
+                return (f"quedó apartado para la reserva de {reserva.socio.nombre_completo}, "
+                        "que tiene 3 días para retirarlo")
+        return "quedó apartado para la reserva pendiente más antigua"
+    if ejemplar.estado == EstadoEjemplar.EN_REPARACION:
+        return "quedó en reparación"
+    return f"quedó {ejemplar.estado.value.lower()}"
+
+
+def numero_de_remito(id_prestamo, sentido):
+    """Número del último remito del préstamo en ese sentido (ida o retorno), o None."""
+    remitos = [r for r in ServicioRemitos().listar_remitos_de_prestamo(id_prestamo) if r.sentido == sentido]
+    return remitos[-1].numero if remitos else None

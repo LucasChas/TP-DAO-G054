@@ -3,8 +3,8 @@ import tkinter as tk
 from tkinter import ttk
 
 from biblioteca.interfaz_grafica import componentes as c
-from biblioteca.interfaz_grafica.opciones import opciones_enum
-from biblioteca.modelos.enumeraciones import EstadoFisico, EstadoPrestamo
+from biblioteca.interfaz_grafica.opciones import destino_del_ejemplar, numero_de_remito, opciones_enum
+from biblioteca.modelos.enumeraciones import EstadoFisico, EstadoPrestamo, SentidoRemito
 from biblioteca.patrones.estrategias_multa import ESTRATEGIAS_DISPONIBLES
 from biblioteca.servicios import ServicioPrestamos
 
@@ -51,7 +51,8 @@ class PestaniaDevoluciones(ttk.Frame):
 
     def cambiar_politica(self):
         self.servicio.cambiar_estrategia_de_multa(self.estrategias[self.selector_politica.get()]())
-        c.informar(f"Política de multas: {self.servicio.calculadora.estrategia.descripcion}.", self)
+        c.informar(f"Política de multas cambiada a: {self.servicio.calculadora.estrategia.descripcion}.\n"
+                  "Se aplica a las próximas devoluciones; las ya registradas no cambian.", self)
 
     def registrar_devolucion(self):
         activos = [
@@ -76,8 +77,14 @@ class PestaniaDevoluciones(ttk.Frame):
             mensaje += f"\nMaterial devuelto dañado: cargo de {c.formatear_pesos(devolucion.cargo_por_danio)}."
         if devolucion.monto_multa > 0:
             mensaje += f"\nTotal a pagar: {c.formatear_pesos(devolucion.monto_multa)}."
-        if devolucion.prestamo.es_interbibliotecario:
-            mensaje += "\nSe generó el remito de retorno a la sede propietaria."
+        prestamo = devolucion.prestamo
+        if prestamo.es_interbibliotecario:
+            numero = numero_de_remito(prestamo.id, SentidoRemito.RETORNO)
+            mensaje += (f"\nSe generó el remito de retorno {numero} a la sede propietaria."
+                        "\nSiguiente paso: en Remitos, empaquetarlo y despacharlo.")
+        else:
+            ejemplar = prestamo.ejemplar
+            mensaje += f"\nEl ejemplar {ejemplar.codigo_inventario} {destino_del_ejemplar(ejemplar)}."
         return mensaje
 
     def registrar_pago(self):

@@ -2,7 +2,7 @@
 from tkinter import ttk
 
 from biblioteca.interfaz_grafica import componentes as c
-from biblioteca.interfaz_grafica.opciones import opciones_enum, opciones_sedes
+from biblioteca.interfaz_grafica.opciones import destino_del_ejemplar, opciones_enum, opciones_sedes
 from biblioteca.modelos.enumeraciones import TipoMaterial
 from biblioteca.servicios import ServicioCatalogo, ServicioDisponibilidad
 
@@ -134,7 +134,9 @@ class PestaniaCatalogo(ttk.Frame):
     def finalizar_reparacion(self):
         id_ejemplar = c.id_seleccionado_o_aviso(self.tabla_ejemplares, self, "un ejemplar")
         if id_ejemplar is not None and c.ejecutar(
-            lambda: self.servicio.finalizar_reparacion(id_ejemplar), self, "El ejemplar vuelve a circular."
+            lambda: self.servicio.finalizar_reparacion(id_ejemplar), self,
+            lambda e: f"Reparación finalizada: el ejemplar {e.codigo_inventario} queda con estado físico Regular "
+                      f"y {destino_del_ejemplar(e)}.",
         ):
             self.actualizar_ejemplares()
 
