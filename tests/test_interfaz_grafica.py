@@ -312,3 +312,65 @@ def test_registrar_retiro_desde_la_pestania_de_reservas(aplicacion, mensajes):
     assert mensajes["errores"] == []
     assert mensajes["informes"][0].startswith("Retiro registrado: se prestó CEN-0001 a Pérez, Ana. Vence el ")
     assert pestania.tabla.filas() == []  # con "Solo activas", la reserva cumplida ya no se lista
+
+
+def test_clic_en_un_encabezado_ordena_la_tabla_y_otro_clic_invierte_el_orden(aplicacion, mensajes):
+    cargar_datos_de_ejemplo()
+    aplicacion.mostrar_pestania("Catálogo")
+    tabla = aplicacion.pestanias["Catálogo"].tabla_libros
+    tabla.ordenar_por("Año")
+    anios = [int(fila[5]) for fila in tabla.filas()]
+    assert anios == sorted(anios)
+    tabla.ordenar_por("Año")
+    assert [int(fila[5]) for fila in tabla.filas()] == sorted(anios, reverse=True)
+    assert tabla.arbol.heading("Año", "text") == "Año ▼"
+
+
+def test_el_orden_reconoce_numeros_montos_y_fechas():
+    from biblioteca.interfaz_grafica.componentes import _clave_de_orden
+
+    assert sorted(["10", "9", "-", "100"], key=_clave_de_orden) == ["9", "10", "100", "-"]
+    assert sorted(["$1,200.00", "$80.50"], key=_clave_de_orden) == ["$80.50", "$1,200.00"]
+    assert sorted(["02/01/2026", "15/12/2025"], key=_clave_de_orden) == ["15/12/2025", "02/01/2026"]
+    assert sorted(["29.8 h", "4.0 h"], key=_clave_de_orden) == ["4.0 h", "29.8 h"]
+
+
+def test_la_barra_de_botones_muestra_la_cantidad_de_filas(aplicacion, mensajes):
+    aplicacion.mostrar_pestania("Sedes")
+    pestania = aplicacion.pestanias["Sedes"]
+    etiqueta = pestania.tabla._contador[0]
+    assert etiqueta.cget("text") == "0 sedes"
+    ServicioSedes().registrar_sede("Sede Centro", "Av. Colón 100")
+    pestania.actualizar()
+    assert etiqueta.cget("text") == "1 sede"
+
+
+def test_las_operaciones_actualizan_la_barra_de_estado_y_los_indicadores(aplicacion, responder, mensajes):
+    cargar_datos_de_ejemplo()
+    aplicacion.actualizar_indicadores()
+    assert aplicacion._indicadores["en_curso"].cget("text") == "2"
+    responder.append({"nombre": "Sede Oeste", "direccion": "Av. Sabattini 100", "telefono": None,
+                      "email": None, "horario_atencion": None})
+    aplicacion.pestanias["Sedes"].nueva()
+    assert aplicacion.estado.cget("text").endswith("Sede registrada.")
+    responder.append({"nombre": "Sede Oeste", "direccion": "Otra dirección", "telefono": None,
+                      "email": None, "horario_atencion": None})
+    aplicacion.pestanias["Sedes"].nueva()
+    assert "Operación rechazada" in aplicacion.estado.cget("text")
+
+
+def test_el_formulario_marca_el_dato_obligatorio_que_falta(aplicacion, mensajes):
+    from biblioteca.interfaz_grafica.componentes import Campo, Formulario
+
+    formulario = Formulario(aplicacion, "Nueva sede", [Campo("nombre", "Nombre", obligatorio=True)])
+    formulario._aceptar()
+    control = formulario._controles["nombre"]
+    assert formulario.resultado is None
+    assert str(control.cget("style")) == "Error.TEntry"
+    # Al escribir se quita la marca (la ventana de la prueba está oculta y no recibe teclas).
+    assert control.bind("<Key>")
+    control.insert(0, "Sede Oeste")
+    formulario._quitar_error(control)
+    assert str(control.cget("style")) == "TEntry"
+    formulario._aceptar()
+    assert formulario.resultado == {"nombre": "Sede Oeste"}

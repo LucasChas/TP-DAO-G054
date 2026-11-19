@@ -59,7 +59,7 @@ Con eso todos los reportes muestran información.
 pytest -q
 ```
 
-Hay 247 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 97 % del paquete `biblioteca`, sin contar las interfaces. Los 22 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
+Hay 252 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 97 % del paquete `biblioteca`, sin contar las interfaces. Los 27 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
 
 ## Funcionalidades
 
@@ -79,17 +79,26 @@ Los errores de negocio (por ejemplo, prestar a un socio inhabilitado) se informa
 
 ## Interfaz gráfica
 
-Es una ventana con una pestaña por área: Sedes, Socios, Catálogo, Préstamos, Reservas, Remitos, Devoluciones y multas, y Reportes. En cada pestaña:
-- una tabla muestra los datos;
-- los botones abren formularios con listas desplegables, así no hace falta escribir ids;
-- las operaciones que actúan sobre un registro se aplican a la fila seleccionada.
+Es una ventana con una pestaña por área: Sedes, Socios, Catálogo, Préstamos, Reservas, Remitos, Devoluciones y multas, y Reportes.
+
+- **Cabecera:** muestra cuatro indicadores de la red que se recalculan después de cada operación: préstamos en curso, préstamos vencidos, envíos en tránsito y multas impagas (vencidos y multas impagas se resaltan cuando son mayores que cero).
+- **Barra de estado:** abajo se ve el resultado de la última operación (o el motivo del rechazo) y la base de datos en uso.
+- **Tablas:** filas alternadas, clic en un encabezado para ordenar (otro clic invierte el orden), cantidad de registros a la derecha de la barra de botones y un mensaje cuando no hay datos. Las filas con problemas (socio inhabilitado, ejemplar extraviado o dañado, reserva vencida) se ven en rojo y las cerradas o dadas de baja, en gris.
+- **Botones:** la acción principal de cada pestaña está resaltada y las que dan de baja, cancelan o anulan se ven en rojo.
+- **Formularios:** listas desplegables en lugar de ids, los datos obligatorios marcados con `*` y, si falta uno o tiene un formato inválido, el campo queda marcado en rojo.
+- Las operaciones que actúan sobre un registro se aplican a la fila seleccionada; en Sedes, Socios y Catálogo, el doble clic (o Enter) sobre una fila abre "Modificar".
+
+Atajos de teclado (también en **Ayuda > Atajos de teclado**): `Ctrl+1` … `Ctrl+8` para cambiar de pestaña, `F5` para actualizar, `Enter`/`Esc` para aceptar o cancelar un formulario y `Ctrl+Q` para salir.
+
+El aspecto (colores, fuentes y estilos) está centralizado en `biblioteca/interfaz_grafica/tema.py`.
 
 Detalles por pestaña:
 - **Reservas:** cuando una reserva queda "Disponible para retiro", "Registrar retiro" presta el ejemplar apartado al socio de la reserva (préstamo local de 14 días) y la reserva pasa a "Cumplida".
 - **Préstamos:** al elegir la sede (o la sede de origen, en el interbibliotecario), la lista de ejemplares muestra solo los que pertenecen a esa sede.
-- **Catálogo:** al elegir un libro se ven sus ejemplares, y "Ver disponibilidad" muestra cuántos hay en cada sede.
+- **Catálogo:** al elegir un libro se ven sus ejemplares (el recuadro muestra el título del libro), y "Ver disponibilidad" muestra cuántos hay en cada sede.
 - **Remitos:** al elegir un remito se ve su trayecto completo, con cada cambio de estado.
 - **Devoluciones y multas:** permite cambiar la política de multas vigente (patrón Strategy). La tabla separa la multa por atraso del cargo por devolver el material dañado.
+- **Reportes:** el reporte elegido queda resaltado en la lista; cada reporte muestra tarjetas con sus totales y el contenido se desplaza si no entra en la ventana.
 
 Los errores de negocio se muestran en un cuadro de diálogo con el motivo, sin cerrar la aplicación.
 

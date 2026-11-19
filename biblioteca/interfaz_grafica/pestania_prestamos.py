@@ -14,22 +14,25 @@ class PestaniaPrestamos(ttk.Frame):
     FILTROS = ("En curso", "Vencidos", "Todos")
 
     def __init__(self, padre):
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = ServicioPrestamos()
         barra = c.barra_de_botones(self, [
-            ("Préstamo local", self.prestamo_local),
-            ("Préstamo interbibliotecario", self.prestamo_interbibliotecario),
+            ("Préstamo local", self.prestamo_local, c.PRIMARIO),
+            ("Préstamo interbibliotecario", self.prestamo_interbibliotecario, c.PRIMARIO),
             ("Entregar al socio", self.entregar),
-            ("Cancelar solicitud", self.cancelar),
+            ("Cancelar solicitud", self.cancelar, c.PELIGRO),
         ])
         barra.pack(fill="x")
-        ttk.Label(barra, text="Mostrar:").pack(side="left", padx=(20, 4))
+        c.separador_vertical(barra)
+        ttk.Label(barra, text="Mostrar:").pack(side="left", padx=(0, 4))
         self.filtro = ttk.Combobox(barra, values=self.FILTROS, state="readonly", width=12)
         self.filtro.set(self.FILTROS[0])
         self.filtro.pack(side="left")
         self.filtro.bind("<<ComboboxSelected>>", lambda evento: self.actualizar())
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Tipo": 130, "Socio": 150, "Libro": 190, "Origen": 140, "Destino": 140})
+        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Tipo": 130, "Socio": 150, "Libro": 190, "Origen": 140, "Destino": 140},
+                             mensaje_vacio="No hay préstamos para el filtro elegido.")
         self.tabla.pack(fill="both", expand=True, pady=(10, 0))
+        self.tabla.mostrar_cantidad(barra, "préstamo", "préstamos")
 
     def actualizar(self):
         filtro = self.filtro.get()

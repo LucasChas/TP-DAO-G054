@@ -13,7 +13,7 @@ class PestaniaRemitos(ttk.Frame):
     COLUMNAS_TRAYECTO = ("Fecha y hora", "Estado anterior", "Estado nuevo", "Observación")
 
     def __init__(self, padre):
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = ServicioRemitos()
         barra = c.barra_de_botones(self, [
             ("Empaquetar", self.empaquetar),
@@ -21,21 +21,25 @@ class PestaniaRemitos(ttk.Frame):
             ("Punto de control", self.punto_de_control),
             ("Recibir", self.recibir),
             ("Registrar daño", self.registrar_danio),
-            ("Reportar extravío", self.reportar_extravio),
-            ("Anular", self.anular),
+            ("Reportar extravío", self.reportar_extravio, c.PELIGRO),
+            ("Anular", self.anular, c.PELIGRO),
         ])
         barra.pack(fill="x")
+        c.separador_vertical(barra)
         self.solo_en_curso = tk.BooleanVar(value=False)
-        ttk.Checkbutton(barra, text="Solo en curso", variable=self.solo_en_curso, command=self.actualizar).pack(side="left", padx=20)
+        ttk.Checkbutton(barra, text="Solo en curso", variable=self.solo_en_curso, command=self.actualizar).pack(side="left")
 
-        self.tabla = c.Tabla(self, self.COLUMNAS, alto=9, anchos={"Id": 50, "Libro": 190, "Origen": 150, "Destino": 150, "Generado": 140})
+        self.tabla = c.Tabla(self, self.COLUMNAS, alto=7, anchos={"Id": 50, "Libro": 190, "Origen": 150, "Destino": 150, "Generado": 140},
+                             mensaje_vacio="No hay remitos para mostrar.")
         self.tabla.pack(fill="both", expand=True, pady=(10, 0))
+        self.tabla.mostrar_cantidad(barra, "remito", "remitos")
         self.tabla.al_seleccionar(self.actualizar_trayecto)
 
         self.marco_trayecto = ttk.LabelFrame(self, text="Trayecto del remito seleccionado", padding=8)
         self.marco_trayecto.pack(fill="both", expand=True, pady=(10, 0))
-        self.tabla_trayecto = c.Tabla(self.marco_trayecto, self.COLUMNAS_TRAYECTO, alto=7,
-                                      anchos={"Fecha y hora": 150, "Observación": 420})
+        self.tabla_trayecto = c.Tabla(self.marco_trayecto, self.COLUMNAS_TRAYECTO, alto=5,
+                                      anchos={"Fecha y hora": 150, "Observación": 420},
+                                      mensaje_vacio="Elija un remito de la lista para ver su trayecto.")
         self.tabla_trayecto.pack(fill="both", expand=True)
 
     def actualizar(self):
