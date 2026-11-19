@@ -15,27 +15,33 @@ class PestaniaDevoluciones(ttk.Frame):
     def __init__(self, padre, servicio):
         """servicio es el ServicioDevoluciones compartido con la pestaña de reportes,
         así ambos usan la misma política de multas."""
-        super().__init__(padre, padding=10)
+        super().__init__(padre, padding=12)
         self.servicio = servicio
         barra = c.barra_de_botones(self, [
-            ("Registrar devolución", self.registrar_devolucion),
+            ("Registrar devolución", self.registrar_devolucion, c.PRIMARIO),
             ("Registrar pago de multa", self.registrar_pago),
         ])
         barra.pack(fill="x")
+        c.separador_vertical(barra)
         self.solo_impagas = tk.BooleanVar(value=False)
-        ttk.Checkbutton(barra, text="Solo multas impagas", variable=self.solo_impagas, command=self.actualizar).pack(side="left", padx=20)
+        ttk.Checkbutton(barra, text="Solo multas impagas", variable=self.solo_impagas, command=self.actualizar).pack(side="left")
 
-        politica = ttk.Frame(self)
+        politica = ttk.LabelFrame(self, text="Política de multas (patrón Strategy)", padding=8)
         politica.pack(fill="x", pady=(10, 0))
-        ttk.Label(politica, text="Política de multas vigente:").pack(side="left")
+        ttk.Label(politica, text="Vigente:").pack(side="left")
         self.estrategias = {clase().descripcion: clase for clase in ESTRATEGIAS_DISPONIBLES}
-        self.selector_politica = ttk.Combobox(politica, values=list(self.estrategias), state="readonly", width=80)
+        self.selector_politica = ttk.Combobox(politica, values=list(self.estrategias), state="readonly", width=70)
         self.selector_politica.set(self.servicio.calculadora.estrategia.descripcion)
         self.selector_politica.pack(side="left", padx=6)
         self.selector_politica.bind("<<ComboboxSelected>>", lambda evento: self.cambiar_politica())
 
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Préstamo": 80, "Socio": 160, "Libro": 200})
+        ttk.Label(politica, text="Se aplica a las devoluciones que se registren desde ahora.",
+                  style="Suave.TLabel").pack(side="left", padx=(6, 0))
+
+        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Préstamo": 80, "Socio": 160, "Libro": 200},
+                             mensaje_vacio="No hay devoluciones para mostrar.")
         self.tabla.pack(fill="both", expand=True, pady=(10, 0))
+        self.tabla.mostrar_cantidad(barra, "devolución", "devoluciones")
 
     def actualizar(self):
         if self.solo_impagas.get():
