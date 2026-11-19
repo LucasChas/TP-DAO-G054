@@ -1,10 +1,13 @@
-"""Pestaña de reportes: se elige un reporte a la izquierda y se muestran sus tablas a la derecha."""
+"""Pestaña de reportes: se elige uno de los cinco arriba y se muestran sus totales, su gráfico y sus tablas."""
 from datetime import datetime
 from tkinter import ttk
 
 from biblioteca.interfaz_grafica import componentes as c
+from biblioteca.interfaz_grafica import tema
 from biblioteca.reportes import (
+    armado,
     exportacion,
+    graficos,
     libros_mas_solicitados,
     movimiento_entre_sedes,
     prestamos_activos_y_transito,
@@ -23,12 +26,13 @@ def _porcentaje(valor):
 
 class PestaniaReportes(ttk.Frame):
     def __init__(self, padre, servicio_devoluciones):
-        super().__init__(padre, padding=12)
+        super().__init__(padre, padding=(20, 16), style="Panel.TFrame")
         self.servicio_devoluciones = servicio_devoluciones
+        c.encabezado_de_pestania(self, "Reportes", "Se calculan al abrirlos. Exportar guarda el reporte que está a la vista.", [
+            ("Exportar a PDF (con gráfico)", lambda: self.exportar("pdf"), c.PRIMARIO),
+            ("Exportar a CSV", lambda: self.exportar("csv")),
+        ]).pack(fill="x")
 
-        lateral = ttk.Frame(self, width=270)
-        lateral.pack(side="left", fill="y", padx=(0, 14))
-        ttk.Label(lateral, text="Reportes", style="Subtitulo.TLabel").pack(anchor="w", pady=(0, 6))
         self.reportes = [
             ("1. Préstamos activos y tránsito", self.reporte_activos),
             ("2. Vencidos y multas", self.reporte_vencidos),
@@ -36,32 +40,29 @@ class PestaniaReportes(ttk.Frame):
             ("4. Movimiento entre sedes", self.reporte_movimientos),
             ("5. Tasa de envíos e incidencias", self.reporte_tasa),
         ]
-        self.botones_reportes = {}
-        for texto, comando in self.reportes:
-            boton = ttk.Button(lateral, text=texto, command=comando, width=32, style="Menu.TButton")
-            boton.pack(fill="x", pady=2)
-            self.botones_reportes[comando.__name__] = boton
+        self._texto_por_comando = {comando.__name__: texto for texto, comando in self.reportes}
+        comandos = dict(self.reportes)
+        barra = c.barra_de_filtros(self)
+        barra.pack(fill="x", pady=(14, 0))
+        self.selector = c.FiltroSegmentado(barra, [texto for texto, _ in self.reportes],
+                                           lambda: comandos[self.selector.get()]())
+        self.selector.pack(side="left")
 
-        filtro = ttk.LabelFrame(lateral, text="Rango de fechas (reportes 3 y 4)", padding=8)
-        filtro.pack(fill="x", pady=(14, 0))
-        ttk.Label(filtro, text="Desde (dd/mm/aaaa)").pack(anchor="w")
-        self.desde = ttk.Entry(filtro)
-        self.desde.pack(fill="x")
-        ttk.Label(filtro, text="Hasta (dd/mm/aaaa)").pack(anchor="w", pady=(6, 0))
-        self.hasta = ttk.Entry(filtro)
-        self.hasta.pack(fill="x")
-
-        exportar = ttk.LabelFrame(lateral, text="Exportar el reporte mostrado", padding=8)
-        exportar.pack(fill="x", pady=(14, 0))
-        ttk.Label(filtro, text="Vacío = sin límite.", style="Suave.TLabel").pack(anchor="w", pady=(6, 0))
-        ttk.Button(exportar, text="Exportar a PDF (con gráfico)", command=lambda: self.exportar("pdf"),
-                   style=c.PRIMARIO).pack(fill="x", pady=2)
-        ttk.Button(exportar, text="Exportar a CSV", command=lambda: self.exportar("csv")).pack(fill="x", pady=2)
-        self.etiqueta_exportado = ttk.Label(exportar, text="", style="Suave.TLabel", wraplength=230)
-        self.etiqueta_exportado.pack(anchor="w", pady=(6, 0))
+        fechas = c.barra_de_filtros(self)
+        fechas.pack(fill="x", pady=(10, 4))
+        ttk.Label(fechas, text="Rango de fechas para los reportes 3 y 4:", style="PanelSuave.TLabel").pack(side="left")
+        ttk.Label(fechas, text="Desde", style="Panel.TLabel").pack(side="left", padx=(12, 6))
+        self.desde = ttk.Entry(fechas, width=12)
+        self.desde.pack(side="left")
+        ttk.Label(fechas, text="Hasta", style="Panel.TLabel").pack(side="left", padx=(12, 6))
+        self.hasta = ttk.Entry(fechas, width=12)
+        self.hasta.pack(side="left")
+        ttk.Label(fechas, text="dd/mm/aaaa · vacío = sin límite", style="PanelChica.TLabel").pack(side="left", padx=(10, 0))
+        self.etiqueta_exportado = ttk.Label(fechas, text="", style="PanelSuave.TLabel")
+        self.etiqueta_exportado.pack(side="right")
 
         desplazable = c.MarcoDesplazable(self)
-        desplazable.pack(side="left", fill="both", expand=True)
+        desplazable.pack(fill="both", expand=True, pady=(6, 0))
         self.desplazable = desplazable
         self.contenido = desplazable.interior
         self.titulo_actual = None
@@ -73,31 +74,54 @@ class PestaniaReportes(ttk.Frame):
             self.reporte_activos()
 
     def _resaltar(self, comando):
-        for nombre, boton in self.botones_reportes.items():
-            boton.configure(style="MenuElegido.TButton" if nombre == comando else "Menu.TButton")
+        self.selector.set(self._texto_por_comando[comando])
+
+    def _grafico(self):
+        """El gráfico del reporte a la vista: el mismo que se exporta en el PDF."""
+        desde = hasta = None
+        if self.clave_actual in ("solicitados", "movimientos"):
+            desde, hasta = self._rango() or (None, None)
+        documento = armado.armar(self.clave_actual, desde, hasta, calculadora=self.servicio_devoluciones.calculadora)
+        return documento.graficos[0] if documento.graficos else None
 
     def _mostrar(self, titulo, secciones, pie=None, indicadores=None):
         """secciones es una lista de (subtítulo, columnas, filas); indicadores, una lista de (valor, texto)."""
         self.titulo_actual = titulo
         self.desplazable.limpiar()
-        ttk.Label(self.contenido, text=titulo, style="Titulo.TLabel").pack(anchor="w")
-        ttk.Label(self.contenido, text=f"Generado el {datetime.now():%d/%m/%Y a las %H:%M}", style="Suave.TLabel").pack(anchor="w")
+        ttk.Label(self.contenido, text=titulo, style="PanelSubtitulo.TLabel").pack(anchor="w", pady=(6, 0))
+        ttk.Label(self.contenido, text=f"Generado el {datetime.now():%d/%m/%Y a las %H:%M}",
+                  style="PanelChica.TLabel").pack(anchor="w")
         if indicadores:
-            fila = ttk.Frame(self.contenido)
+            fila = ttk.Frame(self.contenido, style="Panel.TFrame")
             fila.pack(fill="x", pady=(10, 0))
             for valor, texto in indicadores:
-                c.tarjeta(fila, valor, texto).pack(side="left", padx=(0, 10))
+                c.tarjeta(fila, valor, texto).pack(side="left", fill="x", expand=True, padx=(0, 10))
+        grafico = self._grafico()
+        if grafico is not None and any(grafico.valores):
+            self._dibujar(grafico)
         for subtitulo, columnas, filas in secciones:
-            marco = ttk.LabelFrame(self.contenido, text=subtitulo, padding=6)
-            marco.pack(fill="both", expand=True, pady=(10, 0))
+            ttk.Label(self.contenido, text=subtitulo, style="PanelNegrita.TLabel").pack(anchor="w", pady=(14, 6))
             if filas:
-                tabla = c.Tabla(marco, columnas, alto=max(2, min(len(filas), 7)))
-                tabla.pack(fill="both", expand=True)
+                tabla = c.Tabla(self.contenido, columnas, alto=max(2, min(len(filas), 7)))
+                tabla.pack(fill="x")
                 tabla.cargar(filas)
             else:
-                ttk.Label(marco, text="No hay datos para mostrar.", style="Suave.TLabel").pack(anchor="w")
+                ttk.Label(self.contenido, text="No hay datos para mostrar.", style="PanelSuave.TLabel").pack(anchor="w")
         if pie:
-            ttk.Label(self.contenido, text=pie, style="Negrita.TLabel").pack(anchor="w", pady=(10, 0))
+            ttk.Label(self.contenido, text=pie, style="PanelNegrita.TLabel").pack(anchor="w", pady=(12, 0))
+
+    def _dibujar(self, grafico):
+        """Inserta el gráfico de matplotlib en la pestaña."""
+        from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+        marco = ttk.Frame(self.contenido, style="Tarjeta.TFrame", padding=(10, 8))
+        marco.pack(anchor="w", pady=(12, 0))
+        ttk.Label(marco, text=grafico.titulo, style="PanelNegrita.TLabel").pack(anchor="w")
+        figura = graficos.crear_figura(grafico, ancho_pulgadas=7.2, alto_pulgadas=2.3, dpi=96)
+        lienzo = FigureCanvasTkAgg(figura, master=marco)
+        lienzo.draw()
+        lienzo.get_tk_widget().configure(background=tema.SUPERFICIE, highlightthickness=0)
+        lienzo.get_tk_widget().pack(anchor="w")
 
     def _rango(self):
         """Lee las fechas del filtro; si alguna es inválida avisa y devuelve None."""
@@ -220,6 +244,6 @@ class PestaniaReportes(ttk.Frame):
             c.mostrar_error(f"No se pudo guardar el archivo: {error}", self)
             return
         self.ultimo_archivo = ruta
-        self.etiqueta_exportado.configure(text=f"Último archivo: {ruta.name}")
+        self.etiqueta_exportado.configure(text=f"Último archivo exportado: {ruta.name}")
         c.notificar_ventana(self, f"Reporte exportado en {ruta.resolve()}")
         c.informar(f"Reporte exportado en:\n{ruta.resolve()}", self)

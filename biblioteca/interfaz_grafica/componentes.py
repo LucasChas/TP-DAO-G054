@@ -78,7 +78,7 @@ def ejecutar(accion, padre=None, mensaje_exito=None):
 # --- Tabla --------------------------------------------------------------------------------
 
 
-_NUMERO = re.compile(r"^-?\$?-?[\d.,]+(\s*(h|%))?$")
+_NUMERO = re.compile(r"^-?\$?-?[\d.,]+(\s*(h|%|días?))?$")
 
 
 def _clave_de_orden(texto):
@@ -92,7 +92,7 @@ def _clave_de_orden(texto):
         except ValueError:
             pass
     if _NUMERO.match(texto):
-        limpio = texto.replace("$", "").replace("h", "").replace("%", "").replace(",", "").strip()
+        limpio = re.sub(r"[^\d.,-]", "", texto).replace(",", "")
         try:
             return (0, float(limpio))
         except ValueError:
@@ -100,36 +100,56 @@ def _clave_de_orden(texto):
     return (1, texto.casefold())
 
 
-class Tabla(ttk.Frame):
-    """Treeview con barras de desplazamiento. La primera columna es el identificador de la fila.
+def _barra_automatica(barra):
+    """Devuelve un 'set' para una barra de desplazamiento que se oculta cuando no hace falta."""
+    def fijar(primero, ultimo):
+        if float(primero) <= 0.0 and float(ultimo) >= 1.0:
+            barra.grid_remove()
+        else:
+            barra.grid()
+        barra.set(primero, ultimo)
+    return fijar
 
-    Las filas se muestran alternando el fondo; si hay una columna "Estado" el texto de la
-    fila toma el color de ese estado (ver tema.COLOR_POR_ESTADO). Un clic en el encabezado
-    ordena por esa columna y otro clic invierte el orden.
+
+class Tabla(ttk.Frame):
+    """Treeview con barras de desplazamiento que aparecen solo si hacen falta.
+
+    - columnas: todas las columnas de cada fila. La primera es el identificador.
+    - ocultas: columnas que se guardan en la fila pero no se muestran (por ejemplo "Id").
+    - columna_estado: si se indica, esa columna se muestra primera, con un punto de color
+      según el estado (ver tema.CATEGORIA_POR_ESTADO). El texto de la fila queda siempre oscuro.
+
+    Un clic en el encabezado ordena por esa columna y otro clic invierte el orden.
     """
 
     ANCHO_MAXIMO = 420
     FLECHAS = {False: " ▲", True: " ▼"}
 
-    def __init__(self, padre, columnas, alto=12, anchos=None, mensaje_vacio="No hay datos para mostrar."):
-        super().__init__(padre)
+    def __init__(self, padre, columnas, alto=12, anchos=None, mensaje_vacio="No hay datos para mostrar.",
+                 ocultas=("Id",), columna_estado=None):
+        super().__init__(padre, style="Panel.TFrame")
         anchos = anchos or {}
-        self._columnas = columnas
+        self._columnas = tuple(columnas)
         self._anchos_minimos = {columna: anchos.get(columna, 70) for columna in columnas}
         self._orden = None  # (columna, descendente)
         self._filas = []
-        self._contador = None
-        self._indice_estado = columnas.index("Estado") if "Estado" in columnas else None
-        self.arbol = ttk.Treeview(self, columns=columnas, show="headings", height=alto, selectmode="browse")
-        for columna in columnas:
+        self._estado = columna_estado if columna_estado in self._columnas else None
+        self._indice_estado = self._columnas.index(self._estado) if self._estado else None
+        self._visibles = [c for c in self._columnas if c not in ocultas and c != self._estado]
+        self._puntos = {}
+        self.arbol = ttk.Treeview(self, columns=self._columnas, displaycolumns=self._visibles,
+                                  show="tree headings" if self._estado else "headings", height=alto,
+                                  selectmode="browse")
+        if self._estado:
+            self.arbol.heading("#0", text=self._estado, anchor="w", command=lambda: self.ordenar_por(self._estado))
+            self.arbol.column("#0", width=anchos.get(self._estado, 130), anchor="w", stretch=False)
+        for columna in self._columnas:
             self.arbol.heading(columna, text=columna, anchor="w", command=lambda columna=columna: self.ordenar_por(columna))
             self.arbol.column(columna, width=anchos.get(columna, 120), anchor="w", stretch=True)
-        self.arbol.tag_configure("alterna", background=tema.FILA_ALTERNA)
-        for color in set(tema.COLOR_POR_ESTADO.values()):
-            self.arbol.tag_configure(color, foreground=color)
+        self.arbol.tag_configure("alterna", background=tema.SUPERFICIE_SUAVE)
         vertical = ttk.Scrollbar(self, orient="vertical", command=self.arbol.yview)
         horizontal = ttk.Scrollbar(self, orient="horizontal", command=self.arbol.xview)
-        self.arbol.configure(yscrollcommand=vertical.set, xscrollcommand=horizontal.set)
+        self.arbol.configure(yscrollcommand=_barra_automatica(vertical), xscrollcommand=_barra_automatica(horizontal))
         self.arbol.grid(row=0, column=0, sticky="nsew")
         vertical.grid(row=0, column=1, sticky="ns")
         horizontal.grid(row=1, column=0, sticky="ew")
@@ -137,6 +157,12 @@ class Tabla(ttk.Frame):
         self.columnconfigure(0, weight=1)
         self._vacio = ttk.Label(self.arbol, text=mensaje_vacio, style="Vacio.TLabel")
         self._vacio.place(relx=0.5, rely=0.55, anchor="center")
+
+    def _punto(self, estado):
+        color = tema.color_de_estado(estado)
+        if color not in self._puntos:
+            self._puntos[color] = tema.punto(self, color)
+        return self._puntos[color]
 
     def cargar(self, filas):
         """Reemplaza el contenido. Si la fila que estaba seleccionada sigue estando, queda seleccionada."""
@@ -154,12 +180,11 @@ class Tabla(ttk.Frame):
             indice = self._columnas.index(self._orden[0])
             filas = sorted(filas, key=lambda fila: _clave_de_orden(fila[indice]), reverse=self._orden[1])
         for numero, fila in enumerate(filas):
-            etiquetas = ["alterna"] if numero % 2 else []
-            if self._indice_estado is not None:
-                color = tema.COLOR_POR_ESTADO.get(str(fila[self._indice_estado]))
-                if color:
-                    etiquetas.append(color)
-            item = self.arbol.insert("", "end", values=fila, tags=etiquetas)
+            opciones = {"values": fila, "tags": ["alterna"] if numero % 2 else []}
+            if self._estado:
+                estado = fila[self._indice_estado]
+                opciones.update(text=f" {estado}", image=self._punto(estado))
+            item = self.arbol.insert("", "end", **opciones)
             if seleccionado is not None and str(fila[0]) == str(seleccionado):
                 self.arbol.selection_set(item)
                 self.arbol.see(item)
@@ -167,16 +192,6 @@ class Tabla(ttk.Frame):
             self._vacio.place_forget()
         else:
             self._vacio.place(relx=0.5, rely=0.55, anchor="center")
-        if self._contador:
-            etiqueta, singular, plural = self._contador
-            etiqueta.configure(text=f"{len(filas)} {singular if len(filas) == 1 else plural}")
-
-    def mostrar_cantidad(self, barra, singular, plural):
-        """Agrega a la derecha de la barra un texto con la cantidad de filas ("3 sedes")."""
-        etiqueta = ttk.Label(barra, style="Suave.TLabel")
-        etiqueta.pack(side="right")
-        self._contador = (etiqueta, singular, plural)
-        etiqueta.configure(text=f"0 {plural}")
 
     def ordenar_por(self, columna):
         """Ordena por la columna indicada; si ya estaba ordenada por ella, invierte el orden."""
@@ -184,17 +199,22 @@ class Tabla(ttk.Frame):
         self._orden = (columna, descendente)
         for nombre in self._columnas:
             texto = nombre + (self.FLECHAS[descendente] if nombre == columna else "")
-            self.arbol.heading(nombre, text=texto)
+            self.arbol.heading("#0" if nombre == self._estado else nombre, text=texto)
         seleccion = self.arbol.selection()
         self._mostrar(self.arbol.item(seleccion[0], "values")[0] if seleccion else None)
 
     def _ajustar_anchos(self, filas):
-        """Ensancha cada columna lo necesario para que no se corte el texto, hasta un máximo."""
+        """Ensancha cada columna visible lo necesario para que no se corte el texto, hasta un máximo."""
         medir = font.nametofont("TkDefaultFont").measure
         medir_encabezado = font.nametofont("FuenteNegrita").measure if "FuenteNegrita" in font.names() else medir
         for indice, columna in enumerate(self._columnas):
+            if columna not in self._visibles and columna != self._estado:
+                continue
             ancho_texto = max([medir(str(fila[indice])) for fila in filas] + [medir_encabezado(columna + " ▼")])
-            ancho = ancho_texto + 28
+            if columna == self._estado:
+                self.arbol.column("#0", width=max(self._anchos_minimos[columna], ancho_texto + 56))
+                continue
+            ancho = ancho_texto + 30
             self.arbol.column(columna, width=max(self._anchos_minimos[columna], min(ancho, self.ANCHO_MAXIMO)))
 
     def filas(self):
@@ -223,12 +243,12 @@ class Tabla(ttk.Frame):
         return int(self.arbol.item(seleccion[0], "values")[0])
 
     def al_seleccionar(self, funcion):
-        self.arbol.bind("<<TreeviewSelect>>", lambda evento: funcion())
+        self.arbol.bind("<<TreeviewSelect>>", lambda evento: funcion(), add="+")
 
     def al_doble_clic(self, funcion):
         """Ejecuta la función al hacer doble clic (o Enter) sobre una fila."""
         def manejar(evento):
-            if evento.type == tk.EventType.ButtonPress and self.arbol.identify_region(evento.x, evento.y) != "cell":
+            if evento.type == tk.EventType.ButtonPress and self.arbol.identify_region(evento.x, evento.y) not in ("cell", "tree"):
                 return
             if self.arbol.selection():
                 funcion()
@@ -244,57 +264,222 @@ def id_seleccionado_o_aviso(tabla, padre, descripcion):
     return identificador
 
 
+# --- Botones, encabezado y filtros -----------------------------------------------------------
+
 PRIMARIO = "Primario.TButton"
 PELIGRO = "Peligro.TButton"
+ATENUADO = "Atenuado.TButton"
 
 
-def barra_de_botones(padre, botones):
+def barra_de_botones(padre, botones, estilo_marco="Panel.TFrame"):
     """Crea una fila de botones a partir de una lista de (texto, comando) o (texto, comando, estilo).
 
     El estilo es PRIMARIO para la acción principal de la pestaña o PELIGRO para las que
     dan de baja, cancelan o anulan; sin estilo el botón es secundario.
     """
-    barra = ttk.Frame(padre)
+    barra = ttk.Frame(padre, style=estilo_marco)
+    barra.botones = {}
     for boton in botones:
         texto, comando = boton[0], boton[1]
         estilo = boton[2] if len(boton) > 2 else "TButton"
-        ttk.Button(barra, text=texto, command=comando, style=estilo).pack(side="left", padx=(0, 6))
+        widget = ttk.Button(barra, text=texto, command=comando, style=estilo)
+        widget.pack(side="left", padx=(0, 8))
+        widget.estilo_base = estilo
+        barra.botones[texto] = widget
     return barra
 
 
-def separador_vertical(barra):
-    ttk.Separator(barra, orient="vertical").pack(side="left", fill="y", padx=(10, 12), pady=3)
+def encabezado_de_pestania(padre, titulo, descripcion, acciones=()):
+    """Título y descripción de la pestaña, con sus acciones principales a la derecha.
 
-
-def encabezado(padre, titulo, descripcion=None):
-    """Título y descripción breve de una pestaña."""
-    marco = ttk.Frame(padre)
-    ttk.Label(marco, text=titulo, style="Titulo.TLabel").pack(anchor="w")
-    if descripcion:
-        ttk.Label(marco, text=descripcion, style="Suave.TLabel").pack(anchor="w", pady=(2, 0))
+    acciones es una lista como la de barra_de_botones; se muestran de derecha a izquierda,
+    así la primera queda en el extremo derecho. Devuelve el marco del encabezado.
+    """
+    marco = ttk.Frame(padre, style="Panel.TFrame")
+    textos = ttk.Frame(marco, style="Panel.TFrame")
+    textos.pack(side="left", fill="x", expand=True)
+    ttk.Label(textos, text=titulo, style="PanelTitulo.TLabel").pack(anchor="w")
+    ttk.Label(textos, text=descripcion, style="PanelSuave.TLabel").pack(anchor="w", pady=(2, 0))
+    marco.botones = {}
+    for boton in acciones:
+        texto, comando = boton[0], boton[1]
+        estilo = boton[2] if len(boton) > 2 else "TButton"
+        widget = ttk.Button(marco, text=texto, command=comando, style=estilo)
+        widget.pack(side="right", padx=(8, 0), anchor="n")
+        marco.botones[texto] = widget
     return marco
 
 
-def tarjeta(padre, valor, texto):
-    """Recuadro con un número destacado y su descripción, por ejemplo un total de un reporte."""
+def acciones_de_seleccion(barra, botones):
+    """Agrega a la derecha de una barra las acciones que se aplican a la fila elegida."""
+    marco = barra_de_botones(barra, botones)
+    marco.pack(side="right")
+    ttk.Label(barra, text="Selección:", style="PanelSuave.TLabel").pack(side="right", padx=(0, 8))
+    return marco
+
+
+class FiltroSegmentado(ttk.Frame):
+    """Botones contiguos para elegir una opción de filtro, cada uno con su cantidad.
+
+    Tiene la misma interfaz que una lista desplegable (get y set), así las pestañas y las
+    pruebas pueden elegir una opción por su nombre.
+    """
+
+    def __init__(self, padre, opciones, al_cambiar=None, inicial=None):
+        super().__init__(padre, style="Panel.TFrame")
+        self._opciones = list(opciones)
+        self._al_cambiar = al_cambiar
+        self._valor = inicial or self._opciones[0]
+        self._cantidades = {}
+        self.botones = {}
+        for opcion in self._opciones:
+            boton = ttk.Button(self, text=opcion, command=lambda opcion=opcion: self.elegir(opcion))
+            boton.pack(side="left", padx=(0, 1))
+            self.botones[opcion] = boton
+        self._pintar()
+
+    def get(self):
+        return self._valor
+
+    def set(self, opcion):
+        """Elige la opción sin avisar (como Combobox.set); la pestaña actualiza cuando corresponde."""
+        if opcion not in self._opciones:
+            raise ValueError(f"'{opcion}' no es una opción del filtro: {self._opciones}")
+        self._valor = opcion
+        self._pintar()
+
+    def elegir(self, opcion):
+        """Lo que hace un clic: elige la opción y avisa a la pestaña."""
+        self.set(opcion)
+        if self._al_cambiar:
+            self._al_cambiar()
+
+    def mostrar_cantidades(self, cantidades):
+        self._cantidades = dict(cantidades)
+        self._pintar()
+
+    def _pintar(self):
+        for opcion, boton in self.botones.items():
+            cantidad = self._cantidades.get(opcion)
+            boton.configure(text=opcion if cantidad is None else f"{opcion}  {cantidad}",
+                            style="SegmentoElegido.TButton" if opcion == self._valor else "Segmento.TButton")
+
+
+class CampoDeBusqueda(ttk.Frame):
+    """Campo de texto con una indicación ("Buscar por…") que filtra mientras se escribe.
+
+    La indicación es una etiqueta encima del campo, así el contenido del campo es siempre
+    lo que escribió el usuario. self.entrada es el ttk.Entry.
+    """
+
+    def __init__(self, padre, indicacion, al_escribir, ancho=34):
+        super().__init__(padre, style="Panel.TFrame")
+        self.texto = tk.StringVar(self)
+        self.entrada = ttk.Entry(self, textvariable=self.texto, width=ancho)
+        self.entrada.pack(fill="x")
+        self._indicacion = tk.Label(self.entrada, text=indicacion, bg=tema.SUPERFICIE, fg=tema.TEXTO_SUAVE,
+                                    font="TkDefaultFont", cursor="xterm")
+        self._indicacion.bind("<Button-1>", lambda evento: self.entrada.focus_set())
+        self.texto.trace_add("write", lambda *args: (self._actualizar_indicacion(), al_escribir()))
+        self._actualizar_indicacion()
+
+    def _actualizar_indicacion(self):
+        if self.texto.get():
+            self._indicacion.place_forget()
+        else:
+            self._indicacion.place(x=8, rely=0.5, anchor="w")
+
+    def get(self):
+        return self.texto.get().strip()
+
+    def limpiar(self):
+        self.texto.set("")
+
+
+def coincide(busqueda, *textos):
+    """True si la búsqueda está contenida en alguno de los textos, sin distinguir mayúsculas ni puntos."""
+    if not busqueda:
+        return True
+    buscado = busqueda.casefold().replace(".", "")
+    return any(buscado in str(texto or "").casefold().replace(".", "") for texto in textos)
+
+
+def barra_de_filtros(padre):
+    """Fila con la búsqueda y los filtros a la izquierda y las acciones de la selección a la derecha."""
+    return ttk.Frame(padre, style="Panel.TFrame")
+
+
+def tarjeta(padre, valor, texto, detalle=None, alerta=False):
+    """Recuadro con un número destacado, su descripción y, opcionalmente, un detalle."""
     marco = ttk.Frame(padre, style="Tarjeta.TFrame", padding=(14, 8))
-    ttk.Label(marco, text=valor, style="TarjetaValor.TLabel").pack(anchor="w")
     ttk.Label(marco, text=texto, style="TarjetaTexto.TLabel").pack(anchor="w")
+    ttk.Label(marco, text=valor, style="TarjetaValorAlerta.TLabel" if alerta else "TarjetaValor.TLabel").pack(anchor="w")
+    if detalle:
+        ttk.Label(marco, text=detalle, style="TarjetaDetalle.TLabel").pack(anchor="w")
     return marco
+
+
+def division_vertical(padre, arriba, abajo, proporcion=0.45):
+    """PanedWindow con la tabla arriba y el detalle abajo, separados por un divisor que se puede arrastrar.
+
+    proporcion es la parte de la altura que ocupa la tabla al mostrarse por primera vez.
+    arriba y abajo son funciones que reciben el PanedWindow y devuelven el widget de cada parte.
+    """
+    division = ttk.PanedWindow(padre, orient="vertical")
+    parte_de_arriba, parte_de_abajo = arriba(division), abajo(division)
+    division.add(parte_de_arriba, weight=1)
+    division.add(parte_de_abajo, weight=1)
+
+    def ubicar(evento):
+        if evento.height > 50 and not getattr(division, "ubicado", False):
+            division.ubicado = True
+            division.after_idle(lambda: division.sashpos(0, int(evento.height * proporcion)))
+    division.bind("<Configure>", ubicar, add="+")
+    return division, parte_de_arriba, parte_de_abajo
+
+
+class PanelDeDetalle(ttk.Frame):
+    """Recuadro debajo de la tabla con el registro elegido: cabecera (título, datos y acciones) y cuerpo."""
+
+    def __init__(self, padre, titulo_vacio):
+        super().__init__(padre, style="Detalle.TFrame", padding=1)
+        self._titulo_vacio = titulo_vacio
+        self.cabecera = ttk.Frame(self, style="DetalleCabecera.TFrame", padding=(14, 9))
+        self.cabecera.pack(fill="x")
+        self.titulo = ttk.Label(self.cabecera, text=titulo_vacio, style="DetalleTitulo.TLabel")
+        self.titulo.pack(side="left")
+        self.subtitulo = ttk.Label(self.cabecera, text="", style="DetalleSuave.TLabel")
+        self.subtitulo.pack(side="left", padx=(12, 0))
+        self.acciones = ttk.Frame(self.cabecera, style="DetalleCabecera.TFrame")
+        self.acciones.pack(side="right")
+        ttk.Separator(self, style="Panel.TSeparator").pack(fill="x")
+        self.cuerpo = ttk.Frame(self, style="Panel.TFrame", padding=(14, 10))
+        self.cuerpo.pack(fill="both", expand=True)
+
+    def mostrar(self, titulo, subtitulo=""):
+        self.titulo.configure(text=titulo)
+        self.subtitulo.configure(text=subtitulo)
+
+    def vaciar(self):
+        self.mostrar(self._titulo_vacio, "")
+        for hijo in self.cuerpo.winfo_children():
+            hijo.destroy()
 
 
 class MarcoDesplazable(ttk.Frame):
     """Marco con desplazamiento vertical: el contenido va en self.interior."""
 
-    def __init__(self, padre):
-        super().__init__(padre)
-        self.lienzo = tk.Canvas(self, highlightthickness=0, borderwidth=0, background=tema.FONDO)
+    def __init__(self, padre, fondo=tema.SUPERFICIE, estilo="Panel.TFrame"):
+        super().__init__(padre, style=estilo)
+        self.lienzo = tk.Canvas(self, highlightthickness=0, borderwidth=0, background=fondo)
         barra = ttk.Scrollbar(self, orient="vertical", command=self.lienzo.yview)
-        self.interior = ttk.Frame(self.lienzo)
+        self.interior = ttk.Frame(self.lienzo, style=estilo)
         self._ventana = self.lienzo.create_window((0, 0), window=self.interior, anchor="nw")
-        self.lienzo.configure(yscrollcommand=barra.set)
-        self.lienzo.pack(side="left", fill="both", expand=True)
-        barra.pack(side="right", fill="y")
+        self.lienzo.configure(yscrollcommand=_barra_automatica(barra))
+        self.lienzo.grid(row=0, column=0, sticky="nsew")
+        barra.grid(row=0, column=1, sticky="ns")
+        self.rowconfigure(0, weight=1)
+        self.columnconfigure(0, weight=1)
         self.interior.bind("<Configure>", lambda evento: self._ajustar())
         self.lienzo.bind("<Configure>", lambda evento: self._ajustar())
         for secuencia in ("<MouseWheel>", "<Button-4>", "<Button-5>"):

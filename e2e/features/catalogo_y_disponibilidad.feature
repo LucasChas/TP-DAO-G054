@@ -77,10 +77,10 @@ Característica: Catálogo y disponibilidad
   @CP-31 @positivo @R04
   Escenario: CP-31 Buscar libros por título o autor
     Dado el catálogo tiene Rayuela, Revista Ñ y el Diccionario de la RAE
-    Cuando el usuario ingresa "rae" y hace click en "Buscar"
-    Y el usuario hace click en "Ver todos"
+    Cuando el usuario escribe "rae" en el campo de búsqueda
     Entonces la grilla muestra solo "Diccionario de la lengua"
-    Y la grilla vuelve a mostrar los 3 libros
+    Cuando el usuario borra el texto de la búsqueda
+    Entonces la grilla vuelve a mostrar los 3 libros
 
   @CN-47 @negativo @R04 @V06
   Escenario: CN-47 ISBN con dígito verificador incorrecto

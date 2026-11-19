@@ -8,61 +8,79 @@ from biblioteca.servicios import ServicioCatalogo, ServicioDisponibilidad
 
 
 class PestaniaCatalogo(ttk.Frame):
-    COLUMNAS_LIBROS = ("Id", "ISBN", "Título", "Autor", "Editorial", "Año", "Tipo")
+    COLUMNAS_LIBROS = ("Id", "ISBN", "Título", "Autor", "Editorial", "Año", "Tipo", "Disponibles")
     COLUMNAS_EJEMPLARES = ("Id", "Código", "Sede propietaria", "Estado", "Estado físico")
-    TITULO_EJEMPLARES = "Ejemplares del libro seleccionado"
+    TITULO_EJEMPLARES = "Elija un libro para ver sus ejemplares"
+    FILTROS = ("Todos", "Libros", "Revistas", "Consulta")
+    TIPO_POR_FILTRO = {"Libros": TipoMaterial.LIBRO, "Revistas": TipoMaterial.REVISTA, "Consulta": TipoMaterial.CONSULTA}
 
     def __init__(self, padre):
-        super().__init__(padre, padding=12)
+        super().__init__(padre, padding=(20, 16), style="Panel.TFrame")
         self.servicio = ServicioCatalogo()
-
-        libros = ttk.LabelFrame(self, text="Libros", padding=8)
-        libros.pack(fill="both", expand=True)
-        barra = c.barra_de_botones(libros, [
+        c.encabezado_de_pestania(self, "Catálogo", "Libros de la red y sus ejemplares en cada sede.", [
             ("Nuevo libro", self.nuevo_libro, c.PRIMARIO),
+        ]).pack(fill="x")
+
+        barra = c.barra_de_filtros(self)
+        barra.pack(fill="x", pady=(14, 10))
+        self.campo_busqueda = c.CampoDeBusqueda(barra, "Buscar por título o autor", self._al_escribir)
+        self.campo_busqueda.pack(side="left")
+        self.busqueda = self.campo_busqueda.entrada
+        self.busqueda.bind("<Return>", lambda evento: self.buscar())
+        self.texto_buscado = None
+        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self.actualizar)
+        self.filtro.pack(side="left", padx=(12, 0))
+        c.acciones_de_seleccion(barra, [
             ("Modificar libro", self.modificar_libro),
             ("Ver disponibilidad", self.ver_disponibilidad),
         ])
-        barra.pack(fill="x")
-        c.separador_vertical(barra)
-        ttk.Label(barra, text="Título o autor:").pack(side="left", padx=(0, 4))
-        self.busqueda = ttk.Entry(barra, width=28)
-        self.busqueda.pack(side="left")
-        self.busqueda.bind("<Return>", lambda evento: self.buscar())
-        ttk.Button(barra, text="Buscar", command=self.buscar).pack(side="left", padx=(6, 0))
-        ttk.Button(barra, text="Ver todos", command=self.ver_todos).pack(side="left", padx=(6, 0))
-        self.texto_buscado = None
-        self.tabla_libros = c.Tabla(libros, self.COLUMNAS_LIBROS, alto=7,
-                                    anchos={"Id": 50, "Título": 280, "Autor": 200, "Año": 60},
-                                    mensaje_vacio="No hay libros para mostrar.")
-        self.tabla_libros.pack(fill="both", expand=True, pady=(8, 0))
-        self.tabla_libros.mostrar_cantidad(barra, "libro", "libros")
+
+        division, self.tabla_libros, self.detalle = c.division_vertical(
+            self,
+            lambda padre: c.Tabla(padre, self.COLUMNAS_LIBROS, alto=7, ocultas=("Id", "ISBN"),
+                                  anchos={"Título": 260, "Autor": 200, "Año": 60, "Disponibles": 100},
+                                  mensaje_vacio="No hay libros para mostrar."),
+            lambda padre: c.PanelDeDetalle(padre, self.TITULO_EJEMPLARES),
+            proporcion=0.55,
+        )
+        division.pack(fill="both", expand=True)
         self.tabla_libros.al_seleccionar(self.actualizar_ejemplares)
         self.tabla_libros.al_doble_clic(self.modificar_libro)
-
-        self.marco_ejemplares = ttk.LabelFrame(self, text=self.TITULO_EJEMPLARES, padding=8)
-        self.marco_ejemplares.pack(fill="both", expand=True, pady=(10, 0))
-        barra_ejemplares = c.barra_de_botones(self.marco_ejemplares, [
+        c.barra_de_botones(self.detalle.acciones, [
             ("Nuevo ejemplar", self.nuevo_ejemplar),
             ("Finalizar reparación", self.finalizar_reparacion),
             ("Dar de baja ejemplar", self.dar_de_baja_ejemplar, c.PELIGRO),
-        ])
-        barra_ejemplares.pack(fill="x")
-        self.tabla_ejemplares = c.Tabla(self.marco_ejemplares, self.COLUMNAS_EJEMPLARES, alto=4,
-                                        anchos={"Id": 50, "Sede propietaria": 200},
+        ], estilo_marco="DetalleCabecera.TFrame").pack(side="right")
+        self.tabla_ejemplares = c.Tabla(self.detalle.cuerpo, self.COLUMNAS_EJEMPLARES, alto=3, columna_estado="Estado",
+                                        anchos={"Sede propietaria": 200},
                                         mensaje_vacio="Elija un libro de la lista para ver sus ejemplares.")
-        self.tabla_ejemplares.pack(fill="both", expand=True, pady=(8, 0))
-        self.tabla_ejemplares.mostrar_cantidad(barra_ejemplares, "ejemplar", "ejemplares")
+        self.tabla_ejemplares.pack(fill="both", expand=True)
+
+    def _al_escribir(self):
+        """Filtra mientras se escribe; Enter hace la búsqueda con aviso si no hay resultados."""
+        self.texto_buscado = self.campo_busqueda.get() or None
+        self.actualizar()
 
     def actualizar(self):
         if self.texto_buscado:
             libros = self.servicio.buscar_libros(self.texto_buscado)
         else:
             libros = self.servicio.listar_libros()
-        self.tabla_libros.cargar([
-            (l.id, l.isbn, l.titulo, l.autor, l.editorial, l.anio_publicacion, l.tipo_material.value)
-            for l in libros
-        ])
+        cantidades = {"Todos": len(libros)}
+        for filtro, tipo in self.TIPO_POR_FILTRO.items():
+            cantidades[filtro] = sum(l.tipo_material == tipo for l in libros)
+        self.filtro.mostrar_cantidades(cantidades)
+        tipo = self.TIPO_POR_FILTRO.get(self.filtro.get())
+        disponibilidad = ServicioDisponibilidad()
+        filas = []
+        for libro in libros:
+            if tipo is not None and libro.tipo_material != tipo:
+                continue
+            por_sede = disponibilidad.consultar_disponibilidad(libro.id)
+            disponibles = f"{sum(r.disponibles for r in por_sede)} de {sum(r.total for r in por_sede)}"
+            filas.append((libro.id, libro.isbn, libro.titulo, libro.autor, libro.editorial, libro.anio_publicacion,
+                          libro.tipo_material.value, disponibles))
+        self.tabla_libros.cargar(filas)
         self.actualizar_ejemplares()
 
     def buscar(self):
@@ -77,15 +95,22 @@ class PestaniaCatalogo(ttk.Frame):
             c.informar(f"No hay libros cuyo título o autor contenga '{texto}'.", self)
 
     def ver_todos(self):
+        self.campo_busqueda.limpiar()
         self.texto_buscado = None
-        self.busqueda.delete(0, "end")
+        self.filtro.set("Todos")
         self.actualizar()
 
     def actualizar_ejemplares(self):
         id_libro = self.tabla_libros.id_seleccionado()
         ejemplares = self.servicio.listar_ejemplares(id_libro=id_libro) if id_libro else []
-        titulo = next((fila[2] for fila in self.tabla_libros.filas() if id_libro and str(fila[0]) == str(id_libro)), None)
-        self.marco_ejemplares.configure(text=f"Ejemplares de '{titulo}'" if titulo else self.TITULO_EJEMPLARES)
+        fila = next((f for f in self.tabla_libros.filas() if id_libro and str(f[0]) == str(id_libro)), None)
+        if fila:
+            sedes = len({e.sede_id for e in ejemplares})
+            self.detalle.mostrar(f"Ejemplares de '{fila[2]}'",
+                                 f"{len(ejemplares)} ejemplar{'es' if len(ejemplares) != 1 else ''} en "
+                                 f"{sedes} sede{'s' if sedes != 1 else ''}")
+        else:
+            self.detalle.mostrar(self.TITULO_EJEMPLARES)
         self.tabla_ejemplares.cargar([
             (e.id, e.codigo_inventario, e.sede.nombre, e.estado.value, e.estado_fisico.value) for e in ejemplares
         ])
@@ -140,7 +165,7 @@ class PestaniaCatalogo(ttk.Frame):
             c.Campo("codigo_inventario", "Código de inventario", obligatorio=True),
         ])
         if datos and c.ejecutar(lambda: self.servicio.registrar_ejemplar(id_libro, **datos), self, "Ejemplar registrado."):
-            self.actualizar_ejemplares()
+            self.actualizar()
 
     def finalizar_reparacion(self):
         id_ejemplar = c.id_seleccionado_o_aviso(self.tabla_ejemplares, self, "un ejemplar")
@@ -149,10 +174,10 @@ class PestaniaCatalogo(ttk.Frame):
             lambda e: f"Reparación finalizada: el ejemplar {e.codigo_inventario} queda con estado físico Regular "
                       f"y {destino_del_ejemplar(e)}.",
         ):
-            self.actualizar_ejemplares()
+            self.actualizar()
 
     def dar_de_baja_ejemplar(self):
         id_ejemplar = c.id_seleccionado_o_aviso(self.tabla_ejemplares, self, "un ejemplar")
         if id_ejemplar is not None and c.confirmar("¿Confirma la baja del ejemplar seleccionado?", self):
             if c.ejecutar(lambda: self.servicio.dar_de_baja_ejemplar(id_ejemplar), self, "Ejemplar dado de baja."):
-                self.actualizar_ejemplares()
+                self.actualizar()

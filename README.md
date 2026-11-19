@@ -58,7 +58,7 @@ Con eso todos los reportes muestran información.
 pytest -q
 ```
 
-Hay 252 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 97 % del paquete `biblioteca`, sin contar la interfaz gráfica. Los 27 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
+Hay 259 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 97 % del paquete `biblioteca`, sin contar la interfaz gráfica. Los 32 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
 
 ## Funcionalidades
 
@@ -76,26 +76,31 @@ Hay 252 tests y cada uno usa una base SQLite en memoria nueva, así que no toca 
 
 ## Interfaz gráfica
 
-Es una ventana con una pestaña por área: Sedes, Socios, Catálogo, Préstamos, Reservas, Remitos, Devoluciones y multas, y Reportes.
+Es una ventana con una pestaña por área: Sedes, Socios, Catálogo, Préstamos, Reservas, Remitos, Devoluciones y multas, y Reportes. Todas siguen la misma estructura:
 
-- **Cabecera:** muestra cuatro indicadores de la red que se recalculan después de cada operación: préstamos en curso, préstamos vencidos, envíos en tránsito y multas impagas (vencidos y multas impagas se resaltan cuando son mayores que cero).
-- **Barra de estado:** abajo se ve el resultado de la última operación (o el motivo del rechazo) y la base de datos en uso.
-- **Tablas:** filas alternadas, clic en un encabezado para ordenar (otro clic invierte el orden), cantidad de registros a la derecha de la barra de botones y un mensaje cuando no hay datos. Las filas con problemas (socio inhabilitado, ejemplar extraviado o dañado, reserva vencida) se ven en rojo y las cerradas o dadas de baja, en gris.
-- **Botones:** la acción principal de cada pestaña está resaltada y las que dan de baja, cancelan o anulan se ven en rojo.
-- **Formularios:** listas desplegables en lugar de ids, los datos obligatorios marcados con `*` y, si falta uno o tiene un formato inválido, el campo queda marcado en rojo.
-- Las operaciones que actúan sobre un registro se aplican a la fila seleccionada; en Sedes, Socios y Catálogo, el doble clic (o Enter) sobre una fila abre "Modificar".
+1. **Encabezado:** el nombre de la pestaña, una línea que explica para qué sirve y la acción principal a la derecha (por ejemplo, "Nueva sede").
+2. **Búsqueda y filtros:** el campo de búsqueda filtra la tabla mientras se escribe. Los filtros son botones con su cantidad ("Vencidos 1", "Con incidencia 1"). A la derecha están las acciones que se aplican a la fila elegida.
+3. **Tabla:** la primera columna muestra el estado con un punto de color: verde si está en regla, azul si está en curso, ámbar si requiere atención, rojo si hay un problema y gris si está cerrado. El texto de la fila siempre queda oscuro y legible. Un clic en un encabezado ordena por esa columna, y las barras de desplazamiento aparecen solo cuando hacen falta.
+4. **Detalle** (en Socios, Catálogo y Remitos): debajo de la tabla, con un divisor que se puede arrastrar, se ve el registro elegido con sus propias acciones.
 
-Atajos de teclado (también en **Ayuda > Atajos de teclado**): `Ctrl+1` … `Ctrl+8` para cambiar de pestaña, `F5` para actualizar, `Enter`/`Esc` para aceptar o cancelar un formulario y `Ctrl+Q` para salir.
+Además:
+- **Cabecera:** cuatro indicadores de la red (préstamos en curso, vencidos, envíos en tránsito y multas impagas). Se recalculan después de cada operación, y un clic en uno abre la pestaña con ese filtro.
+- **Barra de estado:** muestra el resultado de la última operación (o el motivo del rechazo) y la base de datos en uso.
+- **Botones:** la acción principal va rellena en azul; las que dan de baja, cancelan o anulan, con borde rojo; las que no aplican a la fila elegida se ven atenuadas.
+- **Formularios:** listas desplegables en lugar de ids, datos obligatorios marcados con `*` y, si falta uno o tiene un formato inválido, el campo queda marcado en rojo.
+- **Contraste:** todo el texto cumple el nivel AA de WCAG 2.2 (al menos 4,5:1) y los bordes de botones y campos, al menos 3:1. Los colores, las fuentes y los estilos están centralizados en `biblioteca/interfaz_grafica/tema.py`.
 
-El aspecto (colores, fuentes y estilos) está centralizado en `biblioteca/interfaz_grafica/tema.py`.
+Atajos de teclado (también en **Ayuda > Atajos de teclado**): `Ctrl+1` … `Ctrl+8` para cambiar de pestaña, `F5` para actualizar, doble clic o `Enter` sobre una fila para modificarla (Sedes, Socios y Catálogo), `Enter`/`Esc` para aceptar o cancelar un formulario y `Ctrl+Q` para salir.
 
 Detalles por pestaña:
-- **Reservas:** cuando una reserva queda "Disponible para retiro", "Registrar retiro" presta el ejemplar apartado al socio de la reserva (préstamo local de 14 días) y la reserva pasa a "Cumplida".
-- **Préstamos:** al elegir la sede (o la sede de origen, en el interbibliotecario), la lista de ejemplares muestra solo los que pertenecen a esa sede.
-- **Catálogo:** al elegir un libro se ven sus ejemplares (el recuadro muestra el título del libro), y "Ver disponibilidad" muestra cuántos hay en cada sede.
-- **Remitos:** al elegir un remito se ve su trayecto completo, con cada cambio de estado.
-- **Devoluciones y multas:** permite cambiar la política de multas vigente (patrón Strategy). La tabla separa la multa por atraso del cargo por devolver el material dañado.
-- **Reportes:** el reporte elegido queda resaltado en la lista; cada reporte muestra tarjetas con sus totales y el contenido se desplaza si no entra en la ventana.
+- **Sedes:** filtros Activas, Dadas de baja y Todas.
+- **Socios:** la columna "Situación" resume préstamos vencidos, multas impagas, reservas activas o el motivo de la inhabilitación. Al elegir un socio, el detalle muestra sus préstamos en curso, vencidos, multas, reservas y todos sus préstamos. El filtro "Con deuda" lista a quienes tienen vencidos o multas impagas.
+- **Catálogo:** la columna "Disponibles" indica cuántos ejemplares libres hay sobre el total ("2 de 3"). Al elegir un libro se ven sus ejemplares, y "Ver disponibilidad" muestra el detalle por sede y por estado.
+- **Préstamos:** filtros En curso, Por vencer (vencen en 3 días o menos), Vencidos y Todos. Al elegir la sede (o la sede de origen, en el interbibliotecario), la lista de ejemplares muestra solo los que pertenecen a esa sede.
+- **Reservas:** muestra el lugar de cada reserva pendiente en la cola de su libro y sede ("1.º de 2") y su situación (qué espera, o hasta cuándo puede retirarse el ejemplar apartado). Cuando una reserva queda "Disponible para retiro", "Registrar retiro" presta el ejemplar apartado al socio (préstamo local de 14 días) y la reserva pasa a "Cumplida".
+- **Remitos:** el recorrido del remito elegido se ve como un desglose vertical. Cada movimiento tiene su fecha, la duración desde el anterior y la observación completa. El paso actual se marca con la última ubicación conocida, y al final se ven los pasos que faltan. Solo se ofrecen las acciones que el estado admite (patrón State), con la que hace avanzar el remito como principal. La vista "Tabla" muestra los mismos movimientos en columnas.
+- **Devoluciones y multas:** permite cambiar la política de multas vigente (patrón Strategy). Los filtros son Todas, Impagas y Pagadas, y la tabla separa la multa por atraso del cargo por devolver el material dañado.
+- **Reportes:** los cinco reportes se eligen arriba. Cada uno muestra tarjetas con sus totales, el mismo gráfico de matplotlib que se exporta al PDF y sus tablas.
 
 Los errores de negocio se muestran en un cuadro de diálogo con el motivo, sin cerrar la aplicación.
 

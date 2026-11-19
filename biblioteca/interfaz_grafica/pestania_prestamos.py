@@ -1,4 +1,6 @@
 """Pestaña de préstamos locales e interbibliotecarios."""
+from datetime import date, timedelta
+
 from tkinter import ttk
 
 from biblioteca.interfaz_grafica import componentes as c
@@ -13,40 +15,60 @@ EN_CURSO = [EstadoPrestamo.SOLICITADO, EstadoPrestamo.EN_ENVIO, EstadoPrestamo.L
 
 class PestaniaPrestamos(ttk.Frame):
     COLUMNAS = ("Id", "Tipo", "Socio", "Ejemplar", "Libro", "Origen", "Destino", "Solicitud", "Vence", "Estado")
-    FILTROS = ("En curso", "Vencidos", "Todos")
+    FILTROS = ("En curso", "Por vencer", "Vencidos", "Todos")
+    DIAS_POR_VENCER = 3
 
     def __init__(self, padre):
-        super().__init__(padre, padding=12)
+        super().__init__(padre, padding=(20, 16), style="Panel.TFrame")
         self.servicio = ServicioPrestamos()
-        barra = c.barra_de_botones(self, [
-            ("Préstamo local", self.prestamo_local, c.PRIMARIO),
-            ("Préstamo interbibliotecario", self.prestamo_interbibliotecario, c.PRIMARIO),
+        c.encabezado_de_pestania(
+            self, "Préstamos", "Locales e interbibliotecarios. Los interbibliotecarios generan su remito de ida.", [
+                ("Préstamo local", self.prestamo_local, c.PRIMARIO),
+                ("Préstamo interbibliotecario", self.prestamo_interbibliotecario),
+            ]).pack(fill="x")
+
+        barra = c.barra_de_filtros(self)
+        barra.pack(fill="x", pady=(14, 10))
+        self.busqueda = c.CampoDeBusqueda(barra, "Buscar por socio, libro o ejemplar", self.actualizar, ancho=26)
+        self.busqueda.pack(side="left")
+        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self.actualizar)
+        self.filtro.pack(side="left", padx=(12, 0))
+        acciones = c.barra_de_botones(barra, [
             ("Entregar (interbibliotecario)", self.entregar),
             ("Cancelar solicitud (interbibliotecario)", self.cancelar, c.PELIGRO),
         ])
-        barra.pack(fill="x")
-        c.separador_vertical(barra)
-        ttk.Label(barra, text="Mostrar:").pack(side="left", padx=(0, 4))
-        self.filtro = ttk.Combobox(barra, values=self.FILTROS, state="readonly", width=12)
-        self.filtro.set(self.FILTROS[0])
-        self.filtro.pack(side="left")
-        self.filtro.bind("<<ComboboxSelected>>", lambda evento: self.actualizar())
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Tipo": 130, "Socio": 150, "Libro": 190, "Origen": 140, "Destino": 140},
+        acciones.pack(side="right")
+        self.tabla = c.Tabla(self, self.COLUMNAS, columna_estado="Estado",
+                             anchos={"Tipo": 130, "Socio": 150, "Libro": 190, "Origen": 140, "Destino": 140},
                              mensaje_vacio="No hay préstamos para el filtro elegido.")
-        self.tabla.pack(fill="both", expand=True, pady=(10, 0))
-        self.tabla.mostrar_cantidad(barra, "préstamo", "préstamos")
+        self.tabla.pack(fill="both", expand=True)
+        self.tabla.arbol.heading("Destino", text="Retira en")
 
     def actualizar(self):
-        filtro = self.filtro.get()
-        if filtro == "Vencidos":
-            prestamos = self.servicio.listar_vencidos()
-        else:
-            prestamos = self.servicio.listar_prestamos(EN_CURSO if filtro == "En curso" else None)
+        todos = self.servicio.listar_prestamos()
+        hoy = date.today()
+        vencidos = {p.id for p in self.servicio.listar_vencidos()}
+        limite = hoy + timedelta(days=self.DIAS_POR_VENCER)
+        por_vencer = {
+            p.id for p in todos
+            if p.estado == EstadoPrestamo.ACTIVO and p.id not in vencidos
+            and p.fecha_vencimiento is not None and p.fecha_vencimiento <= limite
+        }
+        grupos = {
+            "En curso": {p.id for p in todos if p.estado in EN_CURSO},
+            "Por vencer": por_vencer,
+            "Vencidos": vencidos,
+            "Todos": {p.id for p in todos},
+        }
+        self.filtro.mostrar_cantidades({nombre: len(ids) for nombre, ids in grupos.items()})
+        elegidos, texto = grupos[self.filtro.get()], self.busqueda.get()
         self.tabla.cargar([
             (p.id, p.tipo.value, p.socio.nombre_completo, p.ejemplar.codigo_inventario, p.ejemplar.libro.titulo,
              p.sede_origen.nombre, p.sede_destino.nombre, c.formatear_fecha(p.fecha_solicitud),
              c.formatear_fecha(p.fecha_vencimiento), p.estado.value)
-            for p in prestamos
+            for p in todos
+            if p.id in elegidos and c.coincide(texto, p.socio.nombre_completo, p.ejemplar.libro.titulo,
+                                                p.ejemplar.codigo_inventario)
         ])
 
     def prestamo_local(self):

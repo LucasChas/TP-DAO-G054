@@ -125,11 +125,12 @@ def test_cn17_finalizar_reparacion_de_un_ejemplar_sano(gui, red):
 
 def test_cp31_buscar_libros_por_titulo_o_autor(gui, red):
     pestania = gui.ir_a("Catálogo")
-    pestania.busqueda.insert(0, "rae")
-    gui.clic("Buscar")
+    pestania.busqueda.insert(0, "rae")  # la lista se filtra mientras se escribe
+    gui.app.update()
     gui.capturar("01_resultado_de_la_busqueda")
     assert [f["Título"] for f in gui.filas(pestania.tabla_libros)] == ["Diccionario de la lengua"]
-    gui.clic("Ver todos")
+    pestania.busqueda.delete(0, "end")  # al borrar el texto vuelven a verse todos
+    gui.app.update()
     assert len(gui.filas(pestania.tabla_libros)) == 3
 
 

@@ -51,7 +51,7 @@ class Aplicacion(tk.Tk):
         servicio_devoluciones = ServicioDevoluciones()
         self.servicio_devoluciones = servicio_devoluciones
         self.cuaderno = ttk.Notebook(self)
-        self.cuaderno.pack(fill="both", expand=True, padx=10, pady=(8, 0))
+        self.cuaderno.pack(fill="both", expand=True, padx=12, pady=(6, 0))
         self.pestanias = {
             "Sedes": PestaniaSedes(self.cuaderno),
             "Socios": PestaniaSocios(self.cuaderno),
@@ -94,22 +94,29 @@ class Aplicacion(tk.Tk):
         self.config(menu=barra)
 
     def _crear_cabecera(self):
-        cabecera = ttk.Frame(self, style="Cabecera.TFrame", padding=(18, 12))
+        cabecera = ttk.Frame(self, style="Cabecera.TFrame", padding=(18, 10))
         cabecera.pack(fill="x")
         titulos = ttk.Frame(cabecera, style="Cabecera.TFrame")
         titulos.pack(side="left")
-        ttk.Label(titulos, text="Red de Bibliotecas", style="Cabecera.TLabel").pack(anchor="w")
-        ttk.Label(titulos, text="Sistema de préstamos interbibliotecarios", style="CabeceraSuave.TLabel").pack(anchor="w")
+        ttk.Label(titulos, text="Red de Bibliotecas", style="Marca.TLabel").pack(anchor="w")
+        ttk.Label(titulos, text="Préstamos interbibliotecarios", style="CabeceraSuave.TLabel").pack(anchor="w")
 
+        # Cada indicador es un botón que lleva a la pestaña con el filtro correspondiente.
         self._indicadores = {}
-        for clave, texto in (("impagas", "Multas impagas"), ("transito", "Envíos en tránsito"),
-                             ("vencidos", "Préstamos vencidos"), ("en_curso", "Préstamos en curso")):
-            marco = ttk.Frame(cabecera, style="Indicador.TFrame", padding=(22, 0, 0, 0))
-            marco.pack(side="right")
-            valor = ttk.Label(marco, text="-", style="IndicadorValor.TLabel")
-            valor.pack(anchor="e")
-            ttk.Label(marco, text=texto, style="IndicadorTexto.TLabel").pack(anchor="e")
-            self._indicadores[clave] = valor
+        for clave, destino in (("impagas", ("Devoluciones y multas", "Impagas")),
+                               ("transito", ("Remitos", "En curso")),
+                               ("vencidos", ("Préstamos", "Vencidos")),
+                               ("en_curso", ("Préstamos", "En curso"))):
+            boton = ttk.Button(cabecera, text="-", style="Indicador.TButton",
+                               command=lambda destino=destino: self.ir_a_filtro(*destino))
+            boton.pack(side="right", padx=(8, 0))
+            self._indicadores[clave] = boton
+
+    def ir_a_filtro(self, pestania, filtro):
+        """Muestra la pestaña con el filtro elegido (lo usan los indicadores de la cabecera)."""
+        destino = self.pestanias[pestania]
+        destino.filtro.elegir(filtro)
+        self.cuaderno.select(destino)
 
     def _crear_barra_de_estado(self):
         barra = ttk.Frame(self, style="Estado.TFrame", padding=(12, 5))
@@ -152,10 +159,18 @@ class Aplicacion(tk.Tk):
             }
         except Exception:  # noqa: BLE001 - los indicadores son informativos, no deben cortar la interfaz
             return
+        textos = {
+            "en_curso": ("préstamo en curso", "préstamos en curso"),
+            "vencidos": ("vencido", "vencidos"),
+            "transito": ("envío en tránsito", "envíos en tránsito"),
+            "impagas": ("multa impaga", "multas impagas"),
+        }
         for clave, valor in valores.items():
             alerta = clave in ("vencidos", "impagas") and valor > 0
+            singular, plural = textos[clave]
             self._indicadores[clave].configure(
-                text=str(valor), style="IndicadorValorAlerta.TLabel" if alerta else "IndicadorValor.TLabel"
+                text=f"{valor}  {singular if valor == 1 else plural}",
+                style="IndicadorAlerta.TButton" if alerta else "Indicador.TButton",
             )
 
     def registrar_actividad(self, mensaje, es_error=False):

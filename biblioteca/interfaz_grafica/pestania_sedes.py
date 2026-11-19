@@ -7,28 +7,57 @@ from biblioteca.servicios import ServicioSedes
 
 class PestaniaSedes(ttk.Frame):
     COLUMNAS = ("Id", "Nombre", "Dirección", "Teléfono", "Email", "Horario", "Estado")
+    FILTROS = ("Activas", "Dadas de baja", "Todas")
 
     def __init__(self, padre):
-        super().__init__(padre, padding=12)
+        super().__init__(padre, padding=(20, 16), style="Panel.TFrame")
         self.servicio = ServicioSedes()
-        barra = c.barra_de_botones(self, [
+        c.encabezado_de_pestania(self, "Sedes", "Las sedes de la red. La baja es lógica: la sede conserva su historial.", [
             ("Nueva sede", self.nueva, c.PRIMARIO),
+        ]).pack(fill="x")
+
+        barra = c.barra_de_filtros(self)
+        barra.pack(fill="x", pady=(14, 10))
+        self.busqueda = c.CampoDeBusqueda(barra, "Buscar por nombre o dirección", self.actualizar)
+        self.busqueda.pack(side="left")
+        self.filtro = c.FiltroSegmentado(barra, self.FILTROS, self.actualizar, inicial="Todas")
+        self.filtro.pack(side="left", padx=(12, 0))
+        self.acciones = c.acciones_de_seleccion(barra, [
             ("Modificar", self.modificar),
-            ("Dar de baja", self.dar_de_baja, c.PELIGRO),
             ("Reactivar", self.reactivar),
+            ("Dar de baja", self.dar_de_baja, c.PELIGRO),
         ])
-        barra.pack(fill="x")
-        self.tabla = c.Tabla(self, self.COLUMNAS, anchos={"Id": 50, "Nombre": 170, "Dirección": 280, "Email": 200},
-                             mensaje_vacio="No hay sedes registradas. Use \"Nueva sede\" o cargue los datos de ejemplo.")
-        self.tabla.pack(fill="both", expand=True, pady=(10, 0))
-        self.tabla.mostrar_cantidad(barra, "sede", "sedes")
+
+        self.tabla = c.Tabla(self, self.COLUMNAS, columna_estado="Estado",
+                             anchos={"Nombre": 170, "Dirección": 280, "Email": 200},
+                             mensaje_vacio="No hay sedes para mostrar. Use \"Nueva sede\" o cargue los datos de ejemplo.")
+        self.tabla.pack(fill="both", expand=True)
         self.tabla.al_doble_clic(self.modificar)
+        self.tabla.al_seleccionar(self._actualizar_acciones)
 
     def actualizar(self):
+        sedes = self.servicio.listar_sedes()
+        self.filtro.mostrar_cantidades({
+            "Activas": sum(s.esta_activa for s in sedes),
+            "Dadas de baja": sum(not s.esta_activa for s in sedes),
+            "Todas": len(sedes),
+        })
+        filtro, texto = self.filtro.get(), self.busqueda.get()
+        visibles = [
+            s for s in sedes
+            if (filtro == "Todas" or s.esta_activa == (filtro == "Activas")) and c.coincide(texto, s.nombre, s.direccion)
+        ]
         self.tabla.cargar([
-            (s.id, s.nombre, s.direccion, s.telefono, s.email, s.horario_atencion, s.estado.value)
-            for s in self.servicio.listar_sedes()
+            (s.id, s.nombre, s.direccion, s.telefono, s.email, s.horario_atencion, s.estado.value) for s in visibles
         ])
+        self._actualizar_acciones()
+
+    def _actualizar_acciones(self):
+        """«Reactivar» solo se destaca si la sede elegida está dada de baja, y «Dar de baja» si está activa."""
+        fila = next((f for f in self.tabla.filas() if str(f[0]) == str(self.tabla.id_seleccionado())), None)
+        activa = fila is None or fila[-1] == "Activa"
+        self.acciones.botones["Reactivar"].configure(style=c.ATENUADO if activa else "TButton")
+        self.acciones.botones["Dar de baja"].configure(style=c.PELIGRO if activa else c.ATENUADO)
 
     def _campos(self, sede=None):
         return [

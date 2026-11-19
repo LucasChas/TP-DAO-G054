@@ -13,7 +13,7 @@ Característica: Devoluciones y multas
   Escenario: CP-23 Multa por atraso según material y pago
     Dado Ana devuelve el Diccionario (consulta) con 3 días de atraso
     Cuando el usuario registra la devolución
-    Y el usuario filtra "Solo multas impagas" y hace click en "Registrar pago de multa"
+    Y el usuario elige el filtro "Impagas" y hace click en "Registrar pago de multa"
     Entonces el sistema muestra "Devolución registrada.\n3 días de atraso: multa de $3,000.00.\nTotal a pagar: $3,000.00."
     Y el sistema muestra "Pago registrado." y no quedan multas impagas
 

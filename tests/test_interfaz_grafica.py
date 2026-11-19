@@ -338,20 +338,88 @@ def test_el_orden_reconoce_numeros_montos_y_fechas():
     assert sorted(["29.8 h", "4.0 h"], key=_clave_de_orden) == ["4.0 h", "29.8 h"]
 
 
-def test_la_barra_de_botones_muestra_la_cantidad_de_filas(aplicacion, mensajes):
+def test_los_filtros_muestran_la_cantidad_y_filtran_la_tabla(aplicacion, mensajes):
     aplicacion.mostrar_pestania("Sedes")
     pestania = aplicacion.pestanias["Sedes"]
-    etiqueta = pestania.tabla._contador[0]
-    assert etiqueta.cget("text") == "0 sedes"
+    assert pestania.filtro.botones["Todas"].cget("text") == "Todas  0"
     ServicioSedes().registrar_sede("Sede Centro", "Av. Colón 100")
+    baja = ServicioSedes().registrar_sede("Sede Oeste", "Av. Sabattini 100")
+    ServicioSedes().dar_de_baja_sede(baja.id)
     pestania.actualizar()
-    assert etiqueta.cget("text") == "1 sede"
+    assert pestania.filtro.botones["Activas"].cget("text") == "Activas  1"
+    pestania.filtro.elegir("Dadas de baja")
+    assert [f[1] for f in pestania.tabla.filas()] == ["Sede Oeste"]
+    pestania.filtro.elegir("Todas")
+    assert len(pestania.tabla.filas()) == 2
+
+
+def test_la_busqueda_filtra_mientras_se_escribe(aplicacion, mensajes):
+    cargar_datos_de_ejemplo()
+    aplicacion.mostrar_pestania("Socios")
+    pestania = aplicacion.pestanias["Socios"]
+    pestania.busqueda_dni.insert(0, "pérez")
+    assert [f[2] for f in pestania.tabla.filas()] == ["Pérez, Ana"]
+    pestania.busqueda_dni.delete(0, "end")
+    pestania.busqueda_dni.insert(0, "30.111")  # el DNI se encuentra con o sin puntos
+    assert [f[2] for f in pestania.tabla.filas()] == ["Pérez, Ana"]
+
+
+def test_el_estado_se_muestra_como_punto_de_color_y_no_pinta_la_fila(aplicacion, mensajes):
+    from biblioteca.interfaz_grafica import tema
+
+    cargar_datos_de_ejemplo()
+    aplicacion.mostrar_pestania("Socios")
+    tabla = aplicacion.pestanias["Socios"].tabla
+    item = next(i for i in tabla.arbol.get_children() if tabla.arbol.item(i, "values")[2] == "Rodríguez, Carlos")
+    assert tabla.arbol.item(item, "text").strip() == "Inhabilitado"
+    assert tabla.arbol.item(item, "image")
+    assert "Id" not in tabla.arbol.cget("displaycolumns")
+    assert tema.color_de_estado("Inhabilitado") == tema.COLOR_DE_CATEGORIA["problema"]
+
+
+def test_la_situacion_del_socio_resume_vencidos_y_multas(aplicacion, mensajes):
+    cargar_datos_de_ejemplo()
+    aplicacion.mostrar_pestania("Socios")
+    pestania = aplicacion.pestanias["Socios"]
+    situacion = {f[2]: f[-1] for f in pestania.tabla.filas()}
+    assert situacion["Pérez, Ana"] == "1 préstamo vencido"
+    assert situacion["Gómez, Juan"].startswith("Multa impaga")
+    pestania.filtro.elegir("Con deuda")
+    assert sorted(f[2] for f in pestania.tabla.filas()) == ["Gómez, Juan", "Pérez, Ana"]
+
+
+def test_remitos_ofrece_solo_las_acciones_validas_para_el_estado(aplicacion, mensajes):
+    cargar_datos_de_ejemplo()
+    aplicacion.mostrar_pestania("Remitos")
+    pestania = aplicacion.pestanias["Remitos"]
+    en_viaje = next(f for f in pestania.tabla.filas() if f[-1] == "En tránsito")
+    seleccionar(pestania.tabla, int(en_viaje[0]))
+    pestania.actualizar_trayecto()
+    visibles = [t for t, b in pestania.botones.botones.items() if b.winfo_manager()]
+    assert visibles == ["Recibir", "Punto de control", "Reportar extravío"]
+    assert str(pestania.botones.botones["Recibir"].cget("style")) == "Primario.TButton"
+    pasos = pestania.recorrido.pasos(ServicioRemitos().obtener_remito(int(en_viaje[0])))
+    assert [p[2] for p in pasos][-2:] == ["Recibido en Sede Norte", "Cerrado"]
+    assert pasos[-2][3].startswith("Próximo paso:")
+
+
+def test_el_reporte_muestra_su_grafico_en_pantalla(aplicacion, mensajes):
+    cargar_datos_de_ejemplo()
+    aplicacion.mostrar_pestania("Reportes")
+    pestania = aplicacion.pestanias["Reportes"]
+    pestania.reporte_tasa()
+    lienzos = [w for w in pestania.contenido.winfo_children() for h in w.winfo_children() if h.winfo_class() == "Canvas"]
+    assert lienzos, "El reporte debería mostrar el gráfico de matplotlib"
+    assert pestania.selector.get() == "5. Tasa de envíos e incidencias"
 
 
 def test_las_operaciones_actualizan_la_barra_de_estado_y_los_indicadores(aplicacion, responder, mensajes):
     cargar_datos_de_ejemplo()
     aplicacion.actualizar_indicadores()
-    assert aplicacion._indicadores["en_curso"].cget("text") == "2"
+    assert aplicacion._indicadores["en_curso"].cget("text") == "2  préstamos en curso"
+    aplicacion._indicadores["vencidos"].invoke()  # lleva a Préstamos filtrado por vencidos
+    assert aplicacion.pestania_actual() is aplicacion.pestanias["Préstamos"]
+    assert aplicacion.pestanias["Préstamos"].filtro.get() == "Vencidos"
     responder.append({"nombre": "Sede Oeste", "direccion": "Av. Sabattini 100", "telefono": None,
                       "email": None, "horario_atencion": None})
     aplicacion.pestanias["Sedes"].nueva()

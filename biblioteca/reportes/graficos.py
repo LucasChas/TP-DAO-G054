@@ -1,20 +1,31 @@
 """Gráficos de los reportes con matplotlib.
 
 Se usa la clase Figure directamente (sin pyplot), así no hace falta una
-ventana ni un backend gráfico: el gráfico se dibuja en memoria y se devuelve
-como imagen PNG lista para insertar en el PDF.
+ventana ni un backend gráfico. crear_figura arma el gráfico; dibujar lo
+devuelve como imagen PNG para el PDF y la pestaña Reportes muestra la misma
+figura dentro de la ventana.
 """
 from io import BytesIO
 
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 
-COLORES = ["#2f5d8a", "#e08a2e", "#4f9a5a", "#b8474a", "#7a5aa6", "#8c8c8c"]
+COLORES = ["#1d4f86", "#c4524b", "#d08a00", "#1f8f44", "#7a5aa6", "#8a94a6"]
 
 
 def dibujar(grafico, ancho_pulgadas=7.0, alto_pulgadas=3.4):
     """Devuelve un BytesIO con el gráfico en formato PNG."""
-    figura = Figure(figsize=(ancho_pulgadas, alto_pulgadas), dpi=150)
+    figura = crear_figura(grafico, ancho_pulgadas, alto_pulgadas, dpi=150)
+    imagen = BytesIO()
+    figura.savefig(imagen, format="png")
+    imagen.seek(0)
+    return imagen
+
+
+def crear_figura(grafico, ancho_pulgadas=7.0, alto_pulgadas=3.4, dpi=100):
+    """Arma la figura de matplotlib del gráfico (barras, barras horizontales o torta)."""
+    figura = Figure(figsize=(ancho_pulgadas, alto_pulgadas), dpi=dpi)
+    figura.patch.set_facecolor("white")
     ejes = figura.add_subplot()
     if grafico.tipo == "torta":
         pares = [(etiqueta, valor) for etiqueta, valor in zip(grafico.etiquetas, grafico.valores) if valor]
@@ -44,10 +55,7 @@ def dibujar(grafico, ancho_pulgadas=7.0, alto_pulgadas=3.4):
             ejes.yaxis.set_major_locator(MaxNLocator(integer=True))
         _sin_bordes_superiores(ejes)
     figura.tight_layout()
-    imagen = BytesIO()
-    figura.savefig(imagen, format="png")
-    imagen.seek(0)
-    return imagen
+    return figura
 
 
 def _sin_bordes_superiores(ejes):
