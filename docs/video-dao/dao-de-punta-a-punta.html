@@ -1,0 +1,928 @@
+<title>DAO de punta a punta</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: reproductor de video. Escenario de dos columnas (arquitectura viva | código + SQL real), subtítulos y controles abajo, capítulos al final. */
+:root {
+  --bg: #eef0f5; --surface: #ffffff; --ink: #161a2e; --muted: #5a6079; --line: #d6d9e4;
+  --accent: #2b4bd8; --dao: #b87500; --dao-soft: #fff1d6; --state: #0d8571; --state-soft: #d9f4ee;
+  --strat: #7246c9; --strat-soft: #ece4fb; --iter: #1679ad; --iter-soft: #dcf0fa;
+  --ok: #1d7f47; --ok-soft: #dcf3e5; --bad: #bf342c; --bad-soft: #fbe1df; --wait: #8a6d00; --wait-soft: #fbf1c9;
+  --code-bg: #121630; --code-fg: #dfe3f5; --code-dim: #7d84a6; --code-hl: rgba(255,196,64,.16);
+  --f-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0c0f1d; --surface: #151a2e; --ink: #e7e9f4; --muted: #9aa1bf; --line: #2a3152;
+  --accent: #7f95ff; --dao: #f0b23a; --dao-soft: #3a2c0c; --state: #3cc8ad; --state-soft: #0f332d;
+  --strat: #ab8bf2; --strat-soft: #2a1f45; --iter: #5cc1ee; --iter-soft: #0f2c3b;
+  --ok: #52c784; --ok-soft: #12321f; --bad: #f06c62; --bad-soft: #3c1614; --wait: #e9c64a; --wait-soft: #342b0b;
+  --code-bg: #090c19; --code-fg: #dfe3f5; --code-dim: #6f7698; --code-hl: rgba(255,196,64,.14); color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0c0f1d; --surface: #151a2e; --ink: #e7e9f4; --muted: #9aa1bf; --line: #2a3152;
+  --accent: #7f95ff; --dao: #f0b23a; --dao-soft: #3a2c0c; --state: #3cc8ad; --state-soft: #0f332d;
+  --strat: #ab8bf2; --strat-soft: #2a1f45; --iter: #5cc1ee; --iter-soft: #0f2c3b;
+  --ok: #52c784; --ok-soft: #12321f; --bad: #f06c62; --bad-soft: #3c1614; --wait: #e9c64a; --wait-soft: #342b0b;
+  --code-bg: #090c19; --code-fg: #dfe3f5; --code-dim: #6f7698; --code-hl: rgba(255,196,64,.14); color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45; }
+.wrap { max-width: 1400px; margin: 0 auto; padding-block: 18px 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 14px; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 20px; }
+h1 { font-family: var(--f-display); font-weight: 700; font-size: clamp(22px, 3vw, 30px); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+.top p { margin: 0; color: var(--muted); max-width: 70ch; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px; }
+.lg { font-size: 11.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+.lg.dao { color: var(--dao); background: var(--dao-soft); } .lg.state { color: var(--state); background: var(--state-soft); }
+.lg.strat { color: var(--strat); background: var(--strat-soft); } .lg.iter { color: var(--iter); background: var(--iter-soft); }
+
+/* ---------- reproductor ---------- */
+.player { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); gap: 0; }
+.col { padding: 14px 16px; min-width: 0; display: grid; gap: 12px; align-content: start; }
+.col + .col { border-left: 1px solid var(--line); }
+.sec-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* capas de arquitectura */
+.arch { display: grid; gap: 6px; }
+.layer { display: grid; grid-template-columns: 92px minmax(0,1fr); gap: 8px; align-items: center; padding: 6px 8px; border-radius: 6px; border: 1px solid transparent; transition: background .3s, border-color .3s; }
+.layer .name { font-size: 11.5px; font-weight: 600; color: var(--muted); line-height: 1.2; }
+.layer .name small { display: block; font-weight: 400; font-size: 10.5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--f-mono); font-size: 11px; padding: 3px 7px; border-radius: 4px; border: 1px solid var(--line); color: var(--muted); background: var(--bg); transition: all .25s; white-space: nowrap; }
+.chip.on { color: var(--ink); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--surface)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent); }
+.layer.dao .chip.on { border-color: var(--dao); background: var(--dao-soft); box-shadow: 0 0 0 2px color-mix(in srgb, var(--dao) 30%, transparent); }
+.chip.p-state.on { border-color: var(--state); background: var(--state-soft); box-shadow: 0 0 0 2px color-mix(in srgb, var(--state) 30%, transparent); }
+.chip.p-strat.on { border-color: var(--strat); background: var(--strat-soft); box-shadow: 0 0 0 2px color-mix(in srgb, var(--strat) 30%, transparent); }
+.chip.p-iter.on { border-color: var(--iter); background: var(--iter-soft); box-shadow: 0 0 0 2px color-mix(in srgb, var(--iter) 30%, transparent); }
+.layer.dao { background: color-mix(in srgb, var(--dao) 6%, transparent); border-color: color-mix(in srgb, var(--dao) 30%, transparent); }
+.layer.mem .chips { gap: 4px 10px; }
+.grp { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.grp > i { font-style: normal; font-size: 10.5px; color: var(--muted); margin-right: 2px; }
+.border-line { display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--dao); font-weight: 600; letter-spacing: .03em; padding: 0 8px; }
+.border-line::before, .border-line::after { content: ""; flex: 1; border-top: 1.5px dashed color-mix(in srgb, var(--dao) 60%, transparent); }
+
+/* sesión */
+.session { border: 1.5px solid var(--line); border-radius: 6px; padding: 7px 8px; display: grid; gap: 6px; transition: border-color .3s, background .3s; }
+.session.open { border-color: var(--wait); background: color-mix(in srgb, var(--wait) 7%, transparent); }
+.session.commit { border-color: var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); }
+.session.rollback { border-color: var(--bad); background: color-mix(in srgb, var(--bad) 8%, transparent); }
+.sess-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sess-head b { font-size: 12px; }
+.pill { font-family: var(--f-mono); font-size: 10.5px; font-weight: 600; padding: 2px 7px; border-radius: 99px; background: var(--bg); color: var(--muted); border: 1px solid var(--line); }
+.pill.open { background: var(--wait-soft); color: var(--wait); border-color: transparent; }
+.pill.commit { background: var(--ok-soft); color: var(--ok); border-color: transparent; }
+.pill.rollback { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.pend { display: flex; flex-wrap: wrap; gap: 4px; min-height: 22px; }
+.pend:empty::after { content: "sin cambios pendientes"; font-size: 11px; color: var(--muted); font-style: italic; }
+.pc { font-family: var(--f-mono); font-size: 10.5px; padding: 2px 6px; border-radius: 4px; border: 1px dashed var(--muted); color: var(--ink); animation: pop .35s ease; }
+.pc::before { margin-right: 4px; font-weight: 600; }
+.pc.mem::before { content: "memoria"; color: var(--muted); }
+.pc.flush { border-style: solid; border-color: var(--wait); background: var(--wait-soft); } .pc.flush::before { content: "flush"; color: var(--wait); }
+.pc.ok { border-style: solid; border-color: var(--ok); background: var(--ok-soft); } .pc.ok::before { content: "commit"; color: var(--ok); }
+.pc.undo { border-style: solid; border-color: var(--bad); background: var(--bad-soft); text-decoration: line-through; } .pc.undo::before { content: "deshecho"; color: var(--bad); text-decoration: none; display: inline-block; }
+@keyframes pop { from { transform: scale(.85); opacity: .2; } to { transform: none; opacity: 1; } }
+.layer.db .chip { border-radius: 3px 3px 9px 9px; }
+.layer.db .chip.on { border-color: var(--dao); background: var(--dao-soft); box-shadow: 0 0 0 2px color-mix(in srgb, var(--dao) 30%, transparent); }
+
+/* pizarra */
+.board { border-top: 1px solid var(--line); padding-top: 10px; display: grid; gap: 8px; min-height: 120px; }
+.board-body { animation: fade .4s ease; display: grid; gap: 8px; }
+@keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.strip { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.st { font-family: var(--f-mono); font-size: 11px; padding: 3px 7px; border-radius: 3px; border: 1.5px solid var(--line); color: var(--muted); }
+.st.done { color: var(--state); border-color: color-mix(in srgb, var(--state) 45%, transparent); }
+.st.now { color: var(--surface); background: var(--state); border-color: var(--state); font-weight: 600; transform: rotate(-2deg); }
+.st.bad { color: var(--bad); border-color: var(--bad); }
+.arrow { color: var(--muted); font-size: 11px; }
+.note { font-size: 12.5px; color: var(--muted); max-width: 62ch; }
+.note b { color: var(--ink); }
+.flow3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 6px; }
+.flow3 > div { border: 1px solid var(--line); border-radius: 6px; padding: 7px 8px; font-size: 12px; }
+.flow3 b { display: block; font-family: var(--f-mono); font-size: 11.5px; margin-bottom: 2px; }
+.flow3 .a b { color: var(--muted); } .flow3 .b b { color: var(--wait); } .flow3 .c b { color: var(--ok); }
+.mini { width: 100%; border-collapse: collapse; font-size: 12px; }
+.mini th, .mini td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.mini th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+.mini td.num { font-variant-numeric: tabular-nums; font-family: var(--f-mono); }
+.mini tr.cur td { background: var(--iter-soft); }
+.mini tr.skip td { color: var(--muted); text-decoration: line-through; }
+.formula { font-family: var(--f-mono); font-size: 15px; padding: 8px 10px; border-radius: 6px; background: var(--strat-soft); color: var(--strat); font-variant-numeric: tabular-nums; }
+.formula small { display: block; font-size: 11px; color: var(--muted); font-family: var(--f-body); }
+.check { font-family: var(--f-mono); font-size: 12px; display: grid; gap: 3px; }
+.check span { color: var(--ok); }
+.roles { display: grid; gap: 4px; }
+.role { display: grid; grid-template-columns: 110px minmax(0,1fr); gap: 8px; font-size: 12px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.role b { font-size: 12px; }
+.role .db { color: var(--dao); font-weight: 600; }
+
+/* columna derecha */
+.scene-head { display: grid; gap: 4px; }
+.scene-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.tag { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; background: var(--bg); color: var(--muted); }
+.tag.dao { background: var(--dao-soft); color: var(--dao); } .tag.state { background: var(--state-soft); color: var(--state); }
+.tag.strat { background: var(--strat-soft); color: var(--strat); } .tag.iter { background: var(--iter-soft); color: var(--iter); }
+.focus { font-size: 11px; font-weight: 700; color: var(--dao); border: 1.5px solid var(--dao); padding: 1px 7px; border-radius: 4px; letter-spacing: .04em; }
+.scene-num { font-family: var(--f-mono); font-size: 11px; color: var(--muted); }
+h2 { font-family: var(--f-display); font-weight: 700; font-size: 21px; margin: 0; letter-spacing: -.005em; text-wrap: balance; }
+.code-card { background: var(--code-bg); border-radius: 8px; overflow: hidden; }
+.code-file { display: flex; justify-content: space-between; gap: 8px; padding: 6px 12px; font-family: var(--f-mono); font-size: 11px; color: var(--code-dim); border-bottom: 1px solid rgba(255,255,255,.07); }
+.code-file b { color: var(--code-fg); font-weight: 600; }
+pre.code { margin: 0; padding: 8px 0; font-family: var(--f-mono); font-size: 12px; line-height: 1.55; color: var(--code-fg); overflow: auto; max-height: 300px; position: relative; }
+.ln { display: block; padding: 0 12px 0 0; white-space: pre; transition: background .3s; border-left: 3px solid transparent; }
+.ln.hl { background: var(--code-hl); border-left-color: #ffc440; }
+.ln .no { display: inline-block; width: 4ch; text-align: right; margin-right: 12px; color: var(--code-dim); user-select: none; }
+.k { color: #ff9ac1; } .s { color: #a5e3a0; } .c { color: #7d84a6; font-style: italic; } .d { color: #ffd479; } .n { color: #9ccfff; } .cl { color: #ffc177; }
+.sql-card { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.sql-head { display: flex; justify-content: space-between; padding: 6px 12px; font-size: 11px; color: var(--muted); background: var(--bg); border-bottom: 1px solid var(--line); }
+.sql-head b { font-family: var(--f-mono); color: var(--ink); font-weight: 600; }
+.sql { height: 196px; overflow-y: auto; padding: 8px 12px; font-family: var(--f-mono); font-size: 11.5px; line-height: 1.5; display: flex; flex-direction: column; gap: 2px; }
+.sql:empty::after { content: "Este paso no ejecuta SQL."; color: var(--muted); font-style: italic; font-family: var(--f-body); }
+.q { white-space: pre-wrap; word-break: break-word; color: var(--muted); }
+.q.new { animation: type .5s ease; }
+@keyframes type { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+.q.w { color: var(--ink); } .q.w .op { color: var(--dao); font-weight: 600; }
+.q .op { font-weight: 600; } .q .p { color: var(--accent); }
+.q.tx { font-weight: 700; } .q.tx.begin { color: var(--wait); } .q.tx.commit { color: var(--ok); } .q.tx.rollback { color: var(--bad); }
+.q.nest { padding-left: 16px; border-left: 2px solid var(--line); }
+.q.cm { color: var(--muted); font-family: var(--f-body); font-style: italic; }
+
+/* subtítulos y controles */
+.caption { border-top: 1px solid var(--line); padding: 14px 18px; min-height: 76px; display: flex; align-items: center; }
+.caption p { margin: 0; font-size: 17px; line-height: 1.45; max-width: 95ch; text-wrap: pretty; animation: fade .35s ease; }
+.caption code, .note code { font-family: var(--f-mono); font-size: .88em; background: var(--bg); padding: 0 4px; border-radius: 3px; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; border-top: 1px solid var(--line); background: var(--bg); }
+.btn { font: 600 13px var(--f-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { border-color: var(--accent); }
+.btn:focus-visible, .chap:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); min-width: 104px; justify-content: center; }
+.btn[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.timeline { flex: 1 1 260px; display: grid; gap: 4px; min-width: 0; }
+.track { position: relative; height: 8px; border-radius: 99px; background: var(--line); cursor: pointer; }
+.track .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 99px; width: 0; }
+.track .tick { position: absolute; top: -3px; width: 2px; height: 14px; background: var(--surface); }
+.time { font-family: var(--f-mono); font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; display: flex; justify-content: space-between; }
+select { font: 13px var(--f-body); padding: 5px 6px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+
+/* capítulos */
+.chapters { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px; }
+.chap { text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer; color: var(--ink); font: 13px var(--f-body); display: grid; gap: 2px; }
+.chap .cn { font-family: var(--f-mono); font-size: 10.5px; color: var(--muted); display: flex; gap: 6px; align-items: center; }
+.chap .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
+.chap .dot.dao { background: var(--dao); } .chap .dot.state { background: var(--state); } .chap .dot.strat { background: var(--strat); } .chap .dot.iter { background: var(--iter); }
+.chap.cur { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.foot { font-size: 12px; color: var(--muted); max-width: 90ch; }
+.foot code { font-family: var(--f-mono); font-size: 11.5px; }
+
+@media (max-width: 900px) {
+  .stage { grid-template-columns: minmax(0,1fr); }
+  .col + .col { border-left: 0; border-top: 1px solid var(--line); }
+  .caption p { font-size: 15.5px; }
+  .layer { grid-template-columns: 74px minmax(0,1fr); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>El patrón DAO en un préstamo interbibliotecario</h1>
+      <p>María, socia de la Sede Norte, pide <i>Ficciones</i> (ejemplar CEN-0003) a la Biblioteca Central. Seguimos el préstamo y sus remitos de punta a punta, con el SQL que el sistema ejecuta de verdad.</p>
+    </div>
+    <div class="legend" aria-label="Patrones">
+      <span class="lg dao">DAO</span><span class="lg state">State</span><span class="lg strat">Strategy</span><span class="lg iter">Iterator</span>
+    </div>
+  </header>
+
+  <section class="player" aria-label="Reproductor">
+    <div class="stage">
+      <div class="col">
+        <div class="sec-label">Arquitectura · qué capa trabaja ahora</div>
+        <div class="arch">
+          <div class="layer"><div class="name">Interfaz<small>interfaz_grafica/</small></div>
+            <div class="chips"><span class="chip" data-n="ui-disp">Disponibilidad</span><span class="chip" data-n="ui-prest">PestañaPréstamos</span><span class="chip" data-n="ui-rem">PestañaRemitos</span><span class="chip" data-n="ui-dev">PestañaDevoluciones</span></div></div>
+          <div class="layer"><div class="name">Servicios<small>servicios/</small></div>
+            <div class="chips"><span class="chip" data-n="s-disp">ServicioDisponibilidad</span><span class="chip" data-n="s-prest">ServicioPrestamos</span><span class="chip" data-n="s-rem">ServicioRemitos</span><span class="chip" data-n="s-dev">ServicioDevoluciones</span></div></div>
+          <div class="layer mem"><div class="name">Dominio<small>objetos en memoria</small></div>
+            <div class="chips">
+              <span class="grp"><i>modelos</i><span class="chip" data-n="m-prest">Prestamo</span><span class="chip" data-n="m-ej">Ejemplar</span><span class="chip" data-n="m-rem">Remito</span><span class="chip" data-n="m-mov">MovimientoRemito</span><span class="chip" data-n="m-dev">Devolucion</span></span>
+              <span class="grp"><i>patrones</i><span class="chip p-iter" data-n="p-iter">Iterator</span><span class="chip p-state" data-n="p-state">State</span><span class="chip p-strat" data-n="p-strat">Strategy</span></span>
+            </div></div>
+          <div class="border-line">de acá para abajo se habla con la base</div>
+          <div class="layer dao"><div class="name">DAO<small>una clase por entidad</small></div>
+            <div class="chips"><span class="chip" data-n="d-libro">LibroDAO</span><span class="chip" data-n="d-socio">SocioDAO</span><span class="chip" data-n="d-ej">EjemplarDAO</span><span class="chip" data-n="d-sede">SedeDAO</span><span class="chip" data-n="d-prest">PrestamoDAO</span><span class="chip" data-n="d-rem">RemitoDAO</span><span class="chip" data-n="d-dev">DevolucionDAO</span><span class="chip" data-n="d-conf">ConfiguracionDAO</span></div></div>
+          <div class="layer"><div class="name">Sesión<small>una por caso de uso</small></div>
+            <div class="session" id="session">
+              <div class="sess-head"><b>Session de SQLAlchemy</b><span class="pill" id="txpill">sin transacción</span></div>
+              <div class="pend" id="pend"></div>
+            </div></div>
+          <div class="layer db"><div class="name">SQLite<small>biblioteca.db</small></div>
+            <div class="chips"><span class="chip" data-n="t-libros">libros</span><span class="chip" data-n="t-socios">socios</span><span class="chip" data-n="t-ej">ejemplares</span><span class="chip" data-n="t-sedes">sedes</span><span class="chip" data-n="t-prest">prestamos</span><span class="chip" data-n="t-rem">remitos</span><span class="chip" data-n="t-mov">movimientos_remito</span><span class="chip" data-n="t-dev">devoluciones</span><span class="chip" data-n="t-conf">configuracion</span></div></div>
+        </div>
+        <div class="board"><div class="sec-label">Pizarra</div><div class="board-body" id="board"></div></div>
+      </div>
+
+      <div class="col">
+        <div class="scene-head">
+          <div class="scene-meta"><span class="scene-num" id="snum"></span><span class="tag" id="stag"></span><span class="focus" id="sfocus" hidden>FOCO DAO</span></div>
+          <h2 id="stitle"></h2>
+        </div>
+        <div class="code-card">
+          <div class="code-file"><b id="cfile"></b><span id="cwhat"></span></div>
+          <pre class="code" id="code"></pre>
+        </div>
+        <div class="sql-card">
+          <div class="sql-head"><b>SQL enviado a SQLite</b><span>capturado con un listener del motor</span></div>
+          <div class="sql" id="sql" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="caption"><p id="cap"></p></div>
+
+    <div class="controls">
+      <button class="btn" id="prev" type="button" aria-label="Paso anterior">◀ Anterior</button>
+      <button class="btn primary" id="play" type="button">▶ Reproducir</button>
+      <button class="btn" id="next" type="button" aria-label="Paso siguiente">Siguiente ▶</button>
+      <div class="timeline">
+        <div class="track" id="track" role="slider" tabindex="0" aria-label="Línea de tiempo" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="fill" id="fill"></div></div>
+        <div class="time"><span id="tcur">0:00</span><span id="tstep"></span><span id="ttot">0:00</span></div>
+      </div>
+      <label class="sec-label" for="speed">Velocidad</label>
+      <select id="speed"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option></select>
+      <button class="btn" id="voice" type="button" aria-pressed="false">Narración: no</button>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-label" style="margin-bottom:6px">Capítulos</div>
+    <div class="chapters" id="chapters"></div>
+  </section>
+
+  <p class="foot">El SQL de cada paso se obtuvo corriendo los servicios reales del proyecto contra una base en memoria con los datos de ejemplo, escuchando los eventos <code>before_cursor_execute</code>, <code>begin</code>, <code>commit</code> y <code>rollback</code> del motor. Las listas de columnas se abreviaron con «…»; los valores entre paréntesis son los parámetros reales. Teclado: espacio reproduce o pausa, flechas cambian de paso.</p>
+</div>
+
+<script>
+/* ---------- fragmentos de código (texto y números de línea reales) ---------- */
+const SN = {
+  sesion: { f: "configuracion/base_de_datos.py", s: 54, t:
+`@contextmanager
+def obtener_sesion():
+    """Context manager que abre una sesión, confirma los cambios si no hubo
+    errores, los deshace si los hubo y siempre cierra la sesión."""
+    if motor is None:
+        configurar_base_de_datos()
+    sesion = Sesion()
+    try:
+        yield sesion
+        sesion.commit()
+    except Exception:
+        sesion.rollback()
+        raise
+    finally:
+        sesion.close()` },
+  remitoDao: { f: "dao/remito_dao.py", s: 7, t:
+`class RemitoDAO:
+    def __init__(self, sesion):
+        self.sesion = sesion
+
+    def crear(self, remito):
+        self.sesion.add(remito)
+        self.sesion.flush()
+        return remito
+
+    def actualizar(self, remito):
+        self.sesion.flush()
+        return remito
+
+    def obtener_por_id(self, id_remito):
+        return self.sesion.get(Remito, id_remito)
+
+    def obtener_por_numero(self, numero):
+        return self.sesion.query(Remito).filter_by(numero=numero).first()
+
+    def siguiente_numero(self):
+        """Número correlativo con el formato R-000001."""
+        ultimo = self.sesion.query(func.max(Remito.id)).scalar() or 0` },
+  disp: { f: "servicios/servicio_disponibilidad.py", s: 32, t:
+`        with obtener_sesion() as sesion:
+            libro = obtener_libro_o_error(LibroDAO(sesion), id_libro)
+            catalogo = CatalogoEjemplares(EjemplarDAO(sesion).listar(id_libro=libro.id))
+
+        por_sede = {}
+        for ejemplar in catalogo.en_circulacion():` },
+  iterCirc: { f: "patrones/iterador_catalogo.py", s: 54, t:
+`    def en_circulacion(self, id_sede=None):
+        """Recorre los ejemplares que siguen formando parte del inventario (no dados de baja ni extraviados)."""
+        fuera = (EstadoEjemplar.BAJA, EstadoEjemplar.EXTRAVIADO)
+        return IteradorEjemplares(
+            self._ejemplares,
+            lambda e: e.estado not in fuera and (id_sede is None or e.sede_id == id_sede),` },
+  iterNext: { f: "patrones/iterador_catalogo.py", s: 22, t:
+`    def __next__(self):
+        while self._posicion < len(self._ejemplares):
+            ejemplar = self._ejemplares[self._posicion]
+            self._posicion += 1
+            if self._condicion(ejemplar):
+                return ejemplar` },
+  solicitar: { f: "servicios/servicio_prestamos.py", s: 101, t:
+`        with obtener_sesion() as sesion:
+            socio = obtener_socio_o_error(SocioDAO(sesion), id_socio)
+            ejemplar = obtener_ejemplar_o_error(EjemplarDAO(sesion), id_ejemplar)
+            sede_origen = obtener_sede_o_error(SedeDAO(sesion), id_sede_origen)
+            sede_destino = obtener_sede_o_error(SedeDAO(sesion), id_sede_destino)
+            reserva = self._validar_solicitud(sesion, socio, ejemplar, sede_origen, sede_destino, fecha)
+
+            prestamo = Prestamo(
+                socio=socio,
+                ejemplar=ejemplar,
+                sede_origen=sede_origen,
+                sede_destino=sede_destino,
+                tipo=TipoPrestamo.INTERBIBLIOTECARIO,
+                fecha_solicitud=fecha,
+                estado=EstadoPrestamo.SOLICITADO,
+            )
+            ejemplar.estado = EstadoEjemplar.PRESTADO
+            if reserva is not None:
+                reserva.estado = EstadoReserva.CUMPLIDA
+            PrestamoDAO(sesion).crear(prestamo)
+            generar_remito(sesion, prestamo, SentidoRemito.IDA, datetime.combine(fecha, datetime.now().time()))` },
+  validar: { f: "servicios/servicio_prestamos.py", s: 37, t:
+`        validar_socio_habilitado(socio)
+        if PrestamoDAO(sesion).socio_tiene_vencidos(socio.id, fecha):
+            raise SocioConPrestamosVencidos(
+                f"El socio {socio.nombre_completo} tiene préstamos vencidos sin devolver."
+            )
+        if DevolucionDAO(sesion).socio_tiene_multas_impagas(socio.id):
+            raise SocioConMultasImpagas(f"El socio {socio.nombre_completo} tiene multas sin pagar.")
+        validar_sede_activa(sede_origen, "origen")` },
+  generar: { f: "servicios/servicio_remitos.py", s: 18, t:
+`def generar_remito(sesion, prestamo, sentido, fecha_hora, observacion=None):
+    """Emite un remito para el préstamo. El de ida va de la sede propietaria a la de retiro;
+    el de retorno hace el camino inverso."""
+    if sentido == SentidoRemito.IDA:
+        origen, destino = prestamo.sede_origen, prestamo.sede_destino
+    else:
+        origen, destino = prestamo.sede_destino, prestamo.sede_origen
+    dao = RemitoDAO(sesion)
+    remito = Remito.generar(dao.siguiente_numero(), prestamo, origen, destino, sentido, fecha_hora, observacion)
+    return dao.crear(remito)` },
+  ejecutar: { f: "servicios/servicio_remitos.py", s: 71, t:
+`    def _ejecutar(self, id_remito, accion, fecha_hora):
+        """Abre la sesión, aplica la acción al remito y resuelve sus consecuencias."""
+        fecha_hora = fecha_hora or datetime.now()
+        with obtener_sesion() as sesion:
+            remito = obtener_remito_o_error(RemitoDAO(sesion), id_remito)
+            accion(remito, fecha_hora)
+            _resolver_consecuencias(sesion, remito, fecha_hora)
+        return remito
+
+    def empaquetar(self, id_remito, observacion=None, fecha_hora=None):
+        return self._ejecutar(id_remito, lambda r, f: r.empaquetar(f, observacion), fecha_hora)` },
+  reconstr: { f: "modelos/remito.py", s: 44, t:
+`    def __init__(self, **datos):
+        super().__init__(**datos)
+        self._estado = Generado()
+        self.nombre_estado = self._estado.nombre
+
+    @reconstructor
+    def _cargar_estado(self):
+        """SQLAlchemy llama a este método al traer el remito de la base."""
+        self._estado = crear_estado(self.nombre_estado)` },
+  generado: { f: "patrones/estados_remito.py", s: 64, t:
+`class Generado(EstadoRemito):
+    """El remito se emitió pero el ejemplar todavía no se preparó."""
+
+    nombre = "Generado"
+
+    def empaquetar(self, remito, fecha_hora, observacion):
+        remito.cambiar_estado(Empaquetado(), fecha_hora, observacion)
+
+    def anular(self, remito, fecha_hora, motivo):
+        _anular(remito, fecha_hora, motivo)` },
+  cambiar: { f: "modelos/remito.py", s: 104, t:
+`    def cambiar_estado(self, nuevo_estado, fecha_hora, observacion=None):
+        """Lo usan los estados para pasar al siguiente. Registra el movimiento para la trazabilidad."""
+        self.movimientos.append(
+            MovimientoRemito(
+                estado_anterior=self.nombre_estado,
+                estado_nuevo=nuevo_estado.nombre,
+                fecha_hora=fecha_hora,
+                observacion=observacion,
+            )
+        )
+        self._estado = nuevo_estado
+        self.nombre_estado = nuevo_estado.nombre` },
+  base: { f: "patrones/estados_remito.py", s: 36, t:
+`    def _no_permitida(self, accion):
+        raise TransicionRemitoInvalida(f"No se puede {accion} un remito en estado {texto_estado(self.nombre)}.")
+
+    def empaquetar(self, remito, fecha_hora, observacion):
+        self._no_permitida("empaquetar")
+
+    def despachar(self, remito, fecha_hora, observacion):
+        self._no_permitida("despachar")` },
+  despachar: { f: "patrones/estados_remito.py", s: 81, t:
+`    def despachar(self, remito, fecha_hora, observacion):
+        # La consigna prohíbe iniciar envíos hacia o desde una sede dada de baja.
+        for rol, sede in (("origen", remito.sede_origen), ("destino", remito.sede_destino)):
+            if not sede.esta_activa:
+                raise SedeDadaDeBaja(f"No se puede despachar: la sede de {rol} '{sede.nombre}' está dada de baja.")
+        remito.ejemplar.estado = EstadoEjemplar.EN_TRANSITO
+        if remito.sentido == SentidoRemito.IDA:
+            remito.prestamo.estado = EstadoPrestamo.EN_ENVIO
+        remito.cambiar_estado(Despachado(), fecha_hora, observacion)` },
+  recibir: { f: "patrones/estados_remito.py", s: 103, t:
+`    def recibir(self, remito, fecha_hora, estado_fisico, observacion):
+        ejemplar = remito.ejemplar
+        # Un daño que ya estaba registrado antes del envío (por ejemplo, el socio lo
+        # devolvió dañado) no es un incidente del traslado.
+        danio_nuevo = estado_fisico == EstadoFisico.DANIADO and ejemplar.estado_fisico != EstadoFisico.DANIADO
+        ejemplar.estado_fisico = estado_fisico
+        remito.cambiar_estado(Recibido(), fecha_hora, observacion)
+        if danio_nuevo:
+            remito.registrar_danio(fecha_hora, observacion or "Daño constatado en la recepción")
+        elif remito.sentido == SentidoRemito.IDA:
+            ejemplar.estado = EstadoEjemplar.PRESTADO
+            remito.prestamo.estado = EstadoPrestamo.LISTO_PARA_RETIRO` },
+  entregar: { f: "servicios/servicio_prestamos.py", s: 130, t:
+`        with obtener_sesion() as sesion:
+            prestamo = obtener_prestamo_o_error(PrestamoDAO(sesion), id_prestamo)
+            if prestamo.estado != EstadoPrestamo.LISTO_PARA_RETIRO:
+                raise OperacionNoPermitida(
+                    f"El préstamo está {prestamo.estado.value.lower()}: solo se entregan préstamos listos para retiro."
+                )
+            validar_socio_habilitado(prestamo.socio)
+            prestamo.registrar_entrega(fecha)
+            remito_de_ida(prestamo).cerrar(datetime.combine(fecha, datetime.now().time()), "Entregado al socio")` },
+  devolver: { f: "servicios/servicio_devoluciones.py", s: 71, t:
+`            dias_atraso, monto = self.calculadora.calcular(prestamo, fecha)
+            cargo_por_danio = self.calculadora.cargo_por_danio(prestamo.ejemplar.estado_fisico, estado_fisico)
+            total = monto + cargo_por_danio
+            devolucion = Devolucion(
+                prestamo=prestamo,
+                fecha=fecha,
+                estado_fisico=estado_fisico,
+                dias_atraso=dias_atraso,
+                monto_multa=total,
+                cargo_por_danio=cargo_por_danio,
+                multa_pagada=total == 0,
+                observaciones=(observaciones or "").strip() or None,
+            )
+            DevolucionDAO(sesion).crear(devolucion)
+            prestamo.estado = EstadoPrestamo.DEVUELTO
+
+            ejemplar = prestamo.ejemplar
+            ejemplar.estado_fisico = estado_fisico
+            if prestamo.es_interbibliotecario:
+                # Sigue fuera de su sede hasta que el remito de retorno lo reintegre.
+                ejemplar.estado = EstadoEjemplar.EN_TRANSITO
+                generar_remito(
+                    sesion, prestamo, SentidoRemito.RETORNO, datetime.combine(fecha, datetime.now().time()),
+                    "Retorno por devolución del socio",
+                )` },
+  calculadora: { f: "servicios/servicio_devoluciones.py", s: 40, t:
+`    @property
+    def calculadora(self):
+        if self._calculadora is None:
+            self._calculadora = CalculadoraDeMultas(estrategia_guardada())
+        return self._calculadora` },
+  calc: { f: "patrones/estrategias_multa.py", s: 92, t:
+`    def calcular(self, prestamo, fecha_devolucion):
+        """Devuelve (días de atraso, monto) para un préstamo devuelto en la fecha indicada."""
+        dias_atraso = prestamo.dias_de_atraso_al(fecha_devolucion)
+        monto = self._estrategia.calcular(dias_atraso, prestamo.ejemplar.libro.tipo_material) if dias_atraso else 0.0
+        return dias_atraso, monto` },
+  tipoMat: { f: "patrones/estrategias_multa.py", s: 51, t:
+`    MONTOS_DIARIOS = {
+        TipoMaterial.LIBRO: 500.0,
+        TipoMaterial.REVISTA: 300.0,
+        TipoMaterial.CONSULTA: 1000.0,
+    }
+
+    @property
+    def descripcion(self):
+        detalle = ", ".join(f"{tipo.value} \${monto:.0f}" for tipo, monto in self.MONTOS_DIARIOS.items())
+        return f"Por tipo de material ({detalle} por día)"
+
+    def calcular(self, dias_atraso, tipo_material):
+        return dias_atraso * self.MONTOS_DIARIOS[tipo_material]` },
+};
+
+/* ---------- SQL real (abreviado) ---------- */
+const Q = {
+  begin: "BEGIN", commit: "COMMIT", rollback: "ROLLBACK",
+  selLibro: "SELECT libros.id, libros.isbn, libros.titulo, … FROM libros WHERE libros.id = ?  (2,)",
+  selEjLib: "SELECT ejemplares.id, ejemplares.codigo_inventario, … FROM ejemplares WHERE ejemplares.libro_id = ? ORDER BY ejemplares.codigo_inventario  (2,)",
+  selSocio: "SELECT socios.id, socios.dni, socios.nombre, … FROM socios WHERE socios.id = ?  (3,)",
+  selEj: "SELECT ejemplares.id, …, libros_1.id, …, sedes_1.id, … FROM ejemplares LEFT OUTER JOIN libros … LEFT OUTER JOIN sedes … WHERE ejemplares.id = ?  (4,)",
+  selSede: "SELECT sedes.id, sedes.nombre, … FROM sedes WHERE sedes.id = ?  (2,)",
+  selVenc: "SELECT count(*) FROM (SELECT prestamos.id, … FROM prestamos WHERE prestamos.socio_id = ? AND prestamos.estado = ? AND prestamos.fecha_vencimiento < ?)  (3, 'ACTIVO', '2026-10-30')",
+  selMultas: "SELECT devoluciones.id, … FROM devoluciones JOIN prestamos ON … WHERE devoluciones.monto_multa > ? AND devoluciones.multa_pagada IS 0 AND prestamos.socio_id = ?  (0, 3)",
+  updEjPrest: "UPDATE ejemplares SET estado=? WHERE ejemplares.id = ?  ('PRESTADO', 4)",
+  insPrest: "INSERT INTO prestamos (socio_id, ejemplar_id, sede_origen_id, sede_destino_id, tipo, fecha_solicitud, …, estado) VALUES (?, ?, ?, ?, ?, ?, …, ?)  (3, 4, 1, 2, 'INTERBIBLIOTECARIO', '2026-10-30', …, 'SOLICITADO')",
+  selMax: "SELECT max(remitos.id) AS max_1 FROM remitos  ()",
+  insRem: "INSERT INTO remitos (numero, prestamo_id, sede_origen_id, sede_destino_id, sentido, nombre_estado, fecha_generacion) VALUES (?, ?, ?, ?, ?, ?, ?)  ('R-000005', 5, 1, 2, 'IDA', 'Generado', '2026-10-30 …')",
+  insMov0: "INSERT INTO movimientos_remito (remito_id, estado_anterior, estado_nuevo, fecha_hora, observacion) VALUES (?, ?, ?, ?, ?)  (5, None, 'Generado', '2026-10-30 …', None)",
+  failSel: "… los mismos 5 SELECT de lectura y validación …",
+  failUpd: "UPDATE ejemplares SET estado=? WHERE ejemplares.id = ?  ('PRESTADO', 6)",
+  failIns: "INSERT INTO prestamos (…) VALUES (…)  (3, 6, 2, 1, 'INTERBIBLIOTECARIO', '2026-11-19', …, 'SOLICITADO')",
+  selRem: "SELECT remitos.id, remitos.numero, …, remitos.nombre_estado, … FROM remitos LEFT OUTER JOIN prestamos … WHERE remitos.id = ?  (5,)",
+  selMov: "SELECT movimientos_remito.remito_id, movimientos_remito.id, … FROM movimientos_remito WHERE movimientos_remito.remito_id IN (?)  (5,)",
+  updRemEmp: "UPDATE remitos SET nombre_estado=? WHERE remitos.id = ?  ('Empaquetado', 5)",
+  insMovEmp: "INSERT INTO movimientos_remito (…) VALUES (?, ?, ?, ?, ?)  (5, 'Generado', 'Empaquetado', '2026-11-19 …', None)",
+  updEjTr: "UPDATE ejemplares SET estado=? WHERE ejemplares.id = ?  ('EN_TRANSITO', 4)",
+  updPrEnv: "UPDATE prestamos SET estado=? WHERE prestamos.id = ?  ('EN_ENVIO', 5)",
+  updRemDes: "UPDATE remitos SET nombre_estado=? WHERE remitos.id = ?  ('Despachado', 5)",
+  insMovDes: "INSERT INTO movimientos_remito (…) VALUES (?, ?, ?, ?, ?)  (5, 'Empaquetado', 'Despachado', '2026-11-19 …', None)",
+  updEjRec: "UPDATE ejemplares SET estado=?, estado_fisico=? WHERE ejemplares.id = ?  ('PRESTADO', 'BUENO', 4)",
+  updPrLis: "UPDATE prestamos SET estado=? WHERE prestamos.id = ?  ('LISTO_PARA_RETIRO', 5)",
+  updRemRec: "UPDATE remitos SET nombre_estado=? WHERE remitos.id = ?  ('Recibido', 5)",
+  insMovRec: "INSERT INTO movimientos_remito (…) VALUES (?, ?, ?, ?, ?)  (5, 'Despachado', 'Recibido', '2026-11-19 …', None)",
+  selPrest: "SELECT prestamos.id, prestamos.socio_id, …, prestamos.estado, … FROM prestamos LEFT OUTER JOIN socios … WHERE prestamos.id = ?  (5,)",
+  updPrAct: "UPDATE prestamos SET fecha_entrega=?, fecha_vencimiento=?, estado=? WHERE prestamos.id = ?  ('2026-10-31', '2026-11-14', 'ACTIVO', 5)",
+  selRemPr: "SELECT remitos.id, remitos.numero, … FROM remitos WHERE ? = remitos.prestamo_id ORDER BY remitos.id  (5,)",
+  updRemCer: "UPDATE remitos SET nombre_estado=? WHERE remitos.id = ?  ('Cerrado', 5)",
+  insMovCer: "INSERT INTO movimientos_remito (…) VALUES (?, ?, ?, ?, ?)  (5, 'Recibido', 'Cerrado', '2026-10-31 …', 'Entregado al socio')",
+  selConf: "SELECT configuracion.clave, configuracion.valor FROM configuracion WHERE configuracion.clave = ?  ('politica_de_multas',)",
+  selDevPr: "SELECT devoluciones.id, devoluciones.prestamo_id, … FROM devoluciones WHERE ? = devoluciones.prestamo_id  (5,)",
+  insDev: "INSERT INTO devoluciones (prestamo_id, fecha, estado_fisico, dias_atraso, monto_multa, cargo_por_danio, multa_pagada, observaciones) VALUES (?, ?, ?, ?, ?, ?, ?, ?)  (5, '2026-11-17', 'BUENO', 3, 1500.0, 0.0, 0, None)",
+  updEjTr2: "UPDATE ejemplares SET estado=? WHERE ejemplares.id = ?  ('EN_TRANSITO', 4)",
+  updPrDev: "UPDATE prestamos SET estado=? WHERE prestamos.id = ?  ('DEVUELTO', 5)",
+  insRemRet: "INSERT INTO remitos (…) VALUES (?, ?, ?, ?, ?, ?, ?)  ('R-000006', 5, 2, 1, 'RETORNO', 'Generado', '2026-11-17 …')",
+  insMovRet: "INSERT INTO movimientos_remito (…) VALUES (?, ?, ?, ?, ?)  (6, None, 'Generado', '2026-11-17 …', 'Retorno por devolución del socio')",
+};
+
+/* ---------- pizarras ---------- */
+const IDA = ["Generado","Empaquetado","Despachado","EnTransito","Recibido","Cerrado"];
+const TXT = { EnTransito: "En tránsito" };
+function strip(cur, label, skip) {
+  const i = IDA.indexOf(cur);
+  return `<div class="sec-label">${label}</div><div class="strip">` + IDA.map((s, k) =>
+    `<span class="st ${k < i ? (skip && s === "EnTransito" ? "" : "done") : k === i ? "now" : ""}">${TXT[s] || s}</span>`
+  ).join('<span class="arrow">→</span>') + `</div>`;
+}
+const B = {
+  modelo: `<div class="flow3"><div class="a"><b>1 caso de uso</b>«solicitar préstamo interbibliotecario»</div><div class="b"><b>1 sesión = 1 transacción</b>la abre el servicio con <code>obtener_sesion()</code></div><div class="c"><b>N DAO</b>SocioDAO, EjemplarDAO, SedeDAO, PrestamoDAO, RemitoDAO… todos con esa sesión</div></div>`,
+  pipeline: `<div class="flow3"><div class="a"><b>memoria</b>objeto creado o modificado; la base no sabe nada</div><div class="b"><b>flush</b>el SQL ya se mandó, dentro de la transacción; nadie más lo ve</div><div class="c"><b>commit</b>queda confirmado; recién ahí es permanente</div></div><p class="note">Los DAO llegan hasta <b>flush</b>. El <b>commit</b> lo hace siempre <code>obtener_sesion()</code>, al final del caso de uso.</p>`,
+  iter0: `<div class="sec-label">CatalogoEjemplares(…) · lista interna oculta</div><table class="mini"><tr><th>#</th><th>código</th><th>sede</th><th>estado</th></tr><tr><td class="num">0</td><td>CEN-0003</td><td>Biblioteca Central</td><td>DISPONIBLE</td></tr><tr><td class="num">1</td><td>SUR-0001</td><td>Sede Sur</td><td>DISPONIBLE</td></tr></table><p class="note">Los objetos ya están cargados. La sesión se cerró.</p>`,
+  iter1: `<div class="sec-label">for ejemplar in catalogo.en_circulacion()</div><table class="mini"><tr><th>#</th><th>código</th><th>sede</th><th>¿cumple?</th></tr><tr class="cur"><td class="num">0</td><td>CEN-0003</td><td>Biblioteca Central</td><td>sí → next() lo devuelve</td></tr><tr><td class="num">1</td><td>SUR-0001</td><td>Sede Sur</td><td>sí</td></tr></table><p class="note"><b>0 consultas SQL</b> durante el recorrido.</p>`,
+  iter2: `<div class="sec-label">Resultado de consultar_disponibilidad(Ficciones)</div><table class="mini"><tr><th>sede</th><th>total</th><th>disponibles</th></tr><tr><td>Biblioteca Central</td><td class="num">1</td><td class="num">1</td></tr><tr><td>Sede Sur</td><td class="num">1</td><td class="num">1</td></tr><tr><td>Sede Norte</td><td class="num">0</td><td class="num">0</td></tr></table><p class="note">Norte no tiene copia: María la pide a la Central (CEN-0003).</p>`,
+  noFlush: `<p class="note">Las filas ya están en SQLite, pero <b>sin confirmar</b>. Otra conexión todavía no las ve. Si algo falla de acá al final del <code>with</code>, se deshacen.</p>`,
+  atomic: `<div class="sec-label">Un solo COMMIT confirma juntos</div><div class="check"><div><span>✓</span> prestamos · fila 5, SOLICITADO</div><div><span>✓</span> ejemplares · CEN-0003 pasa a PRESTADO</div><div><span>✓</span> remitos · R-000005, IDA, Generado</div><div><span>✓</span> movimientos_remito · None → Generado</div></div>`,
+  failRes: `<div class="sec-label">Comprobado después del ROLLBACK</div><div class="check"><div><span>✓</span> NOR-0002 sigue DISPONIBLE</div><div><span>✓</span> prestamos sigue con 5 filas</div><div><span>✓</span> no hay remito huérfano</div></div>`,
+  whyNoCommit: `<p class="note">Si <code>PrestamoDAO.crear</code> hiciera su propio commit, el préstamo quedaría guardado <b>sin remito</b> y el ejemplar marcado PRESTADO para siempre. Por eso el DAO hace <code>flush</code> y deja el commit al servicio.</p>`,
+  stateSep: `<div class="flow3"><div class="a"><b>State</b>decide si la acción vale y qué cambia</div><div class="b"><b>Sesión</b>nota qué objetos quedaron modificados</div><div class="c"><b>DAO</b>trajo el remito; no sabe de estados</div></div>`,
+  invalid: `<div class="sec-label">Remito R-000005 sigue igual</div><div class="strip"><span class="st now">Generado</span><span class="arrow">→</span><span class="st bad">Despachado ✗</span></div><p class="note">TransicionRemitoInvalida: «No se puede despachar un remito en estado Generado.»</p>`,
+  uow: `<p class="note">Nadie llamó a <code>EjemplarDAO.actualizar</code> ni a <code>PrestamoDAO.actualizar</code>. La sesión es la <b>unidad de trabajo</b>: registró los tres objetos modificados y el commit manda un UPDATE por cada uno.</p>`,
+  lazy: `<p class="note"><code>prestamo.remitos</code> es una relación. Al leerla, la sesión hace el SELECT sola (<b>carga diferida</b>). Antes, por <b>autoflush</b>, manda el UPDATE pendiente del préstamo para que la consulta vea datos coherentes.</p>`,
+  formula: `<div class="formula">3 días × $500 = $1.500<small>MultaPorTipoDeMaterial · TipoMaterial.LIBRO</small></div><p class="note">La estrategia es un cálculo puro. No conoce la sesión ni los DAO.</p>`,
+  conf: `<p class="note"><code>estrategia_guardada()</code> abre una sesión propia y corta, adentro de la del caso de uso. Solo lee, así que no afecta la atomicidad de la devolución.</p>`,
+  link: `<div class="flow3"><div class="a"><b>Strategy</b>calcula $1.500</div><div class="b"><b>DevolucionDAO.crear</b>guarda monto_multa = 1500</div><div class="c"><b>DevolucionDAO.socio_tiene_multas_impagas</b>la encuentra en la próxima solicitud</div></div>`,
+  roles: `<div class="roles">
+    <div class="role"><b>Interfaz</b><span>pide datos y llama al servicio. Nunca ve una sesión.</span></div>
+    <div class="role"><b>Servicio</b><span>abre la sesión con <code>obtener_sesion()</code>: un caso de uso, una transacción.</span></div>
+    <div class="role"><b>State · Strategy · Iterator</b><span>reglas sobre objetos en memoria. Ningún patrón importa un DAO.</span></div>
+    <div class="role"><b>Modelos</b><span>guardan datos; SQLAlchemy registra cada cambio.</span></div>
+    <div class="role"><b>DAO</b><span class="db">única capa que arma consultas. Hace add, get, query y flush. Nunca commit.</span></div>
+    <div class="role"><b>Sesión</b><span>unidad de trabajo: junta cambios, los envía y los confirma o deshace juntos.</span></div>
+  </div>`,
+};
+
+/* ---------- guion ---------- */
+const DAOS = ["d-socio","d-ej","d-sede","d-prest","d-rem"];
+const SCENES = [
+ { tag: "dao", focus: true, title: "La idea corregida: una sesión por caso de uso", what: "abre y cierra la transacción", beats: [
+   { sn: "sesion", hl: [55,55], hi: ["s-prest", ...DAOS], board: B.modelo,
+     cap: "Primero, una corrección. No hay una sesión por cada clase del dominio. Hay <b>un DAO por entidad</b> y <b>una sola sesión por caso de uso</b>, que comparten todos los DAO." },
+   { hl: [60,62], hi: ["s-prest","ses"], tx: "open", sql: ["begin"],
+     cap: "El servicio abre la sesión con <code>obtener_sesion()</code>. Desde ese momento hay una transacción abierta en SQLite." },
+   { hl: [62,62], hi: ["s-prest", ...DAOS, "ses"],
+     cap: "Cada DAO recibe esa misma sesión en su constructor: <code>SocioDAO(sesion)</code>, <code>PrestamoDAO(sesion)</code>, <code>RemitoDAO(sesion)</code>. Ninguno abre la suya." },
+   { hl: [63,63], hi: ["ses"], tx: "commit", sql: ["commit"],
+     cap: "Si el bloque <code>with</code> termina sin errores, <code>commit</code> confirma todo junto." },
+   { hl: [64,66], hi: ["ses"], tx: "rollback", sql: ["rollback"],
+     cap: "Si cualquier paso lanza una excepción, <code>rollback</code> deshace todo lo enviado. Eso es lo que evita que quede un préstamo a medio hacer." },
+ ]},
+ { tag: "dao", focus: true, title: "Anatomía de un DAO: RemitoDAO", what: "traduce pedidos a la sesión", beats: [
+   { sn: "remitoDao", hl: [7,9], hi: ["d-rem"], tx: "open", pend: "clear", sql: ["begin"], board: B.pipeline,
+     cap: "Un DAO es una clase chica que lee y escribe <b>una</b> entidad. No tiene reglas de negocio: traduce lo que pide el servicio a operaciones sobre la sesión." },
+   { hl: [20,21], hi: ["d-rem","ses","t-rem"], sql: ["selRem"],
+     cap: "¿El DAO habla con la base? Sí, pero siempre a través de la sesión que recibió. <code>sesion.get</code> se convierte en un SELECT." },
+   { hl: [11,14], hi: ["d-rem","ses","t-rem"], sql: ["insRem"], pend: [["rem","Remito R-000005","flush"]],
+     cap: "<code>crear</code> hace <code>add</code> y <code>flush</code>. El flush manda el INSERT ahora, dentro de la transacción, para que el remito ya tenga id. Todavía no está confirmado." },
+   { hl: [16,18], hi: ["d-rem","ses"],
+     cap: "<code>actualizar</code> solo hace flush: el cambio ya está en el objeto. SQLAlchemy detecta qué atributos cambiaron y arma el UPDATE solo." },
+   { hl: [26,28], hi: ["d-rem","t-rem"], sql: ["selMax"],
+     cap: "También puede tener consultas propias de la entidad, como <code>siguiente_numero</code>, que hace un <code>SELECT max(id)</code> para numerar el remito." },
+ ]},
+ { tag: "iter", title: "Paso 1 · Consultar disponibilidad", what: "una sesión corta y después Iterator", beats: [
+   { sn: "disp", hl: [32,32], hi: ["ui-disp","s-disp"], tx: "none", pend: "clear",
+     cap: "María está en la Sede Norte y quiere <i>Ficciones</i>. Primero se consulta qué sedes tienen ejemplares." },
+   { hl: [32,34], hi: ["s-disp","d-libro","d-ej","ses","t-libros","t-ej"], tx: "open", sql: ["begin","selLibro","selEjLib"],
+     cap: "Se abre una sesión corta. <code>LibroDAO</code> y <code>EjemplarDAO</code> hacen dos SELECT y devuelven objetos <code>Ejemplar</code>." },
+   { hl: [35,35], hi: ["ses"], tx: "commit", sql: ["commit"], board: B.iter0,
+     cap: "La sesión se cierra con COMMIT. De acá en adelante este caso de uso no vuelve a tocar la base." },
+   { sn: "iterCirc", hl: [54,59], hi: ["p-iter"], tx: "none",
+     cap: "La lista se envuelve en <code>CatalogoEjemplares</code>, el agregado del patrón Iterator. <code>en_circulacion()</code> devuelve un iterador que saltea los dados de baja o extraviados." },
+   { sn: "iterNext", hl: [22,27], hi: ["p-iter","m-ej"], board: B.iter1,
+     cap: "Cada <code>next()</code> avanza la posición y prueba la condición, todo en memoria. El iterador no hace ninguna consulta." },
+   { hl: [27,27], hi: ["s-disp"], board: B.iter2,
+     cap: "Resultado: la Central y la Sede Sur tienen un ejemplar cada una; Norte no tiene. María pide el CEN-0003 de la Central para retirarlo en Norte." },
+ ]},
+ { tag: "dao", focus: true, title: "Paso 2 · Solicitar el préstamo: lecturas y validaciones", what: "cuatro DAO, una sesión", beats: [
+   { sn: "solicitar", hl: [101,101], hi: ["ui-prest","s-prest"], tx: "none", pend: "clear",
+     cap: "En la pestaña Préstamos se elige a María, origen Biblioteca Central, destino Sede Norte y el ejemplar CEN-0003. La interfaz solo llama a <code>solicitar_prestamo_interbibliotecario</code>." },
+   { hl: [101,101], hi: ["s-prest","ses"], tx: "open", sql: ["begin"],
+     cap: "<code>with obtener_sesion()</code> empieza la transacción del caso de uso. Todo lo que sigue, hasta el remito, ocurre adentro." },
+   { hl: [102,105], hi: ["d-socio","d-ej","d-sede","t-socios","t-ej","t-sedes"], sql: ["selSocio","selEj","selSede"],
+     cap: "<code>SocioDAO</code>, <code>EjemplarDAO</code> y <code>SedeDAO</code> traen socio, ejemplar y sedes. Hay un solo SELECT de sedes: la Central ya vino con el ejemplar, y la sesión no repite lo que ya tiene cargado." },
+   { sn: "validar", hl: [38,41], hi: ["d-prest","t-prest"], sql: ["selVenc"],
+     cap: "Las validaciones también consultan por DAO: <code>PrestamoDAO.socio_tiene_vencidos</code> cuenta los préstamos activos vencidos de María." },
+   { hl: [42,43], hi: ["d-dev","t-dev","p-strat"], sql: ["selMultas"],
+     cap: "<code>DevolucionDAO</code> busca multas impagas. Esos montos los calculó antes el patrón Strategy y quedaron guardados: los dos patrones se conectan a través de la base." },
+ ]},
+ { tag: "dao", focus: true, title: "Paso 2 · Solicitar el préstamo: escrituras", what: "memoria → flush", beats: [
+   { sn: "solicitar", hl: [108,116], hi: ["s-prest","m-prest"], tx: "open", fresh: true, sql: ["… sigue abierta la transacción del capítulo anterior …"], pend: [["pr","Prestamo nuevo · SOLICITADO","mem"]],
+     cap: "Se crea el objeto <code>Prestamo</code> en estado SOLICITADO. Por ahora existe solo en memoria." },
+   { hl: [117,117], hi: ["m-ej","ses"], pend: [["ej","ejemplar.estado = PRESTADO","mem"]],
+     cap: "<code>ejemplar.estado = PRESTADO</code> es una asignación común de Python. No pasa por ningún DAO, pero la sesión anota que ese objeto quedó modificado." },
+   { hl: [120,120], hi: ["d-prest","ses","t-ej","t-prest"], sql: ["updEjPrest","insPrest"], pend: [["ej",null,"flush"],["pr",null,"flush"]],
+     cap: "<code>PrestamoDAO.crear</code> hace add y flush. El flush manda <b>todo</b> lo pendiente: el UPDATE del ejemplar y el INSERT del préstamo." },
+   { hl: [120,120], hi: ["ses","t-ej","t-prest"], board: B.noFlush,
+     cap: "Esas filas ya están en SQLite, pero sin confirmar. Si algo falla antes del final del <code>with</code>, se deshacen." },
+ ]},
+ { tag: "state", focus: true, title: "Paso 2 · Generar el remito de ida", what: "misma sesión, nuevo DAO", beats: [
+   { sn: "generar", hl: [18,25], hi: ["s-rem","d-rem","ses"], tx: "open", fresh: true, sql: ["… sigue abierta la transacción del capítulo anterior …"], pend: [["ej","ejemplar.estado = PRESTADO","flush"],["pr","Prestamo nuevo · SOLICITADO","flush"]],
+     cap: "<code>generar_remito</code> recibe la misma sesión y crea su propio <code>RemitoDAO</code>. Es otro DAO, pero la misma transacción." },
+   { hl: [26,26], hi: ["d-rem","t-rem"], sql: ["selMax"],
+     cap: "<code>siguiente_numero</code> hace <code>SELECT max(id)</code>. El último es 4, así que el remito va a ser R-000005." },
+   { hl: [26,26], hi: ["m-rem","m-mov","p-state"], board: strip("Generado","Remito R-000005 · ida Central → Norte"), pend: [["rm","Remito R-000005 · Generado","mem"],["mv","Movimiento None → Generado","mem"]],
+     cap: "<code>Remito.generar</code> arma el remito con su objeto de estado <code>Generado()</code>, del patrón State, y le agrega el primer <code>MovimientoRemito</code>." },
+   { hl: [27,27], hi: ["d-rem","ses","t-rem","t-mov"], sql: ["insRem","insMov0"], pend: [["rm",null,"flush"],["mv",null,"flush"]],
+     cap: "<code>RemitoDAO.crear</code>: add y flush. Salen dos INSERT, el del remito y el del movimiento, que viaja en cascada con la relación." },
+   { hl: [27,27], hi: ["ses"], tx: "commit", sql: ["commit"], pend: "ok", board: B.atomic,
+     cap: "El bloque <code>with</code> termina sin errores: COMMIT. Préstamo, ejemplar, remito y movimiento se confirman juntos, en una sola operación." },
+ ]},
+ { tag: "dao", focus: true, title: "¿Y si algo falla en el medio?", what: "rollback real, con falla simulada", beats: [
+   { sn: "solicitar", hl: [121,121], hi: ["s-prest"], tx: "none", pend: "clear",
+     cap: "El caso malo. Corrimos el mismo servicio con otro pedido (NOR-0002) y simulamos que <code>generar_remito</code> lanza un error justo después de guardar el préstamo." },
+   { hl: [117,120], hi: ["d-prest","ses","t-ej","t-prest"], tx: "open", sql: ["begin","failSel","failUpd","failIns"], pend: [["ej","ejemplar NOR-0002 = PRESTADO","flush"],["pr","Prestamo nuevo","flush"]],
+     cap: "El UPDATE del ejemplar y el INSERT del préstamo ya se enviaron con el flush de <code>PrestamoDAO.crear</code>." },
+   { sn: "sesion", hl: [64,66], hi: ["ses"], tx: "rollback", sql: ["rollback"], pend: "undo",
+     cap: "La excepción sale del bloque <code>with</code>. <code>obtener_sesion</code> la atrapa, llama a <code>rollback</code> y la vuelve a lanzar para que la interfaz muestre el error." },
+   { hl: [64,66], hi: ["t-ej","t-prest"], board: B.failRes,
+     cap: "Lo comprobamos después: el ejemplar sigue DISPONIBLE y la tabla de préstamos tiene las mismas filas que antes. No quedó nada a medio hacer." },
+   { hl: [63,63], hi: ["d-prest"], board: B.whyNoCommit,
+     cap: "Por eso los DAO no hacen commit. Si cada uno confirmara por su cuenta, el préstamo quedaría guardado sin su remito." },
+ ]},
+ { tag: "state", title: "Paso 3 · Empaquetar el remito", what: "State dentro de una transacción", beats: [
+   { sn: "ejecutar", hl: [71,74], hi: ["ui-rem","s-rem","ses"], tx: "open", sql: ["begin"], pend: "clear",
+     cap: "En la pestaña Remitos se elige R-000005 y se aprieta Empaquetar. <code>ServicioRemitos._ejecutar</code> abre una sesión nueva." },
+   { hl: [75,75], hi: ["d-rem","t-rem","t-mov"], sql: ["selRem","selMov"],
+     cap: "<code>RemitoDAO.obtener_por_id</code> trae la fila. En la base el estado es solo un texto: <code>nombre_estado = 'Generado'</code>." },
+   { sn: "reconstr", hl: [49,52], hi: ["m-rem","p-state"], board: strip("Generado","Remito R-000005"),
+     cap: "Al cargarlo, el <code>@reconstructor</code> convierte ese texto en un objeto <code>Generado()</code>. Ese es el puente entre la fila de la base y el patrón State." },
+   { sn: "generado", hl: [69,70], hi: ["p-state","m-rem","m-mov"], board: strip("Empaquetado","Remito R-000005"), pend: [["rm","remito.nombre_estado = Empaquetado","mem"],["mv","Movimiento Generado → Empaquetado","mem"]],
+     cap: "<code>remito.empaquetar()</code> delega en el estado actual. <code>Generado</code> sí sabe empaquetar: pasa a <code>Empaquetado</code> y deja un movimiento." },
+   { sn: "cambiar", hl: [104,115], hi: ["p-state","m-rem","ses"], board: B.stateSep,
+     cap: "El patrón State no importa ningún DAO ni conoce la sesión. Solo cambia atributos del objeto; la sesión se entera sola." },
+   { hl: [115,115], hi: ["ses","t-rem","t-mov"], tx: "commit", sql: ["updRemEmp","insMovEmp","commit"], pend: "ok",
+     cap: "Al salir del <code>with</code>, el commit hace el último flush: un UPDATE en remitos, un INSERT en movimientos_remito, y COMMIT." },
+ ]},
+ { tag: "state", title: "Desvío · Despachar antes de empaquetar", what: "transición inválida", beats: [
+   { sn: "ejecutar", hl: [74,75], hi: ["s-rem","d-rem","ses","t-rem"], tx: "open", sql: ["begin","selRem","selMov"], pend: "clear",
+     cap: "¿Qué hubiera pasado si alguien intentaba despachar el remito cuando todavía estaba en Generado? El servicio lo carga igual que antes." },
+   { sn: "base", hl: [36,43], hi: ["p-state"], board: B.invalid,
+     cap: "<code>Generado</code> no redefine <code>despachar</code>, así que hereda el de <code>EstadoRemito</code>, que lanza <code>TransicionRemitoInvalida</code>. La regla vive en la clase del estado, no en un if del servicio." },
+   { hl: [36,37], hi: ["ses"], tx: "rollback", sql: ["rollback"],
+     cap: "La excepción provoca ROLLBACK. En esa sesión no se había escrito nada, así que la base queda igual y la interfaz muestra el mensaje." },
+ ]},
+ { tag: "state", title: "Paso 4 · Despachar", what: "tres objetos, un commit", beats: [
+   { sn: "despachar", hl: [81,81], hi: ["s-rem","d-rem","ses","t-rem"], tx: "open", sql: ["begin","selRem","selMov"], pend: "clear", board: strip("Empaquetado","Remito R-000005"),
+     cap: "Ahora sí, Despachar. Se carga el remito y el reconstructor arma un objeto <code>Empaquetado()</code>." },
+   { hl: [83,85], hi: ["p-state"],
+     cap: "<code>Empaquetado.despachar</code> primero valida que las dos sedes sigan activas." },
+   { hl: [86,89], hi: ["p-state","m-ej","m-prest","m-rem","m-mov"], board: strip("Despachado","Remito R-000005"), pend: [["ej","ejemplar = EN_TRANSITO","mem"],["pr","prestamo = EN_ENVIO","mem"],["rm","remito = Despachado","mem"],["mv","Movimiento","mem"]],
+     cap: "Después cambia tres objetos: el ejemplar pasa a EN_TRANSITO, el préstamo a EN_ENVIO y el remito a Despachado." },
+   { hl: [89,89], hi: ["ses","t-ej","t-prest","t-rem","t-mov"], tx: "commit", sql: ["updEjTr","updPrEnv","updRemDes","insMovDes","commit"], pend: "ok", board: B.uow,
+     cap: "Nadie llamó a un <code>actualizar</code>. Igual, el commit manda los tres UPDATE y el INSERT: la sesión funciona como <b>unidad de trabajo</b>." },
+ ]},
+ { tag: "state", title: "Paso 5 · Recibir en la Sede Norte", what: "EnViaje.recibir", beats: [
+   { sn: "recibir", hl: [103,103], hi: ["ui-rem","s-rem","d-rem","ses","t-rem"], tx: "open", sql: ["begin","selRem","selMov"], pend: "clear", board: strip("Despachado","Remito R-000005", true),
+     cap: "El paquete llega a Norte. Se carga el remito como <code>Despachado</code>, que hereda <code>recibir</code> de <code>EnViaje</code>. Acá no se registró ningún punto de control, así que no pasó por En tránsito." },
+   { hl: [108,114], hi: ["p-state","m-ej","m-prest","m-rem"], board: strip("Recibido","Remito R-000005", true), pend: [["ej","ejemplar = PRESTADO, BUENO","mem"],["pr","prestamo = LISTO_PARA_RETIRO","mem"],["rm","remito = Recibido","mem"]],
+     cap: "Estado físico BUENO: el remito pasa a Recibido, el ejemplar a PRESTADO y el préstamo a LISTO_PARA_RETIRO." },
+   { hl: [114,114], hi: ["ses","t-ej","t-prest","t-rem","t-mov"], tx: "commit", sql: ["updEjRec","updPrLis","updRemRec","insMovRec","commit"], pend: "ok",
+     cap: "Otra vez un solo COMMIT para todo lo que cambió en el paso." },
+ ]},
+ { tag: "dao", focus: true, title: "Paso 6 · Entregar a María", what: "DAO, carga diferida y autoflush", beats: [
+   { sn: "entregar", hl: [130,131], hi: ["ui-prest","s-prest","d-prest","ses","t-prest"], tx: "open", sql: ["begin","selPrest"], pend: "clear",
+     cap: "María retira el libro. <code>PrestamoDAO.obtener_por_id</code> trae el préstamo, que está LISTO_PARA_RETIRO." },
+   { hl: [137,137], hi: ["m-prest"], pend: [["pr","prestamo = ACTIVO, vence 14/11","mem"]],
+     cap: "<code>registrar_entrega</code> deja el préstamo ACTIVO. Desde hoy corren los 14 días." },
+   { hl: [138,138], hi: ["ses","t-prest","t-rem","t-mov"], sql: ["updPrAct","selRemPr","selMov"], pend: [["pr",null,"flush"]], board: B.lazy,
+     cap: "<code>remito_de_ida(prestamo)</code> recorre <code>prestamo.remitos</code>. Esa lectura no pasa por RemitoDAO: la hace la sesión sola. Antes manda el UPDATE pendiente (autoflush)." },
+   { hl: [138,138], hi: ["p-state","ses","t-rem","t-mov"], tx: "commit", sql: ["updRemCer","insMovCer","commit"], pend: [["rm","remito = Cerrado","ok"],["pr",null,"ok"]], board: strip("Cerrado","Remito R-000005", true),
+     cap: "<code>Recibido.cerrar</code> pasa el remito de ida a Cerrado. COMMIT." },
+ ]},
+ { tag: "strat", title: "Paso 7 · Devolución con atraso", what: "Strategy calcula, DAO guarda", beats: [
+   { sn: "devolver", hl: [71,71], hi: ["ui-dev","s-dev","d-prest","ses","t-prest"], tx: "open", sql: ["begin","selPrest"], pend: "clear",
+     cap: "María devuelve <i>Ficciones</i> el 17/11, 3 días después del vencimiento. Se abre la sesión y <code>PrestamoDAO</code> trae el préstamo." },
+   { sn: "calculadora", hl: [42,43], hi: ["s-dev","d-conf","t-conf"], sql: [["begin","nest"],["selConf","nest"],["commit","nest"]], board: B.conf,
+     cap: "La calculadora necesita saber qué política está vigente. La primera vez la lee con <code>ConfiguracionDAO</code>, en una sesión aparte." },
+   { sn: "calc", hl: [92,96], hi: ["p-strat"],
+     cap: "<code>CalculadoraDeMultas</code> delega en la estrategia configurada, <code>MultaPorTipoDeMaterial</code>. El servicio no sabe cuál es: podría ser <code>SinMulta</code> y el código sería el mismo." },
+   { sn: "tipoMat", hl: [62,63], hi: ["p-strat"], board: B.formula,
+     cap: "Para un libro son $500 por día: 3 × 500 = $1.500. Es un cálculo puro, sin base de datos." },
+   { sn: "devolver", hl: [74,85], hi: ["m-dev","d-dev","ses","t-dev"], sql: ["selDevPr","insDev"], pend: [["dv","Devolucion · multa 1500","flush"]],
+     cap: "<code>DevolucionDAO.crear</code> guarda la devolución con <code>monto_multa = 1500</code> y <code>multa_pagada = 0</code>." },
+   { hl: [89,95], hi: ["m-ej","m-prest","s-rem","d-rem","p-state","t-ej","t-prest","t-rem","t-mov"], tx: "commit", sql: ["updEjTr2","updPrDev","selMax","insRemRet","insMovRet","commit"], pend: "ok", board: strip("Generado","Remito R-000006 · retorno Norte → Central"),
+     cap: "Como es interbibliotecario, el ejemplar queda EN_TRANSITO y se genera el remito de retorno R-000006, de Norte a la Central, otra vez en Generado. Todo en el mismo COMMIT." },
+   { hl: [84,84], hi: ["p-strat","d-dev","t-dev"], tx: "none", board: B.link,
+     cap: "Si María pide otro préstamo antes de pagar, <code>DevolucionDAO.socio_tiene_multas_impagas</code> va a encontrar esta multa. Strategy calcula; el DAO guarda y después consulta." },
+ ]},
+ { tag: "dao", focus: true, title: "Resumen · quién hace qué", what: "", beats: [
+   { sn: "sesion", hl: [60,63], hi: ["ui-prest","ui-rem","ui-dev"], pend: "clear", board: B.roles,
+     cap: "La interfaz junta datos y llama al servicio. No toca la base." },
+   { hl: [60,62], hi: ["s-prest","s-rem","s-dev","s-disp"],
+     cap: "El servicio abre la sesión y marca el límite de la transacción: un caso de uso, un commit o un rollback." },
+   { hl: [62,62], hi: ["p-iter","p-state","p-strat","m-prest","m-ej","m-rem","m-mov","m-dev"],
+     cap: "Iterator, State y Strategy trabajan sobre objetos en memoria. Ninguno importa un DAO ni recibe la sesión." },
+   { hl: [62,62], hi: ["d-libro","d-socio","d-ej","d-sede","d-prest","d-rem","d-dev","d-conf"],
+     cap: "Los DAO son la única capa que arma consultas: una clase por entidad, todas con la sesión que les pasa el servicio, y ninguna hace commit." },
+   { hl: [63,66], hi: ["ses","t-libros","t-socios","t-ej","t-sedes","t-prest","t-rem","t-mov","t-dev","t-conf"],
+     cap: "La sesión junta los cambios, los manda con flush y los confirma o deshace todos juntos. Esa es la garantía de que no quede nada a medias." },
+ ]},
+];
+
+/* ---------- motor del reproductor ---------- */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const KW = new Set("def class return if else elif for in not and or with as raise try except finally yield lambda is None True False import from while self super".split(" "));
+function hiPy(line) {
+  const re = /(#.*$)|([fr]?"""[^]*?(?:"""|$)|[fr]?"(?:\\.|[^"\\])*"|[fr]?'(?:\\.|[^'\\])*')|(@\w+)|(\b[A-Za-z_]\w*\b)|(\d+(?:\.\d+)?)/g;
+  let out = "", last = 0, m;
+  while ((m = re.exec(line))) {
+    out += esc(line.slice(last, m.index)); last = re.lastIndex;
+    const t = esc(m[0]);
+    if (m[1]) out += `<span class="c">${t}</span>`;
+    else if (m[2]) out += `<span class="s">${t}</span>`;
+    else if (m[3]) out += `<span class="d">${t}</span>`;
+    else if (m[4]) out += KW.has(m[0]) ? `<span class="k">${t}</span>` : /^[A-Z]/.test(m[0]) ? `<span class="cl">${t}</span>` : t;
+    else out += `<span class="n">${t}</span>`;
+  }
+  return out + esc(line.slice(last));
+}
+function sqlLine(key, nest, isNew) {
+  const s = Q[key] || key;
+  const cls = ["q"]; if (nest) cls.push("nest"); if (isNew) cls.push("new");
+  if (/^(BEGIN|COMMIT|ROLLBACK)$/.test(s)) { cls.push("tx", s.toLowerCase()); return `<div class="${cls.join(" ")}">${s}${nest ? "  · sesión de configuración" : ""}</div>`; }
+  if (s.startsWith("…")) { cls.push("cm"); return `<div class="${cls.join(" ")}">${esc(s)}</div>`; }
+  const w = /^(INSERT|UPDATE|DELETE)/.test(s); if (w) cls.push("w");
+  const i = s.lastIndexOf("  (");
+  const body = i > 0 ? s.slice(0, i) : s, params = i > 0 ? s.slice(i) : "";
+  const b = esc(body).replace(/^(SELECT|INSERT INTO|UPDATE|DELETE)/, '<span class="op">$1</span>');
+  return `<div class="${cls.join(" ")}">${b}<span class="p">${esc(params)}</span></div>`;
+}
+
+const FLAT = [];
+SCENES.forEach((sc, si) => sc.beats.forEach((b, bi) => {
+  const plain = b.cap.replace(/<[^>]+>/g, "");
+  const n = (b.sql || []).length;
+  b.dur = Math.max(5200, plain.length * 58 + n * 350 + 1200);
+  b.plain = plain;
+  FLAT.push({ si, bi, b });
+}));
+let acc = 0; FLAT.forEach((f) => { f.t0 = acc; acc += f.b.dur; }); const TOTAL = acc;
+
+let cur = -1, elapsed = 0, playing = false, last = 0, speed = 1, voice = false, speaking = false, renderedScene = -1;
+
+function stateAt(idx) {
+  const { si, bi } = FLAT[idx]; const sc = SCENES[si];
+  let sn = null, tx = "none", board = "", pend = new Map(), sql = [];
+  for (let k = 0; k <= bi; k++) {
+    const b = sc.beats[k];
+    if (b.sn) sn = b.sn;
+    if (b.tx) tx = b.tx;
+    if (b.board !== undefined) board = b.board;
+    if (b.sql) b.sql.forEach((q) => sql.push({ q: Array.isArray(q) ? q[0] : q, nest: Array.isArray(q), k }));
+    if (b.fresh) pend = new Map();
+    if (b.pend === "clear") pend = new Map();
+    else if (b.pend === "ok" || b.pend === "undo") pend.forEach((v) => { v.s = b.pend; });
+    else if (b.pend) b.pend.forEach(([key, txt, s]) => { const o = pend.get(key); pend.set(key, { t: txt || (o && o.t) || key, s }); });
+  }
+  return { sc, si, bi, b: sc.beats[bi], sn, tx, board, pend, sql };
+}
+
+function render(idx) {
+  idx = Math.max(0, Math.min(FLAT.length - 1, idx));
+  const prev = cur; cur = idx; elapsed = 0;
+  const st = stateAt(idx);
+  const { sc, si, b } = st;
+  if (renderedScene !== si) {
+    $("snum").textContent = `Capítulo ${si + 1} de ${SCENES.length}`;
+    const tg = $("stag"); tg.className = "tag " + sc.tag; tg.textContent = { dao: "DAO", state: "State", strat: "Strategy", iter: "Iterator" }[sc.tag];
+    $("sfocus").hidden = !sc.focus;
+    $("stitle").textContent = sc.title;
+    document.querySelectorAll(".chap").forEach((c, k) => c.classList.toggle("cur", k === si));
+    renderedScene = si;
+  }
+  // código
+  const snip = SN[st.sn];
+  if (snip) {
+    $("cfile").textContent = "biblioteca/" + snip.f; $("cwhat").textContent = sc.what;
+    const [a, z] = b.hl || [0, -1];
+    $("code").innerHTML = snip.t.split("\n").map((l, k) => {
+      const no = snip.s + k;
+      return `<span class="ln${no >= a && no <= z ? " hl" : ""}"><span class="no">${no}</span>${hiPy(l)}</span>`;
+    }).join("");
+    const first = $("code").querySelector(".hl"); if (first) { const pre = $("code"); pre.scrollTop = Math.max(0, first.offsetTop - pre.offsetTop - 40); }
+  }
+  // SQL
+  const sqlEl = $("sql");
+  sqlEl.innerHTML = st.sql.map((x) => sqlLine(x.q, x.nest, x.k === st.bi && prev === idx - 1)).join("");
+  sqlEl.scrollTop = sqlEl.scrollHeight;
+  // arquitectura
+  const hi = new Set(b.hi || []);
+  document.querySelectorAll(".chip[data-n]").forEach((c) => c.classList.toggle("on", hi.has(c.dataset.n)));
+  const ses = $("session"); ses.className = "session" + (st.tx !== "none" ? " " + st.tx : "");
+  if (hi.has("ses")) ses.style.boxShadow = "0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent)"; else ses.style.boxShadow = "";
+  const pill = $("txpill"); pill.className = "pill" + (st.tx !== "none" ? " " + st.tx : "");
+  pill.textContent = { none: "sin transacción", open: "BEGIN · transacción abierta", commit: "COMMIT · confirmado", rollback: "ROLLBACK · deshecho" }[st.tx];
+  $("pend").innerHTML = [...st.pend.values()].map((v) => `<span class="pc ${v.s}">${esc(v.t)}</span>`).join("");
+  // pizarra
+  const bd = $("board"); if (bd.dataset.html !== st.board) { bd.innerHTML = st.board || `<p class="note">—</p>`; bd.dataset.html = st.board; bd.classList.remove("board-body"); void bd.offsetWidth; bd.classList.add("board-body"); }
+  // subtítulo
+  const cap = $("cap"); cap.innerHTML = b.cap; cap.style.animation = "none"; void cap.offsetWidth; cap.style.animation = "";
+  $("tstep").textContent = `paso ${idx + 1} / ${FLAT.length}`;
+  updateTime();
+  if (voice && playing) speak(b.plain);
+}
+
+function fmt(ms) { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; }
+function updateTime() {
+  const t = FLAT[cur].t0 + Math.min(elapsed, FLAT[cur].b.dur);
+  $("fill").style.width = (t / TOTAL * 100) + "%";
+  $("tcur").textContent = fmt(t / speed); $("ttot").textContent = fmt(TOTAL / speed);
+  $("track").setAttribute("aria-valuenow", Math.round(t / TOTAL * 100));
+}
+function loop(now) {
+  if (!playing) return;
+  const dt = now - last; last = now;
+  elapsed += dt * speed;
+  if (elapsed >= FLAT[cur].b.dur && !speaking) {
+    if (cur >= FLAT.length - 1) { setPlaying(false); elapsed = FLAT[cur].b.dur; updateTime(); return; }
+    render(cur + 1);
+  } else updateTime();
+  requestAnimationFrame(loop);
+}
+function setPlaying(p) {
+  playing = p; $("play").textContent = p ? "❚❚ Pausa" : "▶ Reproducir";
+  if (p) { if (cur >= FLAT.length - 1 && elapsed >= FLAT[cur].b.dur) render(0); last = performance.now(); if (voice) speak(FLAT[cur].b.plain); requestAnimationFrame(loop); }
+  else stopSpeech();
+}
+function speak(text) {
+  try {
+    const ss = window.speechSynthesis; if (!ss) return; ss.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    const vs = ss.getVoices(); const v = vs.find((x) => /^es-(AR|419|MX|US)/i.test(x.lang)) || vs.find((x) => /^es/i.test(x.lang));
+    if (v) u.voice = v; u.lang = v ? v.lang : "es-AR"; u.rate = 1.02 * speed;
+    speaking = true; u.onend = u.onerror = () => { speaking = false; };
+    ss.speak(u);
+  } catch (e) { speaking = false; }
+}
+function stopSpeech() { try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {} speaking = false; }
+
+$("play").onclick = () => setPlaying(!playing);
+$("next").onclick = () => { stopSpeech(); render(cur + 1); last = performance.now(); };
+$("prev").onclick = () => { stopSpeech(); render(cur - 1); last = performance.now(); };
+$("speed").onchange = (e) => { speed = parseFloat(e.target.value); updateTime(); };
+$("voice").onclick = () => {
+  voice = !voice; $("voice").setAttribute("aria-pressed", voice); $("voice").textContent = "Narración: " + (voice ? "sí" : "no");
+  if (!voice) stopSpeech(); else if (playing) speak(FLAT[cur].b.plain);
+};
+function seekFrac(fr) { const t = fr * TOTAL; let i = FLAT.findIndex((f) => f.t0 + f.b.dur > t); if (i < 0) i = FLAT.length - 1; stopSpeech(); render(i); elapsed = t - FLAT[i].t0; updateTime(); }
+$("track").addEventListener("pointerdown", (e) => { const r = e.currentTarget.getBoundingClientRect(); seekFrac((e.clientX - r.left) / r.width); });
+$("track").addEventListener("keydown", (e) => { if (e.key === "ArrowRight") { e.preventDefault(); $("next").click(); } if (e.key === "ArrowLeft") { e.preventDefault(); $("prev").click(); } });
+document.addEventListener("keydown", (e) => {
+  if (e.target.closest("select, button, [role=slider]")) return;
+  if (e.key === " ") { e.preventDefault(); setPlaying(!playing); }
+  if (e.key === "ArrowRight") $("next").click();
+  if (e.key === "ArrowLeft") $("prev").click();
+});
+// capítulos y marcas
+const chEl = $("chapters"), track = $("track");
+SCENES.forEach((sc, si) => {
+  const f = FLAT.findIndex((x) => x.si === si);
+  const btn = document.createElement("button"); btn.type = "button"; btn.className = "chap";
+  btn.innerHTML = `<span class="cn"><span class="dot ${sc.tag}"></span>${fmt(FLAT[f].t0)}${sc.focus ? " · foco DAO" : ""}</span><span>${esc(sc.title)}</span>`;
+  btn.onclick = () => { stopSpeech(); render(f); last = performance.now(); };
+  chEl.appendChild(btn);
+  if (si > 0) { const t = document.createElement("span"); t.className = "tick"; t.style.left = (FLAT[f].t0 / TOTAL * 100) + "%"; track.appendChild(t); }
+});
+window.__player = { play: () => setPlaying(true), total: TOTAL, go: render };
+render(0);
+</script>
