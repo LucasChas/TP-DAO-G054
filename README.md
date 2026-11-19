@@ -16,7 +16,7 @@ Grupo G054.
 
 ## Descripción
 
-Sistema de consola para una red de bibliotecas públicas. Administra las sedes, los socios y el catálogo, y gestiona:
+Sistema de escritorio para una red de bibliotecas públicas. Administra las sedes, los socios y el catálogo, y gestiona:
 - préstamos locales e interbibliotecarios;
 - reservas;
 - el envío de ejemplares entre sedes, con remitos trazables;
@@ -24,7 +24,7 @@ Sistema de consola para una red de bibliotecas públicas. Administra las sedes, 
 
 Incluye cinco reportes, que se pueden ver en pantalla y exportar a PDF (con gráficos) o a CSV.
 
-Está hecho en Python con SQLAlchemy sobre SQLite y separado en capas: modelos, DAO, servicios e interfaz. Tiene dos interfaces que usan los mismos servicios: una de **consola** y una **gráfica** con Tkinter.
+Está hecho en Python con SQLAlchemy sobre SQLite y separado en capas: modelos, DAO, servicios e interfaz gráfica (Tkinter).
 
 ## Requisitos
 
@@ -41,13 +41,12 @@ pip install -r requirements.txt
 ## Ejecución
 
 ```bash
-python main.py             # interfaz de consola
-python main.py --grafica   # interfaz gráfica (Tkinter)
+python main.py
 ```
 
-Tkinter viene incluido en el instalador de Python para Windows y macOS. En Linux puede hacer falta instalarlo aparte (por ejemplo, `sudo apt install python3-tk`). La consola funciona aunque Tkinter no esté instalado.
+Tkinter viene incluido en el instalador de Python para Windows y macOS. En Linux puede hacer falta instalarlo aparte (por ejemplo, `sudo apt install python3-tk`).
 
-El sistema crea `biblioteca.db` en la carpeta desde donde se ejecuta. Para probarlo rápido, elegí **Cargar datos de ejemplo** en el menú principal de la consola o en el menú **Archivo** de la interfaz gráfica. Se cargan:
+El sistema crea `biblioteca.db` en la carpeta desde donde se ejecuta. Para probarlo rápido, elegí **Archivo > Cargar datos de ejemplo**. Se cargan:
 - 3 sedes, 4 socios (uno inhabilitado), 6 libros y 10 ejemplares;
 - un historial con fechas relativas a hoy: un préstamo vencido, un envío que llegó dañado y volvió a su sede, una multa impaga, un envío en viaje y una reserva pendiente.
 
@@ -59,23 +58,21 @@ Con eso todos los reportes muestran información.
 pytest -q
 ```
 
-Hay 252 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 97 % del paquete `biblioteca`, sin contar las interfaces. Los 27 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
+Hay 252 tests y cada uno usa una base SQLite en memoria nueva, así que no toca `biblioteca.db`. Cubren el 97 % del paquete `biblioteca`, sin contar la interfaz gráfica. Los 27 tests de la interfaz gráfica se saltean solos si Python no trae Tkinter o si no hay pantalla disponible. En [docs/validaciones.md](docs/validaciones.md) está la relación entre cada validación de la consigna y sus tests positivos y negativos.
 
 ## Funcionalidades
 
-| Proceso de la consigna | Dónde está en el menú |
+| Proceso de la consigna | Pestaña de la ventana |
 |---|---|
 | 1. Administrar sedes | **Sedes:** alta, modificación, baja lógica y reactivación |
 | 2. Administrar socios | **Socios:** alta, modificación, búsqueda por DNI, inhabilitación con motivo y rehabilitación |
 | 3. Catálogo de libros y ejemplares por sede | **Catálogo:** libros (alta, modificación, búsqueda) y ejemplares (alta en una sede, fin de reparación, baja) |
 | 4. Préstamos locales e interbibliotecarios | **Préstamos:** préstamo local, solicitud interbibliotecaria (sede origen y destino), entrega, cancelación y listados |
 | 5. Empaquetar, despachar y recibir con remito trazable | **Remitos:** empaquetar, despachar, puntos de control, recibir con estado físico, daño, extravío, anulación y trayecto completo |
-| 6. Consultar disponibilidad | **Consultar disponibilidad:** ejemplares de un libro por sede y por estado |
+| 6. Consultar disponibilidad | **Catálogo > Ver disponibilidad:** ejemplares del libro seleccionado por sede y por estado |
 | 7. Gestionar reservas | **Reservas:** reservar, registrar el retiro del ejemplar apartado, cancelar, procesar reservas no retiradas y listados |
 | 8. Devoluciones y estado físico | **Devoluciones y multas:** devolución con estado físico, multas, pagos y política de multas |
 | Reportes | **Reportes:** los cinco reportes descriptos más abajo, en pantalla o exportados a PDF y CSV |
-
-Los errores de negocio (por ejemplo, prestar a un socio inhabilitado) se informan en pantalla sin cortar el programa.
 
 ## Interfaz gráfica
 
@@ -135,23 +132,23 @@ biblioteca/
 ├── patrones/        # State, Strategy e Iterator
 ├── reportes/        # un módulo por reporte y la exportación a PDF/CSV
 ├── excepciones/     # excepciones de dominio
-├── interfaz/        # menús de consola
 └── interfaz_grafica/  # ventana Tkinter: una pestaña por área, formularios y tablas
-tests/               # tests con pytest
-docs/                # documentación del trabajo
+tests/               # tests unitarios y de integración (pytest)
+e2e/                 # pruebas de punta a punta sobre la ventana real
+docs/                # documentación del trabajo y ejemplos de reportes exportados
 ```
 
-Ninguna de las dos interfaces accede a la base directamente: las dos llaman a los mismos servicios y reportes. Los modelos no conocen ninguna interfaz.
+La interfaz no accede a la base directamente: llama a los servicios y a los reportes. Los modelos no conocen la interfaz.
 
-## Pruebas E2E y auditoría
+## Pruebas E2E
 
-La carpeta `e2e/` tiene 82 pruebas de punta a punta que manejan la interfaz gráfica real (formularios y cuadros de mensaje de Tk) y la consola. Necesitan una pantalla; en Linux se ejecutan con Xvfb:
+La carpeta `e2e/` tiene 80 pruebas de punta a punta que manejan la interfaz gráfica real (formularios y cuadros de mensaje de Tk). Necesitan una pantalla; en Linux se ejecutan con Xvfb:
 
 ```bash
 xvfb-run -a -s "-screen 0 1320x780x24" python -m pytest e2e -v
 ```
 
-Los casos están en Gherkin en `e2e/features/` y en `docs/pruebas/casos_xray.csv` (para Jira/Xray). El informe de la auditoría (cumplimiento de la consigna, patrones, flujos con capturas y resultados) está en [docs/informe_auditoria.html](docs/informe_auditoria.html) y, sobre la plantilla de la cátedra, en `docs/Presentacion-grupo-G054.docx`. Se regeneran con `PYTHONPATH=. python docs/auditoria/construir_documentacion.py`.
+Los casos están escritos en Gherkin en `e2e/features/`.
 
 ## Documentación
 
@@ -162,27 +159,12 @@ Los casos están en Gherkin en `e2e/features/` y en `docs/pruebas/casos_xray.csv
 - [Reportes](docs/reportes.md)
 - [Validaciones y tests](docs/validaciones.md)
 
-## Estado del proyecto
-
-Todos los procesos obligatorios, las validaciones y los reportes están implementados y probados.
-
-| Etapa | Estado |
-|---|---|
-| 1. Modelo de dominio | Hecha |
-| 2. Persistencia | Hecha |
-| 3. Sedes, socios y catálogo | Hecha |
-| 4. Préstamos, reservas y disponibilidad | Hecha |
-| 5. Remitos | Hecha |
-| 6. Devoluciones y multas | Hecha |
-| 7. Reportes | Hecha |
-| 8. Documentación final y tests | Hecha |
-
-### Procesos opcionales de la consigna
+## Procesos opcionales de la consigna
 
 | Proceso opcional | Estado |
 |---|---|
 | Revisión de estado de recepción de ejemplares (extravío, daño, destrucción) | Implementado como parte del ciclo de vida del remito |
 | Inventario con códigos | Parcial: cada ejemplar tiene un código de inventario único |
 | Envío de notificaciones | No implementado |
-| Historial de lecturas | No implementado (los préstamos de cada socio se pueden listar) |
+| Historial de lecturas | No implementado |
 | Recomendaciones | No implementado |

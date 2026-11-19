@@ -11,3 +11,6 @@ biblioteca.db
 
 # Reportes exportados
 reportes_generados/
+
+# Cobertura de tests
+.coverage

@@ -1,14 +1,11 @@
-"""E2E de los reportes con su exportación, de la carga de datos de ejemplo y de la interfaz de consola.
+"""E2E de los reportes con su exportación y de la carga de datos de ejemplo.
 Escenarios en e2e/features/reportes_y_general.feature."""
 import os
 import shutil
-import subprocess
-import sys
 from pathlib import Path
 
 from e2e.driver import Mensaje
 
-RAIZ = Path(__file__).resolve().parent.parent
 REPORTES = [
     ("1. Préstamos activos y tránsito", "activos", "Préstamos activos y material en tránsito"),
     ("2. Vencidos y multas", "vencidos", "Préstamos vencidos y multas acumuladas"),
@@ -74,39 +71,3 @@ def test_cn42_cargar_datos_de_ejemplo_dos_veces(gui, base):
     gui.menu("Archivo", "Cargar datos de ejemplo", Mensaje())
     mensajes = gui.menu("Archivo", "Cargar datos de ejemplo", Mensaje(titulo="Atención", captura="01_ya_hay_datos"))
     assert mensajes == [("Atención", "La base ya tiene datos; no se cargó nada.")]
-
-
-def _consola(base, entradas):
-    """Ejecuta `python main.py` (interfaz de consola) en la carpeta temporal, con las entradas indicadas."""
-    entorno = dict(os.environ, PYTHONPATH=str(RAIZ), COLUMNS="160", TERM="dumb")
-    resultado = subprocess.run([sys.executable, str(RAIZ / "main.py")], input="\n".join(entradas) + "\n",
-                               capture_output=True, text=True, cwd=base, env=entorno, timeout=60)
-    salida = resultado.stdout
-    if os.environ.get("E2E_CAPTURAS"):
-        Path(os.environ["E2E_CAPTURAS"]).mkdir(parents=True, exist_ok=True)
-    return resultado.returncode, salida
-
-
-def test_cp29_consola_carga_datos_y_lista_sedes(base):
-    codigo, salida = _consola(base, ["10", "1", "1", "0", "0"])
-    assert codigo == 0
-    assert "Se cargaron los datos de ejemplo." in salida
-    assert "Sedes de la red" in salida and "Biblioteca Central" in salida and "Sede Norte" in salida
-    assert "¡Hasta luego!" in salida
-    _guardar_salida("CP-29_salida_consola.txt", salida)
-
-
-def test_cn43_consola_opcion_invalida_y_error_de_negocio(base):
-    # Opción inexistente y, en Socios > Registrar socio, un DNI inválido: el error se muestra y el programa sigue.
-    codigo, salida = _consola(base, ["99", "2", "3", "12ab", "Ana", "Pérez", "", "", "0", "0"])
-    assert codigo == 0
-    assert "Opción inválida." in salida
-    assert "El DNI '12ab' no es válido: debe tener 7 u 8 dígitos." in salida
-    assert "¡Hasta luego!" in salida
-    _guardar_salida("CN-43_salida_consola.txt", salida)
-
-
-def _guardar_salida(nombre, salida):
-    carpeta = os.environ.get("E2E_CAPTURAS")
-    if carpeta:
-        (Path(carpeta) / nombre).write_text(salida, encoding="utf-8")

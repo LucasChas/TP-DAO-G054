@@ -105,4 +105,4 @@ Para correr todos los tests: `pytest -q`. Para correr los de una validación pun
 | Negativo | `test_servicio_catalogo.py::test_no_se_registra_ejemplar_en_sede_dada_de_baja` |
 
 ## Cobertura
-Los 181 tests cubren el 96 % de las líneas del paquete `biblioteca`, sin contar la interfaz de consola. Lo que queda sin cubrir son sobre todo los métodos `__repr__` y `__str__` de los modelos, algunos casos de "entidad no encontrada" y acciones de la clase base del patrón State que ningún estado deja llegar.
+Los 252 tests cubren el 97 % de las líneas del paquete `biblioteca`, sin contar la interfaz gráfica. Lo que queda sin cubrir son sobre todo los métodos `__repr__` y `__str__` de los modelos, algunos casos de "entidad no encontrada" y acciones de la clase base del patrón State que ningún estado deja llegar.
