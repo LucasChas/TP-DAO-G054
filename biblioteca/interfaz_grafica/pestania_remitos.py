@@ -1,7 +1,7 @@
 """Pestaña de remitos: lista arriba y, debajo, el recorrido del remito elegido.
 
-El recorrido se muestra como un desglose vertical: un renglón por cada movimiento, con su
-fecha, la duración desde el anterior y la observación completa, y al final los pasos que
+El recorrido se muestra como una línea de tiempo horizontal: una columna por cada movimiento,
+con su fecha, la duración desde el anterior y la observación, y al final los pasos que
 todavía faltan. Las acciones del ciclo de vida (patrón State) se ofrecen según el estado.
 """
 import tkinter as tk
@@ -66,9 +66,17 @@ def duracion(desde, hasta):
 
 
 class Recorrido(ttk.Frame):
-    """Desglose vertical del recorrido de un remito, dibujado en un Canvas con desplazamiento."""
+    """Recorrido de un remito como línea de tiempo horizontal, dibujada en un Canvas.
 
-    COLUMNA_HORA, COLUMNA_PUNTO, COLUMNA_TEXTO = 108, 128, 150
+    Cada paso es una columna: el punto sobre la línea y, debajo, el título, la fecha con la
+    duración desde el paso anterior y la observación. Las columnas se reparten el ancho
+    disponible; solo si son muchas aparece la barra horizontal.
+    """
+
+    ANCHO_MINIMO_COLUMNA = 150
+    LINEAS_DE_OBSERVACION = 3
+    MARGEN = 16
+    ALTURA_LINEA = 20
     COLORES = {
         "hecho": tema.PRIMARIO, "actual": tema.ALERTA_PUNTO, "problema": "#c62828",
         "cerrado": "#1f8f44", "pendiente": "#9aa6b5",
@@ -76,22 +84,24 @@ class Recorrido(ttk.Frame):
 
     def __init__(self, padre):
         super().__init__(padre, style="Panel.TFrame")
-        self.lienzo = tk.Canvas(self, background=tema.SUPERFICIE, highlightthickness=0, borderwidth=0)
-        barra = ttk.Scrollbar(self, orient="vertical", command=self.lienzo.yview)
-        self.lienzo.configure(yscrollcommand=c._barra_automatica(barra))
+        self.lienzo = tk.Canvas(self, background=tema.SUPERFICIE, highlightthickness=0, borderwidth=0, height=170)
+        horizontal = ttk.Scrollbar(self, orient="horizontal", command=self.lienzo.xview)
+        vertical = ttk.Scrollbar(self, orient="vertical", command=self.lienzo.yview)
+        self.lienzo.configure(xscrollcommand=c._barra_automatica(horizontal), yscrollcommand=c._barra_automatica(vertical))
         self.lienzo.grid(row=0, column=0, sticky="nsew")
-        barra.grid(row=0, column=1, sticky="ns")
+        vertical.grid(row=0, column=1, sticky="ns")
+        horizontal.grid(row=1, column=0, sticky="ew")
         self.rowconfigure(0, weight=1)
         self.columnconfigure(0, weight=1)
         self._remito = None
         self._ancho = 0
         self.lienzo.bind("<Configure>", self._al_cambiar_tamanio)
-        for secuencia in ("<Button-4>", "<Button-5>", "<MouseWheel>"):
+        for secuencia in ("<Shift-Button-4>", "<Shift-Button-5>", "<Shift-MouseWheel>"):
             self.lienzo.bind(secuencia, self._rueda)
 
     def _rueda(self, evento):
         paso = -1 if getattr(evento, "num", None) == 4 or getattr(evento, "delta", 0) > 0 else 1
-        self.lienzo.yview_scroll(paso * 2, "units")
+        self.lienzo.xview_scroll(paso * 3, "units")
 
     def _al_cambiar_tamanio(self, evento):
         if abs(evento.width - self._ancho) > 4:
@@ -127,7 +137,7 @@ class Recorrido(ttk.Frame):
                 despacho = remito.fecha_de("Despachado")
                 if nuevo in ("Despachado", "EnTransito") and despacho:
                     horas = (datetime.now() - despacho).total_seconds() / 3600
-                    extra = f"Última ubicación conocida · {horas:.0f} h en viaje"
+                    extra = f"Última ubicación · {horas:.0f} h de viaje"
                 else:
                     extra = "Estado actual"
             detalle = movimiento.observacion
@@ -141,7 +151,7 @@ class Recorrido(ttk.Frame):
                 titulo, detalle = {
                     "Empaquetado": ("Empaquetado", "Preparar el ejemplar para el envío"),
                     "Despachado": (f"Despachado desde {remito.sede_origen.nombre}", "Entregarlo al transporte"),
-                    "Recibido": (f"Recibido en {remito.sede_destino.nombre}", "Registrar la recepción y el estado físico del ejemplar"),
+                    "Recibido": (f"Recibido en {remito.sede_destino.nombre}", "Registrar la recepción"),
                     "Cerrado": ("Cerrado", f"Cuando se entregue a {remito.prestamo.socio.nombre_completo}"
                                 if remito.sentido == SentidoRemito.IDA else "Al recibirlo en la sede propietaria"),
                 }[nombre]
@@ -150,62 +160,69 @@ class Recorrido(ttk.Frame):
                 pasos.append(("pendiente", None, titulo, detalle, "pendiente", None, ""))
         return pasos
 
+    def _recortar(self, texto, ancho, lineas):
+        """Acorta el texto para que ocupe como mucho 'lineas' renglones del ancho dado (la vista Tabla lo muestra completo)."""
+        fuente = font.nametofont("TkDefaultFont")
+        maximo = max(int(ancho / max(fuente.measure("n"), 1)) * lineas, 20)
+        return texto if len(texto) <= maximo else texto[: maximo - 1].rstrip() + "…"
+
     def dibujar(self, remito):
         self._remito = remito
         lienzo = self.lienzo
         lienzo.delete("all")
         ancho = max(self.lienzo.winfo_width(), 400)
         if remito is None:
-            lienzo.create_text(ancho / 2, 50, text="Elija un remito de la lista para ver su recorrido.",
+            lienzo.create_text(ancho / 2, 60, text="Elija un remito de la lista para ver su recorrido.",
                                fill=tema.TEXTO_SUAVE, font="TkDefaultFont")
-            lienzo.configure(scrollregion=(0, 0, ancho, 100))
+            lienzo.configure(scrollregion=(0, 0, ancho, 120))
             return
-        negrita = font.nametofont("FuenteNegrita")
-        ancho_texto = ancho - self.COLUMNA_TEXTO - 24
-        y = 12
-        puntos = []
-        for fecha, _, titulo, detalle, tipo, extra, demora in self.pasos(remito):
+        pasos = self.pasos(remito)
+        columna = max(self.ANCHO_MINIMO_COLUMNA, (ancho - 2 * self.MARGEN) / len(pasos))
+        texto_ancho = columna - 18
+        y_linea = 14
+        centros = [self.MARGEN + columna * indice + columna / 2 for indice in range(len(pasos))]
+        alto = 0
+        for centro, (fecha, _, titulo, detalle, tipo, extra, demora) in zip(centros, pasos):
             pendiente = tipo == "pendiente"
-            lienzo.create_text(self.COLUMNA_HORA, y + 1, text=fecha, anchor="ne", font="FuenteChica",
-                               fill=tema.TEXTO_SUAVE)
+            y = y_linea + 16
             color_titulo = "#a4161a" if tipo == "problema" else (tema.NEUTRO if pendiente else tema.TEXTO)
-            lienzo.create_text(self.COLUMNA_TEXTO, y, text=titulo, anchor="nw", font="FuenteNegrita", fill=color_titulo)
-            if demora:
-                lienzo.create_text(self.COLUMNA_TEXTO + negrita.measure(titulo) + 10, y + 1, text=demora, anchor="nw",
-                                   font="FuenteChica", fill=tema.TEXTO_SUAVE)
-            fondo = y + negrita.metrics("linespace")
+            item = lienzo.create_text(centro, y, text=titulo, anchor="n", width=texto_ancho, justify="center",
+                                      font="FuenteNegrita", fill=color_titulo)
+            y = lienzo.bbox(item)[3] + 2
+            cuando = fecha if not demora else f"{fecha}  ·  {demora}"
+            item = lienzo.create_text(centro, y, text=cuando, anchor="n", width=texto_ancho, justify="center",
+                                      font="FuenteChica", fill=tema.TEXTO_SUAVE)
+            y = lienzo.bbox(item)[3] + 4
             texto_detalle = detalle or ("Sin observaciones" if not pendiente else "")
             if texto_detalle:
-                item = lienzo.create_text(self.COLUMNA_TEXTO, fondo + 3, text=texto_detalle, anchor="nw", width=ancho_texto,
-                                          font="TkDefaultFont", fill=tema.TEXTO if detalle and not pendiente else tema.TEXTO_SUAVE)
-                fondo = lienzo.bbox(item)[3]
+                item = lienzo.create_text(centro, y, text=self._recortar(texto_detalle, texto_ancho, self.LINEAS_DE_OBSERVACION),
+                                          anchor="n", width=texto_ancho, justify="center", font="TkDefaultFont",
+                                          fill=tema.TEXTO if detalle and not pendiente else tema.TEXTO_SUAVE)
+                y = lienzo.bbox(item)[3]
             if extra:
-                item = lienzo.create_text(self.COLUMNA_TEXTO + 8, fondo + 7, text=extra, anchor="nw",
+                item = lienzo.create_text(centro, y + 8, text=extra, anchor="n", justify="center",
                                           font="FuenteChica", fill=tema.ALERTA)
                 x1, y1, x2, y2 = lienzo.bbox(item)
-                caja = lienzo.create_rectangle(x1 - 8, y1 - 3, x2 + 8, y2 + 3, fill="#fff1cc", outline="")
+                caja = lienzo.create_rectangle(x1 - 6, y1 - 3, x2 + 6, y2 + 3, fill="#fff1cc", outline="")
                 lienzo.tag_lower(caja, item)
-                fondo = y2 + 3
-            puntos.append((y + 9, tipo))
-            y = fondo + 13
-        # Línea vertical entre los puntos y los puntos encima.
-        for (y1, tipo1), (y2, tipo2) in zip(puntos, puntos[1:]):
-            punteada = tipo2 == "pendiente"
-            lienzo.create_line(self.COLUMNA_PUNTO, y1, self.COLUMNA_PUNTO, y2, width=2,
-                               fill=self.COLORES["pendiente"] if punteada or tipo1 == "actual" else tema.PRIMARIO,
+                y = y2 + 3
+            alto = max(alto, y)
+        # Línea horizontal entre los puntos y los puntos encima.
+        for (x1, paso1), (x2, paso2) in zip(zip(centros, pasos), list(zip(centros, pasos))[1:]):
+            punteada = paso2[4] == "pendiente"
+            lienzo.create_line(x1, y_linea, x2, y_linea, width=2,
+                               fill=self.COLORES["pendiente"] if punteada or paso1[4] == "actual" else tema.PRIMARIO,
                                dash=(3, 4) if punteada else None)
-        for y_punto, tipo in puntos:
-            color = self.COLORES[tipo]
+        for centro, paso in zip(centros, pasos):
+            tipo, color = paso[4], self.COLORES[paso[4]]
             if tipo == "actual":
-                lienzo.create_oval(self.COLUMNA_PUNTO - 8, y_punto - 8, self.COLUMNA_PUNTO + 8, y_punto + 8,
-                                   fill=tema.SUPERFICIE, outline=color, width=3)
+                lienzo.create_oval(centro - 9, y_linea - 9, centro + 9, y_linea + 9, fill=tema.SUPERFICIE, outline=color, width=3)
             elif tipo == "pendiente":
-                lienzo.create_oval(self.COLUMNA_PUNTO - 6, y_punto - 6, self.COLUMNA_PUNTO + 6, y_punto + 6,
-                                   fill=tema.SUPERFICIE, outline=color, width=2)
+                lienzo.create_oval(centro - 7, y_linea - 7, centro + 7, y_linea + 7, fill=tema.SUPERFICIE, outline=color, width=2)
             else:
-                lienzo.create_oval(self.COLUMNA_PUNTO - 6, y_punto - 6, self.COLUMNA_PUNTO + 6, y_punto + 6,
-                                   fill=color, outline=tema.SUPERFICIE, width=2)
-        lienzo.configure(scrollregion=(0, 0, ancho, y))
+                lienzo.create_oval(centro - 7, y_linea - 7, centro + 7, y_linea + 7, fill=color, outline=tema.SUPERFICIE, width=2)
+        lienzo.configure(scrollregion=(0, 0, self.MARGEN * 2 + columna * len(pasos), alto + 4))
+        lienzo.xview_moveto(0)
         lienzo.yview_moveto(0)
 
 
@@ -213,7 +230,7 @@ class PestaniaRemitos(ttk.Frame):
     COLUMNAS = ("Id", "Número", "Sentido", "Ejemplar", "Libro", "Origen", "Destino", "Generado", "Estado")
     COLUMNAS_TRAYECTO = ("Fecha y hora", "Estado anterior", "Estado nuevo", "Observación")
     FILTROS = ("Todos", "En curso", "Con incidencia", "Cerrados")
-    VISTAS = ("Desglose", "Tabla")
+    VISTAS = ("Línea de tiempo", "Tabla")
 
     def __init__(self, padre):
         super().__init__(padre, padding=(20, 16), style="Panel.TFrame")
@@ -239,21 +256,23 @@ class PestaniaRemitos(ttk.Frame):
                                   mensaje_vacio="No hay remitos para mostrar."),
             lambda padre: ttk.LabelFrame(padre, text="Trayecto del remito seleccionado", padding=(14, 8),
                                          style="Detalle.TLabelframe"),
-            proporcion=0.37,
+            proporcion=0.38,
         )
         division.pack(fill="both", expand=True)
         self.tabla.al_seleccionar(self.actualizar_trayecto)
 
-        self.resumen = ttk.Label(self.marco_trayecto, text="", style="PanelSuave.TLabel")
-        self.resumen.pack(anchor="w")
         cabecera = ttk.Frame(self.marco_trayecto, style="Panel.TFrame")
-        cabecera.pack(fill="x", pady=(8, 0))
-        self.botones = c.barra_de_botones(cabecera, [
+        cabecera.pack(fill="x")
+        self.resumen = ttk.Label(cabecera, text="", style="PanelSuave.TLabel")
+        self.resumen.pack(side="left")
+        self.vista = c.FiltroSegmentado(cabecera, self.VISTAS, self._mostrar_vista)
+        self.vista.pack(side="right")
+        # Fila de acciones: se muestra solo si el estado del remito admite alguna.
+        self.fila_acciones = ttk.Frame(self.marco_trayecto, style="Panel.TFrame")
+        self.botones = c.barra_de_botones(self.fila_acciones, [
             (texto, getattr(self, metodo), estilo) for texto, _, metodo, estilo in ACCIONES
         ])
         self.botones.pack(side="left")
-        self.vista = c.FiltroSegmentado(cabecera, self.VISTAS, self._mostrar_vista)
-        self.vista.pack(side="right")
         self.recorrido = Recorrido(self.marco_trayecto)
         self.tabla_trayecto = c.Tabla(self.marco_trayecto, self.COLUMNAS_TRAYECTO, alto=5, ocultas=(),
                                       anchos={"Fecha y hora": 150, "Observación": 420},
@@ -265,10 +284,13 @@ class PestaniaRemitos(ttk.Frame):
         self.actualizar()
 
     def _mostrar_vista(self):
-        """El recorrido se ve como desglose vertical; la vista Tabla muestra los mismos movimientos en columnas."""
-        desglose = self.vista.get() == "Desglose"
-        (self.tabla_trayecto if desglose else self.recorrido).pack_forget()
-        (self.recorrido if desglose else self.tabla_trayecto).pack(fill="both", expand=True, pady=(10, 0))
+        """El recorrido se ve como línea de tiempo; la vista Tabla muestra los mismos movimientos con las observaciones completas."""
+        linea = self.vista.get() == "Línea de tiempo"
+        (self.tabla_trayecto if linea else self.recorrido).pack_forget()
+        (self.recorrido if linea else self.tabla_trayecto).pack(fill="both", expand=True, pady=(8, 0))
+
+    def _vista_visible(self):
+        return self.recorrido if self.vista.get() == "Línea de tiempo" else self.tabla_trayecto
 
     def actualizar(self):
         if self.solo_en_curso.get() and self.filtro.get() != "En curso":
@@ -320,6 +342,10 @@ class PestaniaRemitos(ttk.Frame):
         principal = next((t for t, _, _, estilo in ACCIONES if estilo == c.PRIMARIO and t in validas), None)
         for boton in self.botones.botones.values():
             boton.pack_forget()
+        if validas:
+            self.fila_acciones.pack(fill="x", pady=(8, 0), before=self._vista_visible())
+        else:
+            self.fila_acciones.pack_forget()
         for texto, _, _, estilo in ACCIONES:
             if texto not in validas:
                 continue
